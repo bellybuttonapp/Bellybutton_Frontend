@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'package:get/get.dart';
 
 import '../modules/Auth/forgot_password/bindings/forgot_password_binding.dart';
@@ -7,6 +8,18 @@ import '../modules/Auth/login/bindings/login_binding.dart';
 import '../modules/Auth/login/views/login_view.dart';
 import '../modules/Auth/signup/bindings/signup_binding.dart';
 import '../modules/Auth/signup/views/signup_view.dart';
+import '../modules/Dashboard/Innermodule/Past_Event/bindings/past_event_binding.dart';
+import '../modules/Dashboard/Innermodule/Past_Event/views/past_event_view.dart';
+import '../modules/Dashboard/Innermodule/Upcomming_Event/bindings/upcomming_event_binding.dart';
+import '../modules/Dashboard/Innermodule/Upcomming_Event/views/upcomming_event_view.dart';
+import '../modules/Dashboard/bindings/dashboard_binding.dart';
+import '../modules/Dashboard/views/dashboard_view.dart';
+import '../modules/Notifications/bindings/notifications_binding.dart';
+import '../modules/Notifications/views/notifications_view.dart';
+import '../modules/Profile/Innermodule/Account_Details/bindings/account_details_binding.dart';
+import '../modules/Profile/Innermodule/Account_Details/views/account_details_view.dart';
+import '../modules/Profile/bindings/profile_binding.dart';
+import '../modules/Profile/views/profile_view.dart';
 import '../modules/home/bindings/home_binding.dart';
 import '../modules/home/views/home_view.dart';
 import '../modules/onboarding/bindings/onboarding_binding.dart';
@@ -17,7 +30,7 @@ part 'app_routes.dart';
 class AppPages {
   AppPages._();
 
-  static const INITIAL = Routes.LOGIN;
+  static const INITIAL = Routes.ONBOARDING;
 
   static final routes = [
     GetPage(
@@ -32,7 +45,7 @@ class AppPages {
       name: _Paths.ONBOARDING,
       page: () => const OnboardingView(),
       binding: OnboardingBinding(),
-      transition: Transition.rightToLeftWithFade,
+      transition: Transition.downToUp,
       curve: Curves.fastOutSlowIn,
       transitionDuration: Duration(milliseconds: 500),
     ),
@@ -60,6 +73,40 @@ class AppPages {
       transition: Transition.zoom,
       curve: Curves.easeInOutBack,
       transitionDuration: Duration(milliseconds: 500),
+    ),
+    GetPage(
+      name: _Paths.DASHBOARD,
+      page: () => const DashboardView(),
+      binding: DashboardBinding(),
+      children: [
+        GetPage(
+          name: _Paths.UPCOMMING_EVENT,
+          page: () => UpcommingEventView(),
+          binding: UpcommingEventBinding(),
+        ),
+        GetPage(
+          name: _Paths.PAST_EVENT,
+          page: () => PastEventView(),
+          binding: PastEventBinding(),
+        ),
+      ],
+    ),
+    GetPage(
+      name: _Paths.NOTIFICATIONS,
+      page: () => NotificationsView(),
+      binding: NotificationsBinding(),
+    ),
+    GetPage(
+      name: _Paths.PROFILE,
+      page: () => ProfileView(),
+      binding: ProfileBinding(),
+      children: [
+        GetPage(
+          name: _Paths.ACCOUNT_DETAILS,
+          page: () => AccountDetailsView(),
+          binding: AccountDetailsBinding(),
+        ),
+      ],
     ),
   ];
 }

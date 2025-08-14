@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../routes/app_pages.dart';
+import '../../forgot_password/views/forgot_password_view.dart';
 import '../../login/views/login_view.dart';
 
 class SignupController extends GetxController {
+  var isGoogleLoading = false.obs;
+  //Loader
+  var isLoading = false.obs; // add this in your controller
 
   // Text controllers
   final nameController = TextEditingController();
@@ -59,8 +63,7 @@ class SignupController extends GetxController {
     }
   }
 
-  // --- Signup logic ---
-  void signup() {
+  Future<void> signup() async {
     final name = nameController.text.trim();
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
@@ -72,8 +75,18 @@ class SignupController extends GetxController {
     if (nameError.value == null &&
         emailError.value == null &&
         passwordError.value == null) {
-      // Proceed with signup
-      Get.snackbar('Success', 'Signed up successfully');
+      isLoading.value = true; // start loader
+
+      try {
+        // Simulate signup process (e.g., API call)
+        await Future.delayed(const Duration(seconds: 2));
+
+        Get.snackbar('Success', 'Signed up successfully');
+      } catch (e) {
+        Get.snackbar('Error', 'Signup failed');
+      } finally {
+        isLoading.value = false; // stop loader
+      }
     } else {
       Get.snackbar('Error', 'Please fix the highlighted errors');
     }
@@ -85,8 +98,17 @@ class SignupController extends GetxController {
   }
 
   void navigateToLogin() {
-     Get.toNamed(Routes.LOGIN); // ✅ triggers proper binding disposal and recreation
+    Get.toNamed(
+      Routes.LOGIN,
+    ); // ✅ triggers proper binding disposal and recreation
+  }
 
+  void forget_Paswd() {
+    Get.to(
+      () => ForgotPasswordView(),
+      transition: Transition.rightToLeft, // Slide from right to left
+      duration: const Duration(milliseconds: 300), // Optional speed control
+    );
   }
 
   @override

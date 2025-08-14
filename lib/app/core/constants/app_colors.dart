@@ -5,6 +5,8 @@ class AppColors {
   static const Color textColor2 = Color.fromARGB(255, 111, 109, 109);
   static const Color textColor3 = Colors.white;
   static const Color primaryColor = Color(0xFF004C99);
+  static const Color primaryColor1 = Color.fromARGB(255, 235, 7, 7);
+
   
   static const Color tertiaryColor = Color(0xFF818385);
   static const Color disabledColor = Color(0xFFDADADB);

@@ -1,7 +1,11 @@
+import 'package:bellybutton/app/core/constants/app_texts.dart';
 import 'package:flutter/material.dart';
 
 import 'package:get/get.dart';
 
+import '../../../../core/themes/Font_style.dart';
+import '../../../../core/themes/dimensions.dart';
+import '../../../../global_widgets/custom_app_bar/custom_app_bar.dart';
 import '../controllers/forgot_password_controller.dart';
 
 class ForgotPasswordView extends GetView<ForgotPasswordController> {
@@ -9,14 +13,11 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('ForgotPasswordView'),
-        centerTitle: true,
-      ),
-      body: const Center(
+      appBar: CustomAppBar(title: app_texts.ForgetPswd),
+      body: Center(
         child: Text(
-          'ForgotPasswordView is working',
-          style: TextStyle(fontSize: 20),
+          app_texts.Working,
+          style: customBoldText.copyWith(fontSize: Dimensions.fontSizeLarge),
         ),
       ),
     );

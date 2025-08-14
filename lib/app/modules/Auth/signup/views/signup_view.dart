@@ -1,14 +1,14 @@
 import 'package:bellybutton/app/core/constants/app_texts.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/themes/Font_style.dart';
 import '../../../../core/themes/dimensions.dart';
 import '../../../../global_widgets/Button/global_button.dart';
 import '../../login/Widgets/Signin_Button.dart';
-import '../../login/Widgets/login_textfield.dart';
+import '../../login/controllers/login_controller.dart';
+import '../Widgets/Signup_textfield.dart';
 import '../controllers/signup_controller.dart';
-import '../../login/views/login_view.dart';
 
 class SignupView extends GetView<SignupController> {
   SignupView({super.key});
@@ -16,11 +16,19 @@ class SignupView extends GetView<SignupController> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<SignupController>(); // manually get controller
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    // final controller = Get.find<SignupController>(); // manually get controller
+    final SignupController controller = Get.find<SignupController>();
+    final LoginController loginController = Get.find<LoginController>();
+
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 6, 29, 60),
+      backgroundColor:
+          isDarkMode
+              ? AppTheme.darkTheme.scaffoldBackgroundColor
+              : AppTheme.lightTheme.primaryColor,
       body: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         child: Column(
@@ -32,7 +40,7 @@ class SignupView extends GetView<SignupController> {
               height: screenWidth * 0.3,
               width: screenWidth * 0.3,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.textColor3,
                 borderRadius: BorderRadius.circular(100),
                 boxShadow: [
                   BoxShadow(
@@ -45,7 +53,7 @@ class SignupView extends GetView<SignupController> {
               child: Icon(
                 Icons.lock,
                 size: screenWidth * 0.15,
-                color: const Color.fromARGB(255, 6, 29, 60),
+                color: AppColors.textColor,
               ),
             ),
 
@@ -59,7 +67,7 @@ class SignupView extends GetView<SignupController> {
                 vertical: screenHeight * 0.05,
               ),
               decoration: const BoxDecoration(
-                color: Colors.white,
+                color: AppColors.textColor3,
                 borderRadius: BorderRadius.only(
                   topRight: Radius.circular(35),
                   topLeft: Radius.circular(35),
@@ -77,7 +85,7 @@ class SignupView extends GetView<SignupController> {
                       ),
                     ),
                     Obx(
-                      () => login_textfield(
+                      () => Signup_textfield(
                         controller: controller.nameController,
                         hintText: app_texts.signupName,
                         obscureText: false,
@@ -88,7 +96,7 @@ class SignupView extends GetView<SignupController> {
                     ),
                     SizedBox(height: screenHeight * 0.01),
                     Obx(
-                      () => login_textfield(
+                      () => Signup_textfield(
                         controller: controller.emailController,
                         hintText: app_texts.signupEmail,
                         obscureText: false,
@@ -99,7 +107,7 @@ class SignupView extends GetView<SignupController> {
                     ),
                     SizedBox(height: screenHeight * 0.01),
                     Obx(
-                      () => login_textfield(
+                      () => Signup_textfield(
                         controller: controller.passwordController,
                         hintText: app_texts.signupPassword,
                         obscureText: controller.isPasswordHidden.value,
@@ -110,7 +118,7 @@ class SignupView extends GetView<SignupController> {
                             controller.isPasswordHidden.value
                                 ? Icons.visibility_off
                                 : Icons.visibility,
-                            color: Colors.grey,
+                            color: AppColors.tertiaryColor,
                           ),
                           onPressed: () {
                             controller.isPasswordHidden.toggle();
@@ -121,13 +129,25 @@ class SignupView extends GetView<SignupController> {
 
                     SizedBox(height: screenHeight * 0.03),
 
-                    global_button(
-                      onTap: () {
-                        if (formKey.currentState!.validate()) {
-                          controller.signup();
-                        }
-                      },
+                    Obx(
+                      () => global_button(
+                        loaderWhite: true,
+                        isLoading:
+                            controller.isLoading.value, // pass isLoading here
+                        onTap: () {
+                          if (formKey.currentState!.validate() &&
+                              !controller.isLoading.value) {
+                            controller.signup();
+                          }
+                        },
+                        title: app_texts.signupbutton,
+                        backgroundColor:
+                            isDarkMode
+                                ? AppTheme.darkTheme.scaffoldBackgroundColor
+                                : AppTheme.lightTheme.primaryColor,
+                      ),
                     ),
+
                     SizedBox(height: screenHeight * 0.01),
 
                     Row(
@@ -144,8 +164,8 @@ class SignupView extends GetView<SignupController> {
                                     controller.rememberMe.value =
                                         value ?? false;
                                   },
-                                  activeColor: Colors.blue,
-                                  checkColor: Colors.grey[500],
+                                  activeColor: AppColors.primaryColor,
+                                  checkColor: AppColors.textColor3,
                                   visualDensity: VisualDensity.compact,
                                   materialTapTargetSize:
                                       MaterialTapTargetSize.shrinkWrap,
@@ -161,11 +181,14 @@ class SignupView extends GetView<SignupController> {
                             ],
                           ),
                         ),
-                        Text(
-                          app_texts.forgotPassword,
-                          style: customBoldText.copyWith(
-                            color: Colors.grey[500],
-                            fontSize: Dimensions.fontSizeSmall,
+                        GestureDetector(
+                          onTap: controller.forget_Paswd,
+                          child: Text(
+                            app_texts.forgotPassword,
+                            style: customBoldText.copyWith(
+                              color: AppColors.tertiaryColor,
+                              fontSize: Dimensions.fontSizeSmall,
+                            ),
                           ),
                         ),
                       ],
@@ -178,7 +201,7 @@ class SignupView extends GetView<SignupController> {
                         Expanded(
                           child: Divider(
                             thickness: 0.5,
-                            color: Colors.grey[400],
+                            color: AppColors.tertiaryColor,
                           ),
                         ),
                         Padding(
@@ -196,7 +219,7 @@ class SignupView extends GetView<SignupController> {
                         Expanded(
                           child: Divider(
                             thickness: 0.5,
-                            color: Colors.grey[400],
+                            color: AppColors.tertiaryColor,
                           ),
                         ),
                       ],
@@ -204,7 +227,15 @@ class SignupView extends GetView<SignupController> {
 
                     SizedBox(height: screenHeight * 0.04),
 
-                    Signin_Button(onTap: controller.Signin_Button),
+                    Obx(
+                      () => Signin_Button(
+                        isLoading: loginController.isGoogleLoading.value,
+                        onTap:
+                            loginController.isGoogleLoading.value
+                                ? null
+                                : loginController.onSigninWithGoogle,
+                      ),
+                    ),
 
                     SizedBox(height: screenHeight * 0.05),
 
@@ -215,7 +246,7 @@ class SignupView extends GetView<SignupController> {
                           app_texts.alreadyHaveAccount,
                           style: customBoldText.copyWith(
                             fontSize: Dimensions.fontSizeSmall,
-                            color: Colors.black,
+                            color: AppColors.textColor,
                           ),
                         ),
                         SizedBox(width: screenWidth * 0.01),
@@ -225,7 +256,7 @@ class SignupView extends GetView<SignupController> {
                             app_texts.buttonLogin,
                             style: customBoldText.copyWith(
                               fontSize: Dimensions.fontSizeSmall,
-                              color: const Color.fromARGB(255, 6, 29, 60),
+                              color: AppColors.primaryColor,
                             ),
                           ),
                         ),

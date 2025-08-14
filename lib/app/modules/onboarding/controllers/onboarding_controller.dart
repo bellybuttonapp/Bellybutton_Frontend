@@ -1,23 +1,14 @@
 import 'package:get/get.dart';
 
+import '../../../routes/app_pages.dart';
+
 class OnboardingController extends GetxController {
-  //TODO: Implement OnboardingController
+  var isLoading = false.obs;
 
-  final count = 0.obs;
-  @override
-  void onInit() {
-    super.onInit();
+  void goToNext() async {
+    isLoading.value = true;
+    await Future.delayed(Duration(seconds: 2));
+    isLoading.value = false;
+    Get.offNamed(Routes.LOGIN); // ✅ Cannot go back to onboarding
   }
-
-  @override
-  void onReady() {
-    super.onReady();
-  }
-
-  @override
-  void onClose() {
-    super.onClose();
-  }
-
-  void increment() => count.value++;
 }

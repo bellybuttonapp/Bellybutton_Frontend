@@ -1,16 +1,18 @@
 // ignore: camel_case_types
 class app_texts {
   // Onboarding
-  static const onboardingTitle1 = "Welcome to Our App";
-  static const onboardingSubtitle1 = "Explore the best features with us.";
-  static const onboardingTitle2 = "Stay Connected";
-  static const onboardingSubtitle2 = "Always be in touch with your friends.";
+  static const onboardingTitle1 = "Get Photo Requests. Share in Seconds.";
+  static const onboardingSubtitle1 =
+      "Receive photo requests from hosts and \n upload only what you choose — within a set \n  time frame.";
+  static const onboardingbutton = "Get started";
 
   // Auth Screens - Login
   static const loginTitle = "Sign in";
   static const loginEmail = "Email";
   static const loginPassword = "Enter your password";
   static const dontHaveAccount = "Don’t have an account?";
+  static const loginWithGoogle = "Sign in with Google";
+  static const loginbutton = "login";
 
   // Auth Screens - Signup
   static const signupTitle = "Register account";
@@ -18,13 +20,61 @@ class app_texts {
   static const signupName = "Name";
   static const signupEmail = "Email";
   static const signupPassword = "Enter your password";
+  static const signupbutton = "Sign up";
+
+  // Auth Screens - ForgetPswd
+  static const ForgetPswd = "Forget Password";
+  static const Working = "Working In Progress....";
+
+  ///Notification screen
+  static const Notification = "Notification";
+  static const No_Notification = "No Notification";
+  static const NotificationSubtitle =
+      "Stay tuned – we’ll notify you as soon as \n there’s something new.";
+
+  //Profile screen
+  static const Profile = "Profile";
+  static const Notifications = "Notifications";
+  static const Privacy_Permissions = "Privacy & Permissions";
+  static const Auto_Sync_Settings = "Auto-Sync Settings";
+  static const FAQs = "FAQs";
+  static const Delete_account = "Delete account";
+
+  // Account Details
+  static const Account_Details = "Account Details";
+
+  // Delete Account Popup
+  static const D_POPup_Title = "Delete Account !";
+  static const D_POPup_SubTitle =
+      "Are you sure you want to delete your account? This action cannot be undone.";
+  // Sign out  Popup
+  static const S_POPup_Title = "Log out !";
+  static const s_POPup_SubTitle = "Are you sure you want to log out?";
 
   // Common
   static const buttonContinue = "Continue";
   static const buttonLogin = "Sign in";
+  static const Sign_out = "Sign out";
+  static const Save_changes = "Save Changes";
+
   static const buttonSignup = "Sign Up";
   static const rememberMe = "Remember me";
   static const forgotPassword = "Forgot password?";
   static const orText = "Or";
   static const alreadyHaveAccount = "Already have an account?";
+  static const Upcoming_event = "Upcoming event";
+  static const Past_event = "Past event";
+  static const Create_event = "Create event";
+  static const Go_Back = "Go Back";
+  static const Delete = "Delete";
+  static const Cancel = "Cancel";
+  static const Log_out = "Logout";
+
+  //upcommingevent
+  static const upcommingEmpty =
+      "Set up an event and invite users to share \n photos from a selected time range — \n quick, private, and organized.";
+
+  //PastEvent
+  static const pastEventEmpty =
+      "Set up an event and invite users to share \n photos from a selected time range — \n quick, private, and organized.";
 }
