@@ -76,6 +76,7 @@ class app_texts {
   static const Delete = "Delete";
   static const Cancel = "Cancel";
   static const Log_out = "Logout";
+  static const Invite = "Invite";
 
   //upcommingevent
   static const upcommingEmpty =
@@ -84,4 +85,7 @@ class app_texts {
   //PastEvent
   static const pastEventEmpty =
       "Set up an event and invite users to share \n photos from a selected time range — \n quick, private, and organized.";
+
+  ///Create Event screen
+  static const CreateEvent = "Create event";
 }

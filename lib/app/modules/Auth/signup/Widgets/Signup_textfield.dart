@@ -9,11 +9,15 @@ class Signup_textfield extends StatelessWidget {
   final String hintText;
   final bool obscureText;
   final bool enabled;
+  final bool readOnly;
   final TextInputType? keyboardType;
+  final Widget? prefixIcon; // added
   final Widget? suffixIcon;
   final String? Function(String?)? validator;
   final String? errorText;
   final void Function(String)? onChanged;
+  final VoidCallback? onTap;
+  final int? maxLines;
 
   const Signup_textfield({
     super.key,
@@ -22,33 +26,38 @@ class Signup_textfield extends StatelessWidget {
     required this.hintText,
     required this.obscureText,
     this.enabled = true,
+    this.readOnly = false,
     this.keyboardType,
+    this.prefixIcon, // optional
     this.suffixIcon,
     this.validator,
     this.errorText,
     this.onChanged,
+    this.onTap,
+    this.maxLines,
   });
 
   @override
-
   Widget build(BuildContext context) {
     return Stack(
       children: [
         Column(
           children: [
-            const SizedBox(height: 18), // Reserve space for error
+            const SizedBox(height: 18),
             TextFormField(
               controller: controller,
               initialValue: controller == null ? initialValue : null,
               enabled: enabled,
               obscureText: obscureText,
               obscuringCharacter: '*',
+              readOnly: readOnly,
               keyboardType: keyboardType,
               validator: validator,
               autovalidateMode: AutovalidateMode.onUserInteraction,
               onChanged: onChanged,
+              onTap: onTap,
+              maxLines: maxLines ?? 1,
               style: customBoldText.copyWith(
-                // This styles the initialValue text too
                 fontSize: Dimensions.fontSizeSmall,
                 color: AppColors.tertiaryColor,
               ),
@@ -58,6 +67,7 @@ class Signup_textfield extends StatelessWidget {
                   fontSize: Dimensions.fontSizeSmall,
                 ),
                 hintText: hintText,
+                prefixIcon: prefixIcon, // apply here
                 suffixIcon: suffixIcon,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(5),
@@ -96,7 +106,7 @@ class Signup_textfield extends StatelessWidget {
             child: Text(
               errorText!,
               style: customBoldText.copyWith(
-                color: Colors.red,
+                color: AppColors.primaryColor1,
                 fontSize: Dimensions.fontSizeExtraSmall,
               ),
             ),

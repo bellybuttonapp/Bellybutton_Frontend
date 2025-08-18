@@ -1,3 +1,4 @@
+import 'package:bellybutton/app/modules/Dashboard/Innermodule/create_event/views/create_event_view.dart';
 import 'package:get/get.dart';
 
 class PastEventController extends GetxController {
@@ -16,8 +17,7 @@ class PastEventController extends GetxController {
     super.onReady();
   }
 
-
-    // New: Button tap handler
+  // New: Button tap handler
   void PastEventViewCreate() async {
     try {
       isLoading.value = true;
@@ -26,6 +26,7 @@ class PastEventController extends GetxController {
       await Future.delayed(const Duration(seconds: 2));
 
       // TODO: Add actual navigation or logic here
+      Get.to(CreateEventView());
       print('Button tapped, proceed to next step');
     } finally {
       isLoading.value = false;

@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 
+import '../../create_event/views/create_event_view.dart';
+
 class UpcommingEventController extends GetxController {
   var isLoading = false.obs;
 
@@ -31,6 +33,7 @@ class UpcommingEventController extends GetxController {
       await Future.delayed(const Duration(seconds: 2));
 
       // TODO: Add actual navigation or logic here
+      Get.to(CreateEventView());
       print('Button tapped, proceed to next step');
     } finally {
       isLoading.value = false;

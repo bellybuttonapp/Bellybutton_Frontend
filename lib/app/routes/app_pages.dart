@@ -12,6 +12,8 @@ import '../modules/Dashboard/Innermodule/Past_Event/bindings/past_event_binding.
 import '../modules/Dashboard/Innermodule/Past_Event/views/past_event_view.dart';
 import '../modules/Dashboard/Innermodule/Upcomming_Event/bindings/upcomming_event_binding.dart';
 import '../modules/Dashboard/Innermodule/Upcomming_Event/views/upcomming_event_view.dart';
+import '../modules/Dashboard/Innermodule/create_event/bindings/create_event_binding.dart';
+import '../modules/Dashboard/Innermodule/create_event/views/create_event_view.dart';
 import '../modules/Dashboard/bindings/dashboard_binding.dart';
 import '../modules/Dashboard/views/dashboard_view.dart';
 import '../modules/Notifications/bindings/notifications_binding.dart';
@@ -30,7 +32,7 @@ part 'app_routes.dart';
 class AppPages {
   AppPages._();
 
-  static const INITIAL = Routes.ONBOARDING;
+  static const INITIAL = Routes.CREATE_EVENT;
 
   static final routes = [
     GetPage(
@@ -94,6 +96,14 @@ class AppPages {
           name: _Paths.PAST_EVENT,
           page: () => PastEventView(),
           binding: PastEventBinding(),
+          transition: Transition.fade,
+          curve: Curves.easeInOut,
+          transitionDuration: Duration(milliseconds: 400),
+        ),
+        GetPage(
+          name: _Paths.CREATE_EVENT,
+          page: () => CreateEventView(),
+          binding: CreateEventBinding(),
           transition: Transition.fade,
           curve: Curves.easeInOut,
           transitionDuration: Duration(milliseconds: 400),

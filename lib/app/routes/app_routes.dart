@@ -17,6 +17,8 @@ abstract class Routes {
   static const PROFILE = _Paths.PROFILE;
   static const ACCOUNT_DETAILS =
       _Paths.PROFILE + _Paths.INNERMODULE + _Paths.ACCOUNT_DETAILS;
+  static const CREATE_EVENT =
+      _Paths.DASHBOARD + _Paths.INNERMODULE + _Paths.CREATE_EVENT;
 }
 
 abstract class _Paths {
@@ -33,4 +35,5 @@ abstract class _Paths {
   static const PAST_EVENT = '/past-event';
   static const PROFILE = '/profile';
   static const ACCOUNT_DETAILS = '/account-details';
+  static const CREATE_EVENT = '/create-event';
 }
