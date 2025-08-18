@@ -1,3 +1,4 @@
+import 'package:bellybutton/app/core/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/themes/Font_style.dart';
 import '../../../../core/themes/dimensions.dart';
@@ -32,6 +33,10 @@ class login_textfield extends StatelessWidget {
           children: [
             const SizedBox(height: 18), // Reserve space for error
             TextFormField(
+              style: customBoldText.copyWith(
+                color: AppColors.textColor,
+                fontSize: Dimensions.fontSizeSmall,
+              ),
               controller: controller,
               obscureText: obscureText,
               obscuringCharacter: '*',
@@ -41,7 +46,7 @@ class login_textfield extends StatelessWidget {
               onChanged: onChanged,
               decoration: InputDecoration(
                 hintStyle: customBoldText.copyWith(
-                  color: Colors.grey[500],
+                  color: AppColors.tertiaryColor,
                   fontSize: Dimensions.fontSizeSmall,
                 ),
                 hintText: hintText,
@@ -49,28 +54,37 @@ class login_textfield extends StatelessWidget {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(5),
                   borderSide: const BorderSide(
-                    color: Color.fromARGB(255, 236, 235, 235),
+                    color: AppColors.tertiaryColor,
                     width: 1.5,
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(5),
-                  borderSide: const BorderSide(
-                    color: Color.fromARGB(255, 241, 240, 240),
+                  borderSide: BorderSide(
+                    color: AppColors.disabledColor,
                     width: 1.5,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(5),
-                  borderSide: const BorderSide(color: Colors.grey, width: 1.5),
+                  borderSide: BorderSide(
+                    color: AppColors.tertiaryColor,
+                    width: 1.5,
+                  ),
                 ),
                 errorBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: Colors.grey, width: 1.1),
+                  borderSide: const BorderSide(
+                    color: AppColors.tertiaryColor,
+                    width: 1.1,
+                  ),
                 ),
                 focusedErrorBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: Colors.grey, width: 1.1),
+                  borderSide: const BorderSide(
+                    color: AppColors.tertiaryColor,
+                    width: 1.1,
+                  ),
                 ),
               ),
             ),
@@ -83,7 +97,7 @@ class login_textfield extends StatelessWidget {
             child: Text(
               errorText!,
               style: customBoldText.copyWith(
-                color: Colors.red,
+                color: AppColors.primaryColor1,
                 fontSize: Dimensions.fontSizeExtraSmall,
               ),
             ),

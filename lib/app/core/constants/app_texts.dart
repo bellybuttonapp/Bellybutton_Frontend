@@ -23,8 +23,15 @@ class app_texts {
   static const signupbutton = "Sign up";
 
   // Auth Screens - ForgetPswd
-  static const ForgetPswd = "Forget Password";
-  static const Working = "Working In Progress....";
+  static const forgotPasswordTitle = "Forget Password";
+  static const forgotPasswordSubTitle =
+      "Enter your registered email address below, and \n we’ll send you a link to reset your password.";
+  // Auth Screens - ForgetPswd Otp Screen
+  static const OtpTitle = "Enter Otp ";
+  static const OtpSubTitle =
+      "We’ve sent a One-Time Password (OTP) to your \n registered email/phone number.";
+  static const ResendOtp = "Doesn’t receive a code?";
+  static const Resendnow = "Resend now";
 
   ///Notification screen
   static const Notification = "Notification";

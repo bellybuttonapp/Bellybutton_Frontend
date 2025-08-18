@@ -16,11 +16,16 @@ class ProfileView extends GetView<ProfileController> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor:
+          isDarkMode
+              ? AppTheme.darkTheme.scaffoldBackgroundColor
+              : AppTheme.lightTheme.scaffoldBackgroundColor,
       appBar: CustomAppBar(title: app_texts.Profile),
       body: Column(
         children: [

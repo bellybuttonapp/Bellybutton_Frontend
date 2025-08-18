@@ -1,6 +1,7 @@
 import 'package:bellybutton/app/core/constants/app_images.dart';
 import 'package:bellybutton/app/core/constants/app_texts.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../../core/constants/app_colors.dart';
@@ -15,12 +16,21 @@ class OnboardingView extends GetView<OnboardingController> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-
+    // System UI Styling
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        // statusBarColor: AppTheme.lightTheme.scaffoldBackgroundColor,
+        statusBarColor: Colors.transparent, // ✅ Transparent status bar
+        statusBarIconBrightness: Brightness.dark,
+      ),
+    );
     return Scaffold(
       body: Stack(
         children: [
           /// Background
-          Positioned.fill(child: Image.asset(app_images.on, fit: BoxFit.cover)),
+          Positioned.fill(
+            child: Image.asset(app_images.onboarding_png, fit: BoxFit.cover),
+          ),
 
           /// Content
           SafeArea(

@@ -25,6 +25,10 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
+      backgroundColor:
+          isDarkMode
+              ? AppTheme.darkTheme.scaffoldBackgroundColor
+              : AppTheme.lightTheme.scaffoldBackgroundColor,
       appBar: CustomAppBar(title: app_texts.Account_Details),
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),

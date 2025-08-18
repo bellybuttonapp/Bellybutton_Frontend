@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:get/get.dart';
 
+import '../../../../../core/constants/app_colors.dart';
 import '../../../../../global_widgets/EmptyJobsPlaceholder/EmptyJobsPlaceholder.dart';
 import '../controllers/upcomming_event_controller.dart';
 
@@ -15,7 +16,13 @@ class UpcommingEventView extends GetView<UpcommingEventController> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor:
+          isDarkMode
+              ? AppTheme.darkTheme.scaffoldBackgroundColor
+              : AppTheme.lightTheme.scaffoldBackgroundColor,
       body: EmptyJobsPlaceholder(
         imagePath: app_images.upevent,
         description: app_texts.upcommingEmpty,

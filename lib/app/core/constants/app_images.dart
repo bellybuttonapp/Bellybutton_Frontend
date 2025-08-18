@@ -8,6 +8,8 @@ class app_images {
   static const upcomminggevent = 'assets/images/upcomming_event.svg';
   static const upevent = 'assets/images/upevent.png';
   static const object = 'assets/images/Object.png';
+  static const onboarding_png = 'assets/images/sps.png';
+  static const login_png = 'assets/images/log_bg.png';
 
   static const Notificationempty = 'assets/images/Notificationempty.svg';
   static const notification_icon = 'assets/images/notification_icon.svg';
@@ -18,6 +20,8 @@ class app_images {
   static const edit_pencil = 'assets/images/edit_pencil.svg';
   static const Camera_Add_icon = 'assets/images/Camera_Add_icon.svg';
   static const check_icon = 'assets/images/check_icon.svg';
+  // static const Forget_pswrd = 'assets/images/forget_pswd.svg';
+  static const Forget_pswrd = 'assets/images/forget_pswrd.png';
 }
 // This class holds the paths to various images used in the application.
 // It provides a centralized way to manage image assets, making it easier to reference them throughout the app.

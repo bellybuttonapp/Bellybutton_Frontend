@@ -33,11 +33,11 @@ void main() async {
       initialRoute: AppPages.INITIAL,
       getPages: AppPages.routes,
 
-      // 🎨 Theming
-      theme: ThemeData(
-        primarySwatch: Colors.indigo,
-        scaffoldBackgroundColor: Colors.white,
-      ),
+      // // 🎨 Theming
+      // theme: ThemeData(
+      //   primarySwatch: Colors.indigo,
+      //   scaffoldBackgroundColor: Colors.white,
+      // ),
       darkTheme: ThemeData.dark(),
       themeMode: ThemeMode.system,
 
@@ -48,7 +48,7 @@ void main() async {
           PointerDeviceKind.touch,
           PointerDeviceKind.trackpad,
         },
-      ), 
+      ),
     ),
   );
 }
