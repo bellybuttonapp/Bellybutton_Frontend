@@ -1,22 +1,25 @@
+// ignore_for_file: constant_identifier_names
+
 class AppConstants {
-  // Singleton pattern
-  static final AppConstants _instance = AppConstants._internal();
-
-  factory AppConstants() => _instance;
-
-  AppConstants._internal();
+  // Base URLs
+  static const String BASE_URL = 'https://apitest.isteer.co/mconnect/';
+  static const String MOBILE_API_URL = 'https://mobileapi.talentturbo.us';
 
   // App Metadata
-  final String appName = 'BellyButton';
-  final String appVersion = '1.0.0+1';
+  static const String APP_NAME = 'BellyButton';
 
-  // Base URLs
-  String baseURL = "https://mobileapi.talentturbo.us";
+  // App version depending on environment
+  static const String APP_VERSION_TO_USER =
+      BASE_URL == 'https://apitest.isteer.co/mconnect/' ? '2.0.0T' : '2.0.0L';
 
-  //App URLs
-  final String appUrl =
-      "https://play.google.com/store/apps/details?id=com.android.referral.talentturbo";
+  // App URLs
+  static const String APP_STORE_URL =
+      'https://play.google.com/store/apps/details?id=com.android.referral.talentturbo';
 
-  //App Terms And Conditions URLs
-  String termsAndConditionUrl = 'https://main.talentturbo.us/terms-of-service';
+  // Terms & Conditions
+  static const String TERMS_AND_CONDITIONS_URL =
+      'https://main.talentturbo.us/terms-of-service';
+
+  // Private constructor to prevent instantiation
+  AppConstants._();
 }

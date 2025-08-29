@@ -1,0 +1,28 @@
+{
+  "database": {
+    "rules": "database.rules.json"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "bellybutton-6b338",
+          "appId": "1:480572814025:android:3f40859d108c7fe50ad318",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "bellybutton-6b338",
+          "configurations": {
+            "android": "1:480572814025:android:3f40859d108c7fe50ad318",
+            "ios": "1:480572814025:ios:53464a1ba2b1cf0c0ad318",
+            "macos": "1:480572814025:ios:53464a1ba2b1cf0c0ad318",
+            "web": "1:480572814025:web:7919678290653ded0ad318",
+            "windows": "1:480572814025:web:261d798952572c520ad318"
+          }
+        }
+      }
+    }
+  }
+}

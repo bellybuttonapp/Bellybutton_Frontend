@@ -1,3 +1,5 @@
+// ignore_for_file: annotate_overrides
+
 import 'package:bellybutton/app/global_widgets/custom_app_bar/custom_app_bar.dart';
 import 'package:flutter/material.dart';
 
@@ -21,13 +23,13 @@ class NotificationsView extends GetView<NotificationsController> {
           isDarkMode
               ? AppTheme.darkTheme.scaffoldBackgroundColor
               : AppTheme.lightTheme.scaffoldBackgroundColor,
-      appBar: CustomAppBar(title: app_texts.Notification),
+      appBar: CustomAppBar(title: AppTexts.notification),
       body: EmptyJobsPlaceholder(
         imagePath: app_images.object,
-        title: app_texts.No_Notification,
-        description: app_texts.NotificationSubtitle,
+        title: AppTexts.noNotification,
+        description: AppTexts.notificationSubtitle,
         isLoading: controller.isLoading, // RxBool
-        buttonText: app_texts.Go_Back, // String
+        buttonText: AppTexts.goBack, // String
         onButtonTap: controller.goToBack, // VoidCallback
       ),
     );

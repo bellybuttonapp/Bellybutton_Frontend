@@ -1,13 +1,11 @@
-import 'package:bellybutton/app/modules/Auth/forgot_password/views/otp_view.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
-import 'package:get/get.dart';
+// ignore_for_file: annotate_overrides
 
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_images.dart';
 import '../../../../core/constants/app_texts.dart';
 import '../../../../core/themes/Font_style.dart';
-import '../../../../core/themes/dimensions.dart';
 import '../../../../global_widgets/Button/global_button.dart';
 import '../../../../global_widgets/custom_app_bar/custom_app_bar.dart';
 import '../../login/Widgets/login_textfield.dart';
@@ -23,6 +21,10 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
+    // MediaQuery for responsive UI
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       backgroundColor:
           isDarkMode
@@ -32,44 +34,49 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: EdgeInsets.all(screenWidth * 0.05), // responsive padding
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 40),
+              SizedBox(height: screenHeight * 0.05),
 
               /// Illustration
-              Center(child: Image.asset(app_images.Forget_pswrd, height: 150)),
-
-              const SizedBox(height: 30),
-
-              /// Title
-              Text(
-                app_texts.forgotPasswordTitle,
-                style: customBoldText.copyWith(
-                  fontSize: Dimensions.fontSizeLarge,
+              Center(
+                child: Image.asset(
+                  app_images.Forget_pswrd,
+                  height: screenHeight * 0.2, // responsive image
                 ),
               ),
 
-              const SizedBox(height: 10),
+              SizedBox(height: screenHeight * 0.04),
+
+              /// Title
+              Text(
+                AppTexts.forgotPasswordTitle,
+                style: customBoldText.copyWith(
+                  fontSize: screenWidth * 0.06, // responsive font
+                ),
+              ),
+
+              SizedBox(height: screenHeight * 0.015),
 
               /// Subtitle
               Text(
-                app_texts.forgotPasswordSubTitle,
+                AppTexts.forgotPasswordSubtitle,
                 style: customBoldText.copyWith(
                   color: AppColors.tertiaryColor,
-                  fontSize: Dimensions.fontSizeSmall,
+                  fontSize: screenWidth * 0.04, // responsive font
                 ),
                 textAlign: TextAlign.start,
               ),
 
-              const SizedBox(height: 30),
+              SizedBox(height: screenHeight * 0.04),
 
               /// Email Input
               Obx(
                 () => login_textfield(
                   controller: controller.emailController,
-                  hintText: app_texts.loginEmail,
+                  hintText: AppTexts.loginEmail,
                   obscureText: false,
                   keyboardType: TextInputType.emailAddress,
                   errorText: controller.emailError.value,
@@ -77,7 +84,7 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
                 ),
               ),
 
-              const SizedBox(height: 20),
+              SizedBox(height: screenHeight * 0.025),
 
               /// Send Code Button
               Obx(
@@ -88,7 +95,6 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
                   backgroundColor: AppColors.primaryColor,
                   textColor: Colors.white,
                   onTap: () {
-                    controller.Navigate_to_otp();
                     controller.sendCode();
                   },
                 ),

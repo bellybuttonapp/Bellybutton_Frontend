@@ -2,46 +2,62 @@ import 'dart:async';
 import 'package:bellybutton/app/modules/Auth/forgot_password/views/otp_view.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../../Controllers/oauth.dart';
 
-/// ---------------- CONTROLLER ---------------- ///
 class ForgotPasswordController extends GetxController {
-  /// Email input controller
+  final AuthService _authService = AuthService();
+
+  // Controllers
   final emailController = TextEditingController();
-
-  /// OTP input controller
   final otpController = TextEditingController();
-
-  /// Focus for OTP
   final otpFocusNode = FocusNode();
 
-  /// Observables
-  final emailError = ''.obs;
-  final otpError = ''.obs;
-  final otp = ''.obs;
-  final isLoading = false.obs;
+  // Reactive state
+  var emailError = ''.obs;
+  var otpError = ''.obs;
+  var otp = ''.obs;
+  var isLoading = false.obs;
 
-  /// Resend OTP timer
+  // Resend OTP timer
   var resendSeconds = 30.obs;
   var isResendEnabled = false.obs;
   Timer? _timer;
 
   /// ---------------- SEND RESET LINK ---------------- ///
-  void sendCode() async {
+  Future<void> sendCode() async {
     validateEmail(emailController.text);
-
     if (emailError.value.isNotEmpty) return;
 
     isLoading.value = true;
+    try {
+      // Send password reset email via Firebase
+      await _authService.resetPassword(email: emailController.text.trim());
 
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 2));
+      // Show success message
+      Get.snackbar(
+        "Success",
+        "Reset link has been sent to your email! Please check your inbox.",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.shade200,
+        colorText: Colors.black,
+      );
 
-    isLoading.value = false;
+      // Navigate back to login screen so user can log in after resetting
+      Get.offAllNamed('/login');
 
-    // Start countdown for resend
-    startResendTimer();
-
-    Get.snackbar("Success", "Reset link has been sent to your email!");
+      // Optional: start resend countdown for UX
+      startResendTimer();
+    } catch (e) {
+      Get.snackbar(
+        "Error",
+        "Failed to send reset link: ${e.toString()}",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade200,
+        colorText: Colors.black,
+      );
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   /// ---------------- VERIFY OTP ---------------- ///
@@ -52,10 +68,7 @@ class ForgotPasswordController extends GetxController {
     }
 
     isLoading.value = true;
-
-    // Simulate API verification
-    await Future.delayed(const Duration(seconds: 2));
-
+    await Future.delayed(const Duration(seconds: 2)); // Simulate verification
     isLoading.value = false;
 
     if (otp.value == "123456") {
@@ -82,9 +95,9 @@ class ForgotPasswordController extends GetxController {
     });
   }
 
-  void Navigate_to_otp() {
-    // Navigate to OTP view
-    Get.to(OtpView());
+  /// ---------------- NAVIGATION ---------------- ///
+  void navigateToOtp() {
+    Get.to(() => OtpView());
   }
 
   /// ---------------- VALIDATION ---------------- ///
@@ -99,34 +112,51 @@ class ForgotPasswordController extends GetxController {
       return "Email is required";
     }
 
+    // General RFC 5322 compliant regex for email validation
     final emailRegex = RegExp(
-      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+      r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+"
+      r"@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?"
+      r"(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$",
     );
 
     if (!emailRegex.hasMatch(trimmedValue)) {
-      return "Please enter a valid email address";
+      return "Enter a valid email address";
     }
 
+    // Additional rules
     if (trimmedValue.contains("..")) {
       return "Email cannot contain consecutive dots";
     }
+
     if (trimmedValue.endsWith(".")) {
       return "Email cannot end with a dot";
     }
 
-    return null; // ✅ valid email
+    if (trimmedValue.split('@').length != 2) {
+      return "Email must contain a single '@' symbol";
+    }
+
+    final parts = trimmedValue.split('@');
+    if (parts[0].isEmpty) {
+      return "Email must have characters before '@'";
+    }
+    if (parts[1].isEmpty) {
+      return "Email must have a domain after '@'";
+    }
+    if (!parts[1].contains('.')) {
+      return "Domain must contain at least one dot (e.g. gmail.com)";
+    }
+
+    return null; // ✅ Valid
   }
 
   /// ---------------- CLEANUP ---------------- ///
   @override
   void onInit() {
     super.onInit();
-    startResendTimer(); // start countdown immediately
-
     // Automatically focus OTP field when page opens
-    Future.delayed(Duration(milliseconds: 300), () {
+    Future.delayed(const Duration(milliseconds: 300), () {
       otpFocusNode.requestFocus();
-
       WidgetsBinding.instance.addPostFrameCallback((_) {
         otpFocusNode.requestFocus();
       });

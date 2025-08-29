@@ -1,6 +1,6 @@
-import 'dart:async';
+// ignore_for_file: annotate_overrides, deprecated_member_use
+
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:pinput/pinput.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -78,7 +78,7 @@ class OtpView extends GetView<ForgotPasswordController> {
                 const SizedBox(height: 30),
 
                 Text(
-                  app_texts.OtpTitle,
+                  AppTexts.otpTitle,
                   style: customBoldText.copyWith(
                     fontSize: Dimensions.fontSizeLarge,
                   ),
@@ -86,7 +86,7 @@ class OtpView extends GetView<ForgotPasswordController> {
                 const SizedBox(height: 10),
 
                 Text(
-                  app_texts.OtpSubTitle,
+                  AppTexts.otpSubtitle,
                   style: customBoldText.copyWith(
                     color: AppColors.tertiaryColor,
                     fontSize: Dimensions.fontSizeSmall,
@@ -154,7 +154,7 @@ class OtpView extends GetView<ForgotPasswordController> {
                 Row(
                   children: [
                     Text(
-                      app_texts.ResendOtp,
+                      AppTexts.resendOtp,
                       style: customBoldText.copyWith(
                         color: AppColors.tertiaryColor,
                         fontSize: Dimensions.fontSizeSmall,
@@ -169,7 +169,7 @@ class OtpView extends GetView<ForgotPasswordController> {
                             Get.snackbar("OTP", "Resent code to your email");
                           },
                           child: Text(
-                            app_texts.Resendnow,
+                            AppTexts.resendNow,
                             style: customBoldText.copyWith(
                               fontWeight: FontWeight.bold,
                               color: AppColors.primaryColor,

@@ -1,9 +1,10 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:bellybutton/app/core/constants/app_texts.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/themes/Font_style.dart';
-import '../../../../core/themes/dimensions.dart';
 import '../../../../global_widgets/Button/global_button.dart';
 import '../../login/Widgets/Signin_Button.dart';
 import '../../login/controllers/login_controller.dart';
@@ -18,12 +19,13 @@ class SignupView extends GetView<SignupController> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    // final controller = Get.find<SignupController>(); // manually get controller
     final SignupController controller = Get.find<SignupController>();
     final LoginController loginController = Get.find<LoginController>();
 
+    // 📱 MediaQuery for responsive sizing
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       backgroundColor:
           isDarkMode
@@ -35,7 +37,7 @@ class SignupView extends GetView<SignupController> {
           children: [
             SizedBox(height: screenHeight * 0.2),
 
-            // Logo
+            // 🔒 Logo
             Container(
               height: screenWidth * 0.3,
               width: screenWidth * 0.3,
@@ -57,9 +59,9 @@ class SignupView extends GetView<SignupController> {
               ),
             ),
 
-            SizedBox(height: screenHeight * 0.10),
+            SizedBox(height: screenHeight * 0.1),
 
-            // Form Container
+            // 📋 Form Container
             Container(
               width: double.infinity,
               padding: EdgeInsets.symmetric(
@@ -78,38 +80,49 @@ class SignupView extends GetView<SignupController> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Title
                     Text(
-                      app_texts.signupTitle,
+                      AppTexts.signupTitle,
                       style: customBoldText.copyWith(
-                        fontSize: Dimensions.fontSizeLarge,
+                        fontSize: screenWidth * 0.06, // responsive title
                       ),
                     ),
+
+                    SizedBox(height: screenHeight * 0.02),
+
+                    // 📝 Name Field
                     Obx(
                       () => Signup_textfield(
                         controller: controller.nameController,
-                        hintText: app_texts.signupName,
+                        hintText: AppTexts.signupName,
                         obscureText: false,
                         keyboardType: TextInputType.name,
                         errorText: controller.nameError.value,
-                        onChanged: controller.validatename,
+                        onChanged: controller.validateName,
                       ),
                     ),
-                    SizedBox(height: screenHeight * 0.01),
+
+                    SizedBox(height: screenHeight * 0.015),
+
+                    // 📧 Email Field
                     Obx(
                       () => Signup_textfield(
                         controller: controller.emailController,
-                        hintText: app_texts.signupEmail,
+                        hintText: AppTexts.signupEmail,
                         obscureText: false,
                         keyboardType: TextInputType.emailAddress,
                         errorText: controller.emailError.value,
                         onChanged: controller.validateEmail,
                       ),
                     ),
-                    SizedBox(height: screenHeight * 0.01),
+
+                    SizedBox(height: screenHeight * 0.015),
+
+                    // 🔑 Password Field
                     Obx(
                       () => Signup_textfield(
                         controller: controller.passwordController,
-                        hintText: app_texts.signupPassword,
+                        hintText: AppTexts.signupPassword,
                         obscureText: controller.isPasswordHidden.value,
                         errorText: controller.passwordError.value,
                         onChanged: controller.validatePassword,
@@ -129,18 +142,18 @@ class SignupView extends GetView<SignupController> {
 
                     SizedBox(height: screenHeight * 0.03),
 
+                    // 🔘 Signup Button
                     Obx(
                       () => global_button(
                         loaderWhite: true,
-                        isLoading:
-                            controller.isLoading.value, // pass isLoading here
+                        isLoading: controller.isLoading.value,
                         onTap: () {
                           if (formKey.currentState!.validate() &&
                               !controller.isLoading.value) {
                             controller.signup();
                           }
                         },
-                        title: app_texts.signupbutton,
+                        title: AppTexts.signupButton,
                         backgroundColor:
                             isDarkMode
                                 ? AppTheme.darkTheme.scaffoldBackgroundColor
@@ -148,8 +161,9 @@ class SignupView extends GetView<SignupController> {
                       ),
                     ),
 
-                    SizedBox(height: screenHeight * 0.01),
+                    SizedBox(height: screenHeight * 0.02),
 
+                    // ✅ Remember Me & Forgot Password
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -157,7 +171,8 @@ class SignupView extends GetView<SignupController> {
                           () => Row(
                             children: [
                               Transform.scale(
-                                scale: 0.8,
+                                scale:
+                                    screenWidth * 0.0028 + 0.01, // responsive
                                 child: Checkbox(
                                   value: controller.rememberMe.value,
                                   onChanged: (value) {
@@ -172,22 +187,22 @@ class SignupView extends GetView<SignupController> {
                                 ),
                               ),
                               Text(
-                                app_texts.rememberMe,
+                                AppTexts.rememberMe,
                                 style: customBoldText.copyWith(
                                   color: Colors.grey[500],
-                                  fontSize: Dimensions.fontSizeSmall,
+                                  fontSize: screenWidth * 0.035,
                                 ),
                               ),
                             ],
                           ),
                         ),
                         GestureDetector(
-                          onTap: controller.forget_Paswd,
+                          onTap: controller.forgetPassword,
                           child: Text(
-                            app_texts.forgotPassword,
+                            AppTexts.forgotPassword,
                             style: customBoldText.copyWith(
                               color: AppColors.tertiaryColor,
-                              fontSize: Dimensions.fontSizeSmall,
+                              fontSize: screenWidth * 0.035,
                             ),
                           ),
                         ),
@@ -196,6 +211,7 @@ class SignupView extends GetView<SignupController> {
 
                     SizedBox(height: screenHeight * 0.04),
 
+                    // 🔄 Divider OR
                     Row(
                       children: [
                         Expanded(
@@ -209,9 +225,9 @@ class SignupView extends GetView<SignupController> {
                             horizontal: screenWidth * 0.03,
                           ),
                           child: Text(
-                            app_texts.orText,
+                            AppTexts.orText,
                             style: customBoldText.copyWith(
-                              fontSize: Dimensions.fontSizeSmall,
+                              fontSize: screenWidth * 0.035,
                               color: Colors.black,
                             ),
                           ),
@@ -227,6 +243,7 @@ class SignupView extends GetView<SignupController> {
 
                     SizedBox(height: screenHeight * 0.04),
 
+                    // 🔘 Google Sign-in Button
                     Obx(
                       () => Signin_Button(
                         isLoading: loginController.isGoogleLoading.value,
@@ -239,13 +256,14 @@ class SignupView extends GetView<SignupController> {
 
                     SizedBox(height: screenHeight * 0.05),
 
+                    // 🔗 Already have account
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          app_texts.alreadyHaveAccount,
+                          AppTexts.alreadyHaveAccount,
                           style: customBoldText.copyWith(
-                            fontSize: Dimensions.fontSizeSmall,
+                            fontSize: screenWidth * 0.035,
                             color: AppColors.textColor,
                           ),
                         ),
@@ -253,9 +271,10 @@ class SignupView extends GetView<SignupController> {
                         GestureDetector(
                           onTap: controller.navigateToLogin,
                           child: Text(
-                            app_texts.buttonLogin,
+                            AppTexts.buttonLogin,
                             style: customBoldText.copyWith(
-                              fontSize: Dimensions.fontSizeSmall,
+                              fontSize: screenWidth * 0.04,
+                              fontWeight: FontWeight.bold,
                               color: AppColors.primaryColor,
                             ),
                           ),

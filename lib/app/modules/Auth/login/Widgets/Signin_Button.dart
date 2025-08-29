@@ -1,11 +1,13 @@
+// ignore_for_file: file_names
+
 import 'package:bellybutton/app/core/constants/app_texts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/constants/app_images.dart';
 import '../../../../core/themes/Font_style.dart';
-import '../../../../core/themes/dimensions.dart';
 import '../../../../global_widgets/loader/global_loader.dart';
 
+// ignore: camel_case_types
 class Signin_Button extends StatelessWidget {
   final Function()? onTap;
   final bool isLoading;
@@ -14,11 +16,18 @@ class Signin_Button extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
+    final size = MediaQuery.of(context).size;
+    final screenWidth = size.width;
+    // ignore: unused_local_variable
+    final screenHeight = size.height;
 
     final buttonPadding = EdgeInsets.all(screenWidth * 0.04);
-    final buttonMargin = EdgeInsets.symmetric(horizontal: screenWidth * 0.01);
-    final buttonBorderRadius = BorderRadius.circular(screenWidth * 0.01);
+    final buttonMargin = EdgeInsets.symmetric(horizontal: screenWidth * 0.02);
+    final buttonBorderRadius = BorderRadius.circular(screenWidth * 0.02);
+
+    final iconSize = screenWidth * 0.05; // Responsive icon size
+    final fontSize = screenWidth * 0.035; // Responsive font size
+    final loaderSize = screenWidth * 0.05; // Responsive loader size
 
     return GestureDetector(
       onTap: isLoading ? null : onTap,
@@ -27,7 +36,7 @@ class Signin_Button extends StatelessWidget {
         margin: buttonMargin,
         decoration: BoxDecoration(
           border: Border.all(
-            width: 1.5,
+            width: 1.2,
             color: const Color.fromARGB(255, 6, 29, 60),
           ),
           borderRadius: buttonBorderRadius,
@@ -35,8 +44,8 @@ class Signin_Button extends StatelessWidget {
         child: Center(
           child:
               isLoading
-                  ? const Global_Loader(
-                    size: 20,
+                  ? Global_Loader(
+                    size: loaderSize,
                     color: Colors.black,
                     strokeWidth: 2,
                   )
@@ -45,17 +54,17 @@ class Signin_Button extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        app_texts.loginWithGoogle,
+                        AppTexts.loginWithGoogle,
                         style: customBoldText.copyWith(
-                          fontSize: Dimensions.fontSizeSmall,
+                          fontSize: fontSize,
                           color: Colors.black,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: screenWidth * 0.02),
                       SvgPicture.asset(
                         app_images.googleicon,
-                        height: 20,
-                        width: 20,
+                        height: iconSize,
+                        width: iconSize,
                       ),
                     ],
                   ),

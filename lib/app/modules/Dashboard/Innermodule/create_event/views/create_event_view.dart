@@ -1,9 +1,13 @@
+// ignore_for_file: curly_braces_in_flow_control_structures, deprecated_member_use, annotate_overrides
+
 import 'package:bellybutton/app/core/constants/app_images.dart';
 import 'package:bellybutton/app/core/constants/app_texts.dart';
 import 'package:bellybutton/app/global_widgets/custom_app_bar/custom_app_bar.dart';
+import 'package:bellybutton/app/modules/Dashboard/Innermodule/create_event/views/calender_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../global_widgets/Button/global_button.dart';
 import '../../../../Auth/signup/Widgets/Signup_textfield.dart';
@@ -24,7 +28,7 @@ class CreateEventView extends GetView<CreateEventController> {
           isDarkMode
               ? AppTheme.darkTheme.scaffoldBackgroundColor
               : AppTheme.lightTheme.scaffoldBackgroundColor,
-      appBar: CustomAppBar(title: app_texts.CreateEvent),
+      appBar: CustomAppBar(title: AppTexts.createEvent),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
@@ -64,41 +68,13 @@ class CreateEventView extends GetView<CreateEventController> {
 
                 /// Date & Time Picker
 
-                /// Date & Time Picker
+                /// Date & Time Picker using Signup_textfield
                 Obx(
                   () => Signup_textfield(
                     controller: controller.dateController,
                     hintText: "Set Date & Time",
                     obscureText: false,
                     readOnly: true,
-                    errorText: controller.dateError.value,
-                    onTap: () async {
-                      DateTime? pickedDate = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now(),
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime(2100),
-                      );
-
-                      if (pickedDate != null) {
-                        TimeOfDay? pickedTime = await showTimePicker(
-                          context: context,
-                          initialTime: TimeOfDay.now(),
-                        );
-
-                        if (pickedTime != null) {
-                          final dateTime = DateTime(
-                            pickedDate.year,
-                            pickedDate.month,
-                            pickedDate.day,
-                            pickedTime.hour,
-                            pickedTime.minute,
-                          );
-                          controller.dateController.text =
-                              "${dateTime.toLocal()}".split('.')[0];
-                        }
-                      }
-                    },
                     suffixIcon: Padding(
                       padding: const EdgeInsets.all(12.0),
                       child: Image.asset(
@@ -108,7 +84,33 @@ class CreateEventView extends GetView<CreateEventController> {
                         color: AppColors.tertiaryColor,
                       ),
                     ),
+                    errorText:
+                        controller.dateError.value.isEmpty
+                            ? null
+                            : controller.dateError.value,
+                    onTap: () async {
+                      final result = await Get.to<Map<String, DateTime>>(
+                        () => const CalenderView(returnDateTime: true),
+                      );
+
+                      if (result != null &&
+                          result.containsKey('from') &&
+                          result.containsKey('to')) {
+                        final from = result['from']!;
+                        final to = result['to']!;
+                        final formatted =
+                            '${DateFormat('dd MMM yyyy, hh:mm a').format(from)} - ${DateFormat('hh:mm a').format(to)}';
+                        controller.dateController.text = formatted;
+                        controller.validateDate(formatted);
+                      }
+                    },
                   ),
+                ),
+                const SizedBox(height: 12),
+                Divider(
+                  color:
+                      isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300,
+                  height: 32,
                 ),
                 const SizedBox(height: 12),
 
@@ -190,7 +192,7 @@ class CreateEventView extends GetView<CreateEventController> {
                         controller.saveChanges();
                       }
                     },
-                    title: app_texts.Invite,
+                    title: AppTexts.invite,
                     backgroundColor:
                         isDarkMode
                             ? AppTheme.darkTheme.scaffoldBackgroundColor

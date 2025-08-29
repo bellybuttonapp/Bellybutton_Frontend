@@ -1,3 +1,5 @@
+// ignore_for_file: annotate_overrides
+
 import 'package:bellybutton/app/core/constants/app_images.dart';
 import 'package:bellybutton/app/core/constants/app_texts.dart';
 import 'package:flutter/material.dart';
@@ -25,9 +27,9 @@ class UpcommingEventView extends GetView<UpcommingEventController> {
               : AppTheme.lightTheme.scaffoldBackgroundColor,
       body: EmptyJobsPlaceholder(
         imagePath: app_images.upevent,
-        description: app_texts.upcommingEmpty,
+        description: AppTexts.upcomingEmpty,
         isLoading: controller.isLoading, // RxBool
-        buttonText: app_texts.Create_event, // String
+        buttonText: AppTexts.createEvent, // String
         onButtonTap: controller.goToNext, // VoidCallback
       ),
     );

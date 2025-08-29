@@ -1,32 +1,34 @@
+// ignore_for_file: deprecated_member_use, duplicate_ignore
+
 import 'package:bellybutton/app/core/constants/app_images.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import '../../../Controllers/oauth.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_texts.dart';
 import '../../../core/themes/Font_style.dart';
-import '../../../core/themes/dimensions.dart';
 import '../../../global_widgets/Button/global_button.dart';
 import '../../../global_widgets/custom_app_bar/custom_app_bar.dart';
 import '../controllers/profile_controller.dart';
 
 class ProfileView extends GetView<ProfileController> {
+  // ignore: annotate_overrides
   final ProfileController controller = Get.put(ProfileController());
   ProfileView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor:
-          isDarkMode
+          isDark
               ? AppTheme.darkTheme.scaffoldBackgroundColor
               : AppTheme.lightTheme.scaffoldBackgroundColor,
-      appBar: CustomAppBar(title: app_texts.Profile),
+      appBar: CustomAppBar(title: AppTexts.profile),
       body: Column(
         children: [
           Expanded(
@@ -38,54 +40,53 @@ class ProfileView extends GetView<ProfileController> {
                     vertical: screenHeight * 0.015,
                     horizontal: screenWidth * 0.04,
                   ),
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: CircleAvatar(
-                      radius: screenWidth * 0.075,
-                      backgroundColor: Colors.grey,
-                      child: Icon(
-                        Icons.person,
-                        size: screenWidth * 0.075,
-                        color: Colors.white,
-                      ),
-                    ),
-                    title: Text(
-                      "Karthick",
-                      style: customBoldText.copyWith(
-                        fontSize: screenWidth * 0.045,
-                      ),
-                    ),
-                    subtitle: Text(
-                      "Karthick01@gmail.com",
-                      style: customBoldText.copyWith(
-                        fontSize: screenWidth * 0.035,
-                        color: AppColors.tertiaryColor,
-                      ),
-                    ),
-                    trailing: IconButton(
-                      icon: SvgPicture.asset(
-                        app_images.edit_pencil,
-                        width: screenWidth * 0.05,
-                        height: screenWidth * 0.05,
-                      ),
-                      onPressed: controller.onEditProfile,
-                    ),
+                  child: Builder(
+                    builder: (_) {
+                      final user = AuthService().currentUser;
+                      final displayName = user?.displayName ?? "No Name";
+                      final email = user?.email ?? "No Email";
+                      final photoUrl = user?.photoURL;
+
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          radius: screenWidth * 0.075,
+                          backgroundColor: Colors.grey,
+                          backgroundImage:
+                              photoUrl != null ? NetworkImage(photoUrl) : null,
+                          child:
+                              photoUrl == null
+                                  ? Icon(
+                                    Icons.person,
+                                    size: screenWidth * 0.075,
+                                    color: Colors.white,
+                                  )
+                                  : null,
+                        ),
+                        title: Text(
+                          displayName,
+                          style: customBoldText.copyWith(
+                            fontSize: screenWidth * 0.045,
+                          ),
+                        ),
+                        subtitle: Text(
+                          email,
+                          style: customBoldText.copyWith(
+                            fontSize: screenWidth * 0.035,
+                            color: AppColors.tertiaryColor,
+                          ),
+                        ),
+                        trailing: IconButton(
+                          icon: SvgPicture.asset(
+                            app_images.edit_pencil,
+                            width: screenWidth * 0.05,
+                            height: screenWidth * 0.05,
+                          ),
+                          onPressed: controller.onEditProfile,
+                        ),
+                      );
+                    },
                   ),
-                ),
-                const _SectionDivider(),
-
-                // Menu items
-                _ProfileMenuTile(
-                  svgPath: app_images.notification_icon,
-                  title: app_texts.Notification,
-                  onTap: controller.onNotificationsTap,
-                ),
-                const _SectionDivider(),
-
-                _ProfileMenuTile(
-                  svgPath: app_images.permissions_icon,
-                  title: app_texts.Privacy_Permissions,
-                  onTap: controller.onPrivacyTap,
                 ),
                 const _SectionDivider(),
 
@@ -95,6 +96,12 @@ class ProfileView extends GetView<ProfileController> {
                       horizontal: screenWidth * 0.02,
                     ),
                     child: SwitchListTile(
+                      // ignore: deprecated_member_use
+                      activeColor: AppColors.success,
+                      // ignore: deprecated_member_use
+                      inactiveThumbColor: AppColors.primaryColor.withOpacity(
+                        0.5,
+                      ),
                       contentPadding: EdgeInsets.symmetric(
                         horizontal: screenWidth * 0.02,
                       ),
@@ -104,7 +111,7 @@ class ProfileView extends GetView<ProfileController> {
                         height: screenWidth * 0.055,
                       ),
                       title: Text(
-                        app_texts.Auto_Sync_Settings,
+                        AppTexts.autoSyncSettings,
                         style: customBoldText.copyWith(
                           fontSize: screenWidth * 0.035,
                           color: isDark ? Colors.white : Colors.black,
@@ -115,18 +122,47 @@ class ProfileView extends GetView<ProfileController> {
                     ),
                   ),
                 ),
+
+                const _SectionDivider(),
+
+                _ProfileMenuTile(
+                  svgPath: app_images.permissions_icon,
+                  title: AppTexts.privacyPermissions,
+                  onTap: controller.onPrivacyTap,
+                ),
+
+                const _SectionDivider(),
+
+                // Menu items
+                _ProfileMenuTile(
+                  svgPath:
+                      app_images
+                          .New_pswrd, // change if you have a password icon
+                  title: AppTexts.Newpswd,
+                  onTap: controller.onSetNewPasswordTap,
+                ),
+                const _SectionDivider(),
+
+                _ProfileMenuTile(
+                  svgPath:
+                      app_images
+                          .New_pswrd, // change if you have a password icon
+                  title: AppTexts.premium,
+                  onTap: controller.PremiumScreen,
+                ),
+
                 const _SectionDivider(),
 
                 _ProfileMenuTile(
                   svgPath: app_images.Faq_icon,
-                  title: app_texts.FAQs,
+                  title: AppTexts.faqs,
                   onTap: controller.onFaqsTap,
                 ),
                 const _SectionDivider(),
 
                 _ProfileMenuTile(
                   svgPath: app_images.Delete_account_icon,
-                  title: app_texts.Delete_account,
+                  title: AppTexts.deleteAccount,
                   titleColor: Colors.red,
                   svgColor: Colors.red,
                   onTap: controller.onDeleteAccountTap,
@@ -144,7 +180,7 @@ class ProfileView extends GetView<ProfileController> {
                     () => global_button(
                       loaderWhite: true,
                       isLoading: controller.isLoading.value,
-                      title: app_texts.Sign_out,
+                      title: AppTexts.signOut,
                       backgroundColor: AppColors.primaryColor,
                       textColor: AppColors.textColor3,
                       onTap: controller.onSignOut,
@@ -160,7 +196,7 @@ class ProfileView extends GetView<ProfileController> {
   }
 }
 
-// Divider widget for sections
+// Divider widget
 class _SectionDivider extends StatelessWidget {
   const _SectionDivider();
 
@@ -177,6 +213,7 @@ class _SectionDivider extends StatelessWidget {
   }
 }
 
+// Menu Tile
 class _ProfileMenuTile extends StatelessWidget {
   final String svgPath;
   final String title;

@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "480572814025",
+    "firebase_url": "https://bellybutton-6b338-default-rtdb.firebaseio.com",
+    "project_id": "bellybutton-6b338",
+    "storage_bucket": "bellybutton-6b338.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:480572814025:android:3f40859d108c7fe50ad318",
+        "android_client_info": {
+          "package_name": "com.bellybutton.dev.bellybutton"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "480572814025-r9r3egt280f60l1l507ic7vvb8hp3ejc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bellybutton.dev.bellybutton",
+            "certificate_hash": "55250a85dc61761f066028b8e8ff64ff8905d504"
+          }
+        },
+        {
+          "client_id": "480572814025-n6561pfngtku0nbvv70v1k9uuphnluhd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB1kCnC9kySf30deoq4V74KmMV4eIpWNiI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "480572814025-n6561pfngtku0nbvv70v1k9uuphnluhd.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "480572814025-38t2hh9vhfiv0llhnl2rqagsd1brpr8p.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.bellybutton.dev.bellybutton"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

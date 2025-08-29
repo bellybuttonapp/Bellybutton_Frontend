@@ -1,8 +1,10 @@
+// ignore_for_file: unnecessary_overrides, avoid_print
+
 import 'package:bellybutton/app/modules/Notifications/views/notifications_view.dart';
 import 'package:get/get.dart';
 
 class DashboardController extends GetxController {
-  //TODO: Implement DashboardController
+
 
   final count = 0.obs;
   @override

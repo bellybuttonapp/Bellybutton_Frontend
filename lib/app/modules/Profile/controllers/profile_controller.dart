@@ -1,33 +1,56 @@
-import 'package:bellybutton/app/core/constants/app_texts.dart';
-import 'package:bellybutton/app/modules/Profile/Innermodule/Account_Details/views/account_details_view.dart';
-import 'package:flutter/material.dart';
+// ignore_for_file: non_constant_identifier_names, avoid_print
+
+import 'dart:io';
+
+import 'package:bellybutton/app/Controllers/oauth.dart';
+import 'package:bellybutton/app/modules/Premium/views/premium_view.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:bellybutton/app/routes/app_pages.dart';
 import '../../../global_widgets/CustomPopup/CustomPopup.dart';
+import '../../../core/constants/app_texts.dart';
+import '../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
+import '../../../routes/app_pages.dart';
+import '../../Auth/login/controllers/login_controller.dart';
+import '../Innermodule/Account_Details/views/account_details_view.dart';
 
 class ProfileController extends GetxController {
   RxBool isLoading = false.obs;
   RxBool isProcessing = false.obs;
   RxBool autoSync = false.obs;
+  Rx<User?> currentUser = AuthService().currentUser.obs;
 
-  void onAutoSyncChanged(bool value) {
-    autoSync.value = value;
-    print("Auto-Sync Settings: $value");
+  Rx<File?> pickedImage = Rx<File?>(null); // <-- new
+
+  @override
+  void onInit() {
+    super.onInit();
+    AuthService().authStateChanges.listen((user) {
+      currentUser.value = user;
+    });
   }
+
+  void updatePickedImage(File? image) {
+    pickedImage.value = image; // update when image is picked
+  }
+
+  void onAutoSyncChanged(bool value) => autoSync.value = value;
 
   void onEditProfile() {
     Get.to(
       () => AccountDetailsView(),
-      transition: Transition.upToDown, // You can use slide, rightToLeft, etc.
+      transition: Transition.upToDown,
       duration: const Duration(milliseconds: 300),
     );
   }
 
-  void onNotificationsTap() => print("Notifications tapped");
+  void PremiumScreen() {
+    Get.to(PremiumView());
+  }
+
+  void onSetNewPasswordTap() => print("Set New Password tapped");
   void onPrivacyTap() => print("Privacy & Permissions tapped");
   void onFaqsTap() => print("FAQs tapped");
 
-  /// Common method to show a confirmation dialog
   void _showConfirmationDialog({
     required String title,
     required String message,
@@ -39,38 +62,38 @@ class ProfileController extends GetxController {
         title: title,
         message: message,
         confirmText: confirmText,
-        cancelText: app_texts.Cancel,
+        cancelText: AppTexts.cancel,
         isProcessing: isProcessing,
-        transitionBuilder: (context, animation, secondaryAnimation, child) {
-          return SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0, 0.4),
-              end: Offset.zero,
-            ).animate(animation),
-            child: FadeTransition(opacity: animation, child: child),
-          );
-        },
         onConfirm: onConfirm,
       ),
     );
   }
 
-  /// Delete Account
+  /// =====================
+  /// DELETE ACCOUNT
+  /// =====================
   void onDeleteAccountTap() {
     _showConfirmationDialog(
-      title: app_texts.D_POPup_Title,
-      message: app_texts.D_POPup_SubTitle,
-      confirmText: app_texts.Delete,
+      title: AppTexts.deletePopupTitle,
+      message: AppTexts.deletePopupSubtitle,
+      confirmText: AppTexts.delete,
       onConfirm: () async {
         isProcessing.value = true;
         try {
-          // await FirebaseAuth.instance.currentUser?.delete();
+          await AuthService().deleteAccount();
           Get.deleteAll(force: true);
           Get.back();
-          // showCustomSnackBar('Your account has been deleted successfully.', ErrorState.success);
           Get.offAllNamed(Routes.LOGIN);
+
+          showCustomSnackBar(
+            AppTexts.accountDeletedSuccess,
+            SnackbarState.success,
+          );
         } catch (e) {
-          // showCustomSnackBar('Failed to delete account. Please try again.', ErrorState.error);
+          showCustomSnackBar(
+            AppTexts.accountDeleteError,
+            SnackbarState.success,
+          );
         } finally {
           isProcessing.value = false;
         }
@@ -78,24 +101,29 @@ class ProfileController extends GetxController {
     );
   }
 
-  /// Sign Out
+  /// =====================
+  /// SIGN OUT
+  /// =====================
   void onSignOut() {
     _showConfirmationDialog(
-      title: app_texts.S_POPup_Title,
-      message: app_texts.s_POPup_SubTitle,
-      confirmText: app_texts.Log_out,
+      title: AppTexts.signOutPopupTitle,
+      message: AppTexts.signOutPopupSubtitle,
+      confirmText: AppTexts.logout,
       onConfirm: () async {
-        isProcessing.value = true;
+        isLoading.value = true;
         try {
-          // await FirebaseAuth.instance.signOut();
-          Get.deleteAll(force: true);
+          await AuthService().signOut();
+          Get.delete<LoginController>(
+            force: true,
+          ); // only clear login controller
           Get.back();
-          // showCustomSnackBar('You have been logged out successfully.', ErrorState.success);
           Get.offAllNamed(Routes.LOGIN);
+
+          showCustomSnackBar(AppTexts.logoutSuccess, SnackbarState.success);
         } catch (e) {
-          // showCustomSnackBar('Logout failed. Please try again.', ErrorState.error);
+          showCustomSnackBar(AppTexts.logoutError, SnackbarState.success);
         } finally {
-          isProcessing.value = false;
+          isLoading.value = false;
         }
       },
     );

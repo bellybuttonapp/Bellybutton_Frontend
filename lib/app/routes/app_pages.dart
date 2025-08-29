@@ -1,3 +1,5 @@
+// ignore_for_file: constant_identifier_names
+
 import 'package:flutter/material.dart';
 
 import 'package:get/get.dart';
@@ -18,6 +20,8 @@ import '../modules/Dashboard/bindings/dashboard_binding.dart';
 import '../modules/Dashboard/views/dashboard_view.dart';
 import '../modules/Notifications/bindings/notifications_binding.dart';
 import '../modules/Notifications/views/notifications_view.dart';
+import '../modules/Premium/bindings/premium_binding.dart';
+import '../modules/Premium/views/premium_view.dart';
 import '../modules/Profile/Innermodule/Account_Details/bindings/account_details_binding.dart';
 import '../modules/Profile/Innermodule/Account_Details/views/account_details_view.dart';
 import '../modules/Profile/bindings/profile_binding.dart';
@@ -32,7 +36,7 @@ part 'app_routes.dart';
 class AppPages {
   AppPages._();
 
-  static const INITIAL = Routes.CREATE_EVENT;
+  static const INITIAL = Routes.ONBOARDING;
 
   static final routes = [
     GetPage(
@@ -122,6 +126,9 @@ class AppPages {
       name: _Paths.PROFILE,
       page: () => ProfileView(),
       binding: ProfileBinding(),
+      transition: Transition.fade,
+      curve: Curves.easeInOut,
+      transitionDuration: Duration(milliseconds: 400),
       children: [
         GetPage(
           name: _Paths.ACCOUNT_DETAILS,
@@ -132,6 +139,14 @@ class AppPages {
           transitionDuration: Duration(milliseconds: 400),
         ),
       ],
+    ),
+    GetPage(
+      name: _Paths.PREMIUM,
+      page: () => PremiumView(),
+      binding: PremiumBinding(),
+      transition: Transition.fade,
+      curve: Curves.easeInOut,
+      transitionDuration: Duration(milliseconds: 400),
     ),
   ];
 }

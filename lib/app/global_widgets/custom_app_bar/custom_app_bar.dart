@@ -1,12 +1,11 @@
 import 'package:bellybutton/app/modules/Profile/views/profile_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
-
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_images.dart';
 import '../../core/themes/Font_style.dart';
-import '../../core/themes/dimensions.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
@@ -21,6 +20,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? titleWidget;
   final double toolbarHeight;
 
+  // ignore: use_super_parameters
   const CustomAppBar({
     Key? key,
     this.title,
@@ -55,7 +55,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             ? AppTheme.darkTheme.scaffoldBackgroundColor
             : AppTheme.lightTheme.scaffoldBackgroundColor);
 
-    final iconColor = AppColors.textColor ?? AppColors.textColor3;
+    final iconColor = AppColors.textColor;
     final textColor = isDark ? AppColors.textColor3 : AppColors.textColor;
 
     Widget? leadingWidget;
@@ -69,7 +69,10 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           color: iconColor,
           size: size.width * 0.05,
         ),
-        onPressed: () => Get.back(),
+        onPressed: () {
+          HapticFeedback.mediumImpact(); // vibrate
+          Get.back(); // go back
+        },
       );
     }
 
@@ -128,12 +131,14 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                           166,
                           216,
                           233,
+                          // ignore: deprecated_member_use
                         ).withOpacity(0.15),
                         const Color.fromARGB(
                           255,
                           166,
                           216,
                           233,
+                          // ignore: deprecated_member_use
                         ).withOpacity(0.15),
                       ],
                       begin: Alignment.topLeft,
@@ -166,6 +171,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       padding: EdgeInsets.only(left: size.width * 0.04),
       child: GestureDetector(
         onTap: () {
+          HapticFeedback.mediumImpact(); // <-- Vibration added
           Get.to(
             () => ProfileView(),
             transition: Transition.fade,
@@ -180,7 +186,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
+                // ignore: deprecated_member_use
                 const Color.fromARGB(255, 166, 216, 233).withOpacity(0.15),
+                // ignore: deprecated_member_use
                 const Color.fromARGB(255, 166, 216, 233).withOpacity(0.15),
               ],
               begin: Alignment.topLeft,
@@ -202,6 +210,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                           app_images.person,
                           height: size.width * 0.055,
                           width: size.width * 0.055,
+                          // ignore: deprecated_member_use
                           color: AppColors.textColor,
                         )
                         : null,
@@ -217,6 +226,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                       fontSize: size.width * 0.035,
                       shadows: [
                         Shadow(
+                          // ignore: deprecated_member_use
                           color: Colors.black.withOpacity(0.3),
                           blurRadius: 2,
                           offset: const Offset(0, 1),

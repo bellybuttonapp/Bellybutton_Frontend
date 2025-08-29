@@ -1,9 +1,10 @@
+// ignore_for_file: file_names
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/themes/Font_style.dart';
-import '../../core/themes/dimensions.dart';
 import '../loader/global_loader.dart';
 
 class CustomPopup extends StatelessWidget {
@@ -22,13 +23,6 @@ class CustomPopup extends StatelessWidget {
     required this.cancelText,
     required this.onConfirm,
     required this.isProcessing,
-    required SlideTransition Function(
-      dynamic context,
-      dynamic animation,
-      dynamic secondaryAnimation,
-      dynamic child,
-    )
-    transitionBuilder,
   });
 
   @override
@@ -38,8 +32,8 @@ class CustomPopup extends StatelessWidget {
 
     return Center(
       child: Container(
-        width: size.width * 0.85, // Responsive width (85% of screen width)
-        padding: EdgeInsets.all(size.width * 0.05), // Responsive padding
+        width: size.width * 0.85,
+        padding: EdgeInsets.all(size.width * 0.05),
         decoration: BoxDecoration(
           color: isDark ? AppColors.textColor2 : AppColors.textColor3,
           borderRadius: BorderRadius.circular(size.width * 0.03),
@@ -57,7 +51,7 @@ class CustomPopup extends StatelessWidget {
                     style: customBoldText.copyWith(
                       color:
                           isDark ? AppColors.textColor2 : AppColors.textColor,
-                      fontSize: size.width * 0.05, // Responsive font size
+                      fontSize: size.width * 0.05,
                     ),
                   ),
                 ),

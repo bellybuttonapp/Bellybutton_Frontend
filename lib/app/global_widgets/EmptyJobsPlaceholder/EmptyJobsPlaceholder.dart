@@ -1,9 +1,9 @@
+// ignore_for_file: file_names
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import '../../core/constants/app_colors.dart';
 import '../../core/themes/Font_style.dart';
-import '../../core/themes/dimensions.dart';
 import '../Button/global_button.dart';
 
 class EmptyJobsPlaceholder extends StatelessWidget {

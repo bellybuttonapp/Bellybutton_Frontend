@@ -1,4 +1,6 @@
 // ignore: camel_case_types
+// ignore_for_file: constant_identifier_names, camel_case_types, duplicate_ignore
+
 class app_images {
   static const googleicon = 'assets/images/google_svg.svg';
   // static const onboardingbg = 'assets/images/onboarding.svg';
@@ -23,6 +25,22 @@ class app_images {
   static const Calendar = 'assets/images/Calendar.png';
   static const Forget_pswrd = 'assets/images/forget_pswrd.png';
   static const search = 'assets/images/search.svg';
+  static const New_pswrd = 'assets/images/newpswrd.svg';
+
+  static const success = 'assets/images/Success_check.svg';
+  static const error = 'assets/images/Failure_check.svg';
+  static const warning = 'assets/images/warning_check.svg';
+  static const close = 'assets/images/close.svg';
+  //Premium
+  static const Premium = 'assets/images/premium_icon.svg';
+  static const usersIcon = 'assets/images/inviteusers.svg';
+  static const uploadIcon = "assets/images/uploadIcon.svg";
+  static const featureIcon = "assets/images/featureIcon.svg";
+  static const shareIcon = "assets/images/shareIcon.svg";
+
+  //Bottom Sheet
+  static const Camera = "assets/images/cameraicon.svg";
+  static const Gallery = "assets/images/galleryicon.svg";
 }
 // This class holds the paths to various images used in the application.
 // It provides a centralized way to manage image assets, making it easier to reference them throughout the app.

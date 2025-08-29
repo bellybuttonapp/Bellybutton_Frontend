@@ -1,23 +1,28 @@
+// ignore_for_file: deprecated_member_use, annotate_overrides, unrelated_type_equality_checks
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/themes/Font_style.dart';
-import '../../../../core/themes/dimensions.dart';
 import '../../../../core/constants/app_texts.dart';
 import '../../../../global_widgets/Button/global_button.dart';
+import '../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../Widgets/login_textfield.dart';
 import '../Widgets/Signin_Button.dart';
 import '../controllers/login_controller.dart';
 
 class LoginView extends GetView<LoginController> {
+  final LoginController controller = Get.put(LoginController());
   LoginView({super.key});
-  final _formKey = GlobalKey<FormState>(); // <--- define here
+  final _formKey = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final controller = Get.find<LoginController>();
 
-    final controller = Get.find<LoginController>(); // manually get controller
+    // 📱 MediaQuery for responsiveness
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
@@ -38,7 +43,7 @@ class LoginView extends GetView<LoginController> {
               width: screenWidth * 0.3,
               decoration: BoxDecoration(
                 color: AppColors.textColor3,
-                borderRadius: BorderRadius.circular(100),
+                borderRadius: BorderRadius.circular(screenWidth * 0.5),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.1),
@@ -53,8 +58,7 @@ class LoginView extends GetView<LoginController> {
                 color: AppColors.textColor,
               ),
             ),
-
-            SizedBox(height: screenHeight * 0.10),
+            SizedBox(height: screenHeight * 0.1),
 
             // 📋 Login Form Section
             Container(
@@ -63,9 +67,11 @@ class LoginView extends GetView<LoginController> {
                 horizontal: screenWidth * 0.08,
                 vertical: screenHeight * 0.05,
               ),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: AppColors.textColor3,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(35)),
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(screenWidth * 0.08),
+                ),
               ),
               child: Form(
                 key: _formKey,
@@ -73,34 +79,39 @@ class LoginView extends GetView<LoginController> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      app_texts.loginTitle,
+                      AppTexts.loginTitle,
                       style: customBoldText.copyWith(
-                        fontSize: Dimensions.fontSizeLarge,
+                        fontSize: screenWidth * 0.06, // responsive title
                       ),
                     ),
-                    SizedBox(height: screenHeight * 0.01),
+                    SizedBox(height: screenHeight * 0.015),
 
                     // 📧 Email Field
                     Obx(
                       () => login_textfield(
                         controller: controller.emailController,
-                        hintText: app_texts.loginEmail,
+                        hintText: AppTexts.loginEmail,
                         obscureText: false,
                         keyboardType: TextInputType.emailAddress,
-                        errorText: controller.emailError.value,
+                        errorText:
+                            controller.emailError.value.isEmpty
+                                ? null
+                                : controller.emailError.value,
                         onChanged: controller.validateEmail,
                       ),
                     ),
-
-                    SizedBox(height: screenHeight * 0.01),
+                    SizedBox(height: screenHeight * 0.015),
 
                     // 🔑 Password Field
                     Obx(
                       () => login_textfield(
                         controller: controller.passwordController,
-                        hintText: app_texts.loginPassword,
+                        hintText: AppTexts.loginPassword,
                         obscureText: controller.isPasswordHidden.value,
-                        errorText: controller.passwordError.value,
+                        errorText:
+                            controller.passwordError.value.isEmpty
+                                ? null
+                                : controller.passwordError.value,
                         onChanged: controller.validatePassword,
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -108,20 +119,19 @@ class LoginView extends GetView<LoginController> {
                                 ? Icons.visibility_off
                                 : Icons.visibility,
                             color: AppColors.tertiaryColor,
+                            size: screenWidth * 0.06,
                           ),
                           onPressed: () => controller.isPasswordHidden.toggle(),
                         ),
                       ),
                     ),
-
                     SizedBox(height: screenHeight * 0.03),
-
                     // 🔘 Login Button
                     Obx(
                       () => global_button(
-                        loaderWhite: true, // loader color will be white
+                        loaderWhite: true,
                         isLoading: controller.isLoading.value,
-                        title: app_texts.loginbutton,
+                        title: AppTexts.loginTitle,
                         backgroundColor:
                             isDarkMode
                                 ? AppTheme.darkTheme.scaffoldBackgroundColor
@@ -133,8 +143,7 @@ class LoginView extends GetView<LoginController> {
                         },
                       ),
                     ),
-
-                    SizedBox(height: screenHeight * 0.01),
+                    SizedBox(height: screenHeight * 0.015),
 
                     // 🔘 Remember Me & Forgot Password
                     Row(
@@ -144,7 +153,8 @@ class LoginView extends GetView<LoginController> {
                           () => Row(
                             children: [
                               Transform.scale(
-                                scale: 0.8,
+                                scale:
+                                    screenWidth * 0.0028 + 0.01, // responsive
                                 child: Checkbox(
                                   value: controller.rememberMe.value,
                                   onChanged: (value) {
@@ -159,28 +169,27 @@ class LoginView extends GetView<LoginController> {
                                 ),
                               ),
                               Text(
-                                app_texts.rememberMe,
+                                AppTexts.rememberMe,
                                 style: customBoldText.copyWith(
                                   color: AppColors.tertiaryColor,
-                                  fontSize: Dimensions.fontSizeSmall,
+                                  fontSize: screenWidth * 0.035,
                                 ),
                               ),
                             ],
                           ),
                         ),
                         GestureDetector(
-                          onTap:controller.forget_Paswd,
+                          onTap: controller.forgetPassword,
                           child: Text(
-                            app_texts.forgotPassword,
+                            AppTexts.forgotPassword,
                             style: customBoldText.copyWith(
                               color: AppColors.tertiaryColor,
-                              fontSize: Dimensions.fontSizeSmall,
+                              fontSize: screenWidth * 0.035,
                             ),
                           ),
                         ),
                       ],
                     ),
-
                     SizedBox(height: screenHeight * 0.04),
 
                     // 🔄 OR Divider
@@ -197,9 +206,9 @@ class LoginView extends GetView<LoginController> {
                             horizontal: screenWidth * 0.03,
                           ),
                           child: Text(
-                            app_texts.orText,
+                            AppTexts.orText,
                             style: customBoldText.copyWith(
-                              fontSize: Dimensions.fontSizeSmall,
+                              fontSize: screenWidth * 0.035,
                               color: AppColors.textColor,
                             ),
                           ),
@@ -212,7 +221,6 @@ class LoginView extends GetView<LoginController> {
                         ),
                       ],
                     ),
-
                     SizedBox(height: screenHeight * 0.04),
 
                     // 🔘 Google Sign-in Button
@@ -222,7 +230,21 @@ class LoginView extends GetView<LoginController> {
                         onTap:
                             controller.isGoogleLoading.value
                                 ? null
-                                : controller.onSigninWithGoogle,
+                                : () async {
+                                  final connectivityResult =
+                                      await Connectivity().checkConnectivity();
+
+                                  if (connectivityResult ==
+                                      ConnectivityResult.none) {
+                                    showCustomSnackBar(
+                                      'No internet connection',
+                                      SnackbarState.error,
+                                    );
+                                    return;
+                                  }
+
+                                  await controller.onSigninWithGoogle();
+                                },
                       ),
                     ),
 
@@ -233,20 +255,20 @@ class LoginView extends GetView<LoginController> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          app_texts.dontHaveAccount,
+                          AppTexts.dontHaveAccount,
                           style: customBoldText.copyWith(
-                            fontSize: Dimensions.fontSizeSmall,
+                            fontSize: screenWidth * 0.035,
                             color: AppColors.textColor,
                           ),
                         ),
-                        SizedBox(width: screenWidth * 0.01),
+                        SizedBox(width: screenWidth * 0.015),
                         GestureDetector(
                           onTap: controller.navigateToSignup,
                           child: Text(
-                            app_texts.buttonSignup,
+                            AppTexts.buttonSignup,
                             style: customBoldText.copyWith(
                               fontWeight: FontWeight.bold,
-                              fontSize: Dimensions.fontSizeSmall,
+                              fontSize: screenWidth * 0.04,
                               color: AppColors.primaryColor,
                             ),
                           ),

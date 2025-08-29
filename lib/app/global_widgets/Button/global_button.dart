@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/themes/Font_style.dart';
-import '../../core/themes/dimensions.dart';
 import '../loader/global_loader.dart';
 
+// ignore: camel_case_types
 class global_button extends StatelessWidget {
   final Function()? onTap;
   final String title;
@@ -25,25 +25,28 @@ class global_button extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return GestureDetector(
       onTap: isLoading ? null : onTap,
       child: Container(
         padding: EdgeInsets.symmetric(
-          vertical: screenWidth * 0.04,
-          horizontal: screenWidth * 0.06,
+          vertical: screenHeight * 0.018, // ✅ responsive vertical padding
+          horizontal: screenWidth * 0.06, // ✅ responsive horizontal padding
         ),
-        margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.01),
+        margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
         decoration: BoxDecoration(
           color: backgroundColor,
-          borderRadius: BorderRadius.circular(screenWidth * 0.01),
+          borderRadius: BorderRadius.circular(
+            screenWidth * 0.02,
+          ), // ✅ responsive radius
         ),
         child: Center(
           child:
               isLoading
                   ? SizedBox(
-                    height: Dimensions.fontSizeSmall + 4,
-                    width: Dimensions.fontSizeSmall + 4,
+                    height: screenHeight * 0.025, // ✅ responsive loader size
+                    width: screenHeight * 0.025,
                     child: Global_Loader(
                       color:
                           loaderWhite
@@ -54,7 +57,7 @@ class global_button extends StatelessWidget {
                   : Text(
                     title,
                     style: customBoldText.copyWith(
-                      fontSize: Dimensions.fontSizeSmall,
+                      fontSize: screenWidth * 0.038, // ✅ responsive font size
                       color: textColor,
                     ),
                   ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 class CreateEventController extends GetxController {
   // Controllers for TextFields
@@ -12,13 +13,27 @@ class CreateEventController extends GetxController {
   var titleError = ''.obs;
   var descriptionError = ''.obs;
   var dateError = ''.obs;
+  var searchError = ''.obs;
+  var isConfirmLoading = false.obs;
 
   // Other reactive states
   var searchQuery = ''.obs;
   var selectedUsers = <int>[].obs;
   var isLoading = false.obs;
 
-  // Sample user list for suggestions
+  /// 🔑 Calendar State
+  var focusedDay = DateTime.now().obs;
+  var selectedDay = DateTime.now().obs;
+  var calendarFormat = CalendarFormat.month.obs;
+
+  /// 🔑 Events
+  var events = <DateTime, List<String>>{}.obs;
+
+  /// 🔑 Selected time for Cupertino pickers
+  var fromTime = DateTime.now().obs;
+  var toTime = DateTime.now().add(const Duration(hours: 1)).obs;
+
+  /// ✅ Sample user list for suggestions
   final sampleUsers = [
     "Alice",
     "Bob",
@@ -35,6 +50,23 @@ class CreateEventController extends GetxController {
     searchController.addListener(() {
       searchQuery.value = searchController.text.trim();
     });
+
+    // Initialize From-To times
+    fromTime.value = DateTime(
+      selectedDay.value.year,
+      selectedDay.value.month,
+      selectedDay.value.day,
+      9, // default from 9 AM
+      0,
+    );
+
+    toTime.value = DateTime(
+      selectedDay.value.year,
+      selectedDay.value.month,
+      selectedDay.value.day,
+      17, // default to 5 PM
+      0,
+    );
   }
 
   @override
@@ -46,7 +78,7 @@ class CreateEventController extends GetxController {
     super.onClose();
   }
 
-  /// Reactive validation methods
+  /// Validation methods
   void validateTitle(String value) {
     titleError.value =
         value.trim().isEmpty
@@ -54,13 +86,6 @@ class CreateEventController extends GetxController {
             : value.trim().length < 3
             ? "Title must be at least 3 characters"
             : '';
-  }
-
-  var searchError = ''.obs;
-
-  void validateSearch(String value) {
-    searchError.value =
-        value.trim().isEmpty ? "Please enter at least one user to search" : '';
   }
 
   void validateDescription(String value) {
@@ -76,14 +101,45 @@ class CreateEventController extends GetxController {
     dateError.value = value.trim().isEmpty ? "Please select date and time" : '';
   }
 
+  void validateSearch(String value) {
+    searchError.value =
+        value.trim().isEmpty ? "Please enter at least one user to search" : '';
+  }
+
+  /// 🔑 Select Day Method
+  void selectDay(DateTime selected, DateTime focused) {
+    selectedDay.value = selected;
+    focusedDay.value = focused;
+
+    // Update From-To times to selected day
+    fromTime.value = DateTime(
+      selected.year,
+      selected.month,
+      selected.day,
+      fromTime.value.hour,
+      fromTime.value.minute,
+    );
+
+    toTime.value = DateTime(
+      selected.year,
+      selected.month,
+      selected.day,
+      toTime.value.hour,
+      toTime.value.minute,
+    );
+  }
+
+  /// Save changes
   void saveChanges() {
     validateTitle(titleController.text);
     validateDescription(descriptionController.text);
     validateDate(dateController.text);
+    validateSearch(searchController.text);
 
     if (titleError.value.isEmpty &&
         descriptionError.value.isEmpty &&
-        dateError.value.isEmpty) {
+        dateError.value.isEmpty &&
+        searchError.value.isEmpty) {
       isLoading.value = true;
 
       Future.delayed(const Duration(seconds: 1), () {
@@ -92,6 +148,8 @@ class CreateEventController extends GetxController {
         debugPrint("Description: ${descriptionController.text}");
         debugPrint("Date: ${dateController.text}");
         debugPrint("Search: ${searchController.text}");
+        debugPrint("From: ${fromTime.value}");
+        debugPrint("To: ${toTime.value}");
         Get.snackbar("Success", "Event saved successfully");
       });
     }

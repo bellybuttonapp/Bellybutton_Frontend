@@ -1,3 +1,5 @@
+// ignore_for_file: annotate_overrides
+
 import 'package:flutter/material.dart';
 
 import 'package:get/get.dart';
@@ -22,9 +24,9 @@ class PastEventView extends GetView<PastEventController> {
               : AppTheme.lightTheme.scaffoldBackgroundColor,
       body: EmptyJobsPlaceholder(
         imagePath: app_images.upevent,
-        description: app_texts.upcommingEmpty,
+        description: AppTexts.upcomingEmpty,
         isLoading: controller.isLoading, // RxBool
-        buttonText: app_texts.Create_event, // String
+        buttonText: AppTexts.createEvent, // String
         onButtonTap: controller.PastEventViewCreate, // VoidCallback
       ),
     );

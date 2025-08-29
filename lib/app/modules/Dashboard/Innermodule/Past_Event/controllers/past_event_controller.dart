@@ -1,10 +1,11 @@
+// ignore_for_file: unnecessary_overrides, non_constant_identifier_names
+
 import 'package:bellybutton/app/modules/Dashboard/Innermodule/create_event/views/create_event_view.dart';
 import 'package:get/get.dart';
 
 class PastEventController extends GetxController {
   var isLoading = false.obs;
 
-  //TODO: Implement PastEventController
 
   final count = 0.obs;
   @override
@@ -25,8 +26,8 @@ class PastEventController extends GetxController {
       // Simulate some async operation, e.g., API call or navigation delay
       await Future.delayed(const Duration(seconds: 2));
 
-      // TODO: Add actual navigation or logic here
       Get.to(CreateEventView());
+      // ignore: avoid_print
       print('Button tapped, proceed to next step');
     } finally {
       isLoading.value = false;

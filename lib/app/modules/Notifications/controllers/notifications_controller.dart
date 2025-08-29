@@ -1,9 +1,10 @@
+// ignore_for_file: unnecessary_overrides, avoid_print
+
 import 'package:get/get.dart';
 
 class NotificationsController extends GetxController {
   var isLoading = false.obs;
 
-  //TODO: Implement NotificationsController
 
   final count = 0.obs;
   @override
@@ -24,7 +25,7 @@ class NotificationsController extends GetxController {
       // Simulate some async operation, e.g., API call or navigation delay
       await Future.delayed(const Duration(seconds: 2));
       Get.back();
-      // TODO: Add actual navigation or logic here
+    
       print('Button tapped, proceed to next step');
     } finally {
       isLoading.value = false;

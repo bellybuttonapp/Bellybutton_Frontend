@@ -1,14 +1,18 @@
+// ignore_for_file: curly_braces_in_flow_control_structures
+
+import 'package:bellybutton/app/Controllers/oauth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../../routes/app_pages.dart';
 import '../../forgot_password/views/forgot_password_view.dart';
-import '../../login/views/login_view.dart';
 
 class SignupController extends GetxController {
-  var isGoogleLoading = false.obs;
-  //Loader
-  var isLoading = false.obs; // add this in your controller
+  final AuthService _authService = AuthService();
+
+  // Loader
+  var isLoading = false.obs;
 
   // Text controllers
   final nameController = TextEditingController();
@@ -20,96 +24,163 @@ class SignupController extends GetxController {
   var emailError = RxnString();
   var passwordError = RxnString();
 
-  // Toggle for password visibility
+  // Password visibility toggle
   var isPasswordHidden = true.obs;
 
   // Remember me
   var rememberMe = false.obs;
 
-  // --- Name validation ---
-  void validatename(String value) {
-    if (value.isEmpty) {
+  @override
+  void onInit() {
+    super.onInit();
+    loadUserData();
+  }
+
+  /// =====================
+  /// VALIDATIONS
+  /// =====================
+  void validateName(String value) {
+    if (value.isEmpty)
       nameError.value = 'Name cannot be empty';
-    } else if (!RegExp(r"^[a-zA-Z\s]+$").hasMatch(value)) {
+    else if (!RegExp(r"^[a-zA-Z\s]+$").hasMatch(value))
       nameError.value = 'Name must contain only letters';
-    } else if (value.length < 3) {
+    else if (value.length < 3)
       nameError.value = 'Name must be at least 3 characters';
-    } else {
+    else
       nameError.value = null;
-    }
   }
 
-  // --- Email validation ---
   void validateEmail(String value) {
-    if (value.isEmpty) {
+    if (value.isEmpty)
       emailError.value = 'Email cannot be empty';
-    } else if (!GetUtils.isEmail(value)) {
+    else if (!GetUtils.isEmail(value))
       emailError.value = 'Enter a valid email';
-    } else {
+    else
       emailError.value = null;
-    }
   }
 
-  // --- Password validation ---
   void validatePassword(String value) {
-    if (value.isEmpty) {
+    if (value.isEmpty)
       passwordError.value = 'Password cannot be empty';
-    } else if (value.length < 8) {
+    else if (value.length < 8)
       passwordError.value = 'Minimum 8 characters required';
-    } else if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)').hasMatch(value)) {
+    else if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)').hasMatch(value))
       passwordError.value = 'Include uppercase, lowercase, and a number';
-    } else {
+    else
       passwordError.value = null;
+  }
+
+  /// =====================
+  /// REMEMBER ME STORAGE
+  /// =====================
+  Future<void> saveUserData({String? name, String? email}) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (rememberMe.value) {
+      await prefs.setString("signup_name", name ?? nameController.text.trim());
+      await prefs.setString(
+        "signup_email",
+        email ?? emailController.text.trim(),
+      );
+    } else {
+      await prefs.remove("signup_name");
+      await prefs.remove("signup_email");
     }
   }
 
+  Future<void> loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedName = prefs.getString("signup_name");
+    final savedEmail = prefs.getString("signup_email");
+
+    if (savedName != null && savedEmail != null) {
+      nameController.text = savedName;
+      emailController.text = savedEmail;
+      rememberMe.value = true;
+    }
+  }
+
+  /// =====================
+  /// SIGNUP FUNCTION
+  /// =====================
   Future<void> signup() async {
     final name = nameController.text.trim();
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
-    validatename(name);
+    // Validate inputs
+    validateName(name);
     validateEmail(email);
     validatePassword(password);
 
     if (nameError.value == null &&
         emailError.value == null &&
         passwordError.value == null) {
-      isLoading.value = true; // start loader
+      isLoading.value = true;
 
       try {
-        // Simulate signup process (e.g., API call)
-        await Future.delayed(const Duration(seconds: 2));
+        final userCredential = await _authService.registerWithEmail(
+          name: name,
+          email: email,
+          password: password,
+        );
 
-        Get.snackbar('Success', 'Signed up successfully');
+        if (userCredential != null) {
+          await saveUserData(); // ✅ Save only if rememberMe checked
+
+          showCustomSnackBar(
+            'Signed up successfully as ${userCredential.user!.displayName ?? name}',
+            SnackbarState.success,
+          );
+          Get.offNamed(Routes.DASHBOARD);
+        } else {
+          showCustomSnackBar('Signup failed. Try again.', SnackbarState.error);
+        }
       } catch (e) {
-        Get.snackbar('Error', 'Signup failed');
+        showCustomSnackBar('Signup failed: $e', SnackbarState.error);
       } finally {
-        isLoading.value = false; // stop loader
+        isLoading.value = false;
       }
-    } else {
-      Get.snackbar('Error', 'Please fix the highlighted errors');
     }
   }
 
-  // Dummy social signin
-  void Signin_Button() {
-    Get.snackbar('Info', 'Social Sign-in Clicked');
+  /// =====================
+  /// GOOGLE SIGN-IN
+  /// =====================
+  Future<void> signInWithGoogle() async {
+    isLoading.value = true;
+    try {
+      final userCredential = await _authService.signInWithGoogle();
+      if (userCredential != null) {
+        final email = userCredential.user?.email ?? "";
+        final name = userCredential.user?.displayName ?? "";
+
+        await saveUserData(name: name, email: email); // ✅ store from Google
+
+        showCustomSnackBar(
+          'Logged in as ${name.isNotEmpty ? name : email}',
+          SnackbarState.success,
+        );
+        Get.offNamed(Routes.DASHBOARD);
+      } else {
+        showCustomSnackBar('Google sign-in canceled', SnackbarState.error);
+      }
+    } catch (e) {
+      showCustomSnackBar('Google sign-in failed: $e', SnackbarState.error);
+    } finally {
+      isLoading.value = false;
+    }
   }
 
-  void navigateToLogin() {
-    Get.toNamed(
-      Routes.LOGIN,
-    ); // ✅ triggers proper binding disposal and recreation
-  }
+  /// =====================
+  /// NAVIGATION
+  /// =====================
+  void navigateToLogin() => Get.toNamed(Routes.LOGIN);
 
-  void forget_Paswd() {
-    Get.to(
-      () => ForgotPasswordView(),
-      transition: Transition.rightToLeft, // Slide from right to left
-      duration: const Duration(milliseconds: 300), // Optional speed control
-    );
-  }
+  void forgetPassword() => Get.to(
+    () => ForgotPasswordView(),
+    transition: Transition.rightToLeft,
+    duration: const Duration(milliseconds: 300),
+  );
 
   @override
   void onClose() {

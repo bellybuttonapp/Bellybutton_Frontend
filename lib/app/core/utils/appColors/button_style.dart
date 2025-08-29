@@ -1,3 +1,5 @@
+// ignore_for_file: non_constant_identifier_names
+
 import 'package:bellybutton/app/core/utils/appColors/custom_color.g.dart';
 import 'package:flutter/material.dart';
 

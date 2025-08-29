@@ -6,8 +6,12 @@ class AppColors {
   static const Color textColor3 = Colors.white;
   static const Color primaryColor = Color(0xFF004C99);
   static const Color primaryColor1 = Color.fromARGB(255, 235, 7, 7);
+  static const Color error = Color(0xFFE53935); // Red
+  static const Color warning = Color(0xFFFFA726); // Orange
+  static const Color success = Color(0xFF43A047); // Green
+  static const Color pending = Color(0xFF1E88E5); // Blue
+  static const Color other = Color(0xFF757575); // Grey
 
-  
   static const Color tertiaryColor = Color(0xFF818385);
   static const Color disabledColor = Color(0xFFDADADB);
 }
@@ -22,12 +26,12 @@ class AppTheme {
       foregroundColor: Colors.white,
       elevation: 2,
     ),
-    cardTheme: CardTheme(
-      color: Colors.white,
-      elevation: 4,
-      margin: const EdgeInsets.all(8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ),
+    // cardTheme: CardTheme(
+    //   color: Colors.white,
+    //   elevation: 4,
+    //   margin: const EdgeInsets.all(8),
+    //   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    // ),
     inputDecorationTheme: InputDecorationTheme(
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       enabledBorder: OutlineInputBorder(
@@ -55,12 +59,12 @@ class AppTheme {
       foregroundColor: Colors.white,
       elevation: 2,
     ),
-    cardTheme: CardTheme(
-      color: Color(0xFF1E1E1E),
-      elevation: 4,
-      margin: const EdgeInsets.all(8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ),
+    // cardTheme: CardTheme(
+    //   color: Color(0xFF1E1E1E),
+    //   elevation: 4,
+    //   margin: const EdgeInsets.all(8),
+    //   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    // ),
     inputDecorationTheme: InputDecorationTheme(
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       enabledBorder: OutlineInputBorder(

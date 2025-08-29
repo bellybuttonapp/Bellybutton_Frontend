@@ -63,7 +63,7 @@ class OnboardingView extends GetView<OnboardingController> {
                   child: Obx(
                     () => global_button(
                       isLoading: controller.isLoading.value, // ✅ Reactive
-                      title: app_texts.onboardingbutton,
+                      title: AppTexts.onboardingButton,
                       backgroundColor: AppColors.textColor3,
                       textColor: AppColors.primaryColor,
                       onTap: controller.goToNext,
@@ -81,7 +81,7 @@ class OnboardingView extends GetView<OnboardingController> {
   /// Title Widget
   Widget _buildTitle(Size size) {
     return Text(
-      app_texts.onboardingTitle1,
+      AppTexts.onboardingTitle1,
       textAlign: TextAlign.center,
       style: customBoldText.copyWith(
         color: AppColors.textColor3,
@@ -93,7 +93,7 @@ class OnboardingView extends GetView<OnboardingController> {
   /// Subtitle Widget
   Widget _buildSubtitle(Size size) {
     return Text(
-      app_texts.onboardingSubtitle1,
+      AppTexts.onboardingSubtitle1,
       textAlign: TextAlign.center,
       style: customBoldText.copyWith(
         color: AppColors.tertiaryColor,

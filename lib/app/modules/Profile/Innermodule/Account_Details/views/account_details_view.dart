@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 
+import '../../../../../Controllers/oauth.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_images.dart';
 import '../../../../../core/constants/app_texts.dart';
@@ -11,6 +14,7 @@ import '../controllers/account_details_controller.dart';
 import '../../../../../global_widgets/custom_app_bar/custom_app_bar.dart';
 
 class AccountDetailsView extends GetView<AccountDetailsController> {
+  // ignore: annotate_overrides
   final AccountDetailsController controller = Get.put(
     AccountDetailsController(),
   );
@@ -24,12 +28,19 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
+    final user = AuthService().currentUser;
+    final displayName = user?.displayName ?? '';
+    final email = user?.email ?? '';
+
+    // Initialize name controller with current name
+    controller.nameController.text = displayName;
+
     return Scaffold(
       backgroundColor:
           isDarkMode
               ? AppTheme.darkTheme.scaffoldBackgroundColor
               : AppTheme.lightTheme.scaffoldBackgroundColor,
-      appBar: CustomAppBar(title: app_texts.Account_Details),
+      appBar: CustomAppBar(title: AppTexts.accountDetails),
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
@@ -48,29 +59,54 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
-                          CircleAvatar(
-                            radius: screenWidth * 0.16,
-                            backgroundColor: Colors.grey,
-                            child: Icon(
-                              Icons.person,
-                              size: screenWidth * 0.13,
-                              color: Colors.white,
+                          Obx(
+                            () => CircleAvatar(
+                              radius: screenWidth * 0.16,
+                              backgroundColor: Colors.grey,
+                              backgroundImage:
+                                  controller.pickedImage.value != null
+                                      ? FileImage(
+                                        File(
+                                          controller.pickedImage.value!.path,
+                                        ),
+                                      )
+                                      : (user?.photoURL != null
+                                              ? NetworkImage(user!.photoURL!)
+                                              : null)
+                                          as ImageProvider<Object>?,
+                              child:
+                                  controller.pickedImage.value == null &&
+                                          user?.photoURL == null
+                                      ? Icon(
+                                        Icons.person,
+                                        size: screenWidth * 0.13,
+                                        color: Colors.white,
+                                      )
+                                      : null,
                             ),
                           ),
+
+                          // Inside the Stack where the camera icon is
                           Positioned(
                             bottom: screenWidth * 0.015,
                             right: screenWidth * 0.015,
-                            child: Container(
-                              padding: EdgeInsets.all(screenWidth * 0.015),
-                              decoration: const BoxDecoration(
-                                color: Colors.black,
-                                shape: BoxShape.circle,
-                              ),
-                              child: SvgPicture.asset(
-                                app_images.Camera_Add_icon,
-                                color: Colors.white,
-                                width: screenWidth * 0.045,
-                                height: screenWidth * 0.045,
+                            child: GestureDetector(
+                              onTap: () async {
+                                await controller.pickImage();
+                              },
+                              child: Container(
+                                padding: EdgeInsets.all(screenWidth * 0.015),
+                                decoration: const BoxDecoration(
+                                  color: Colors.black,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: SvgPicture.asset(
+                                  app_images.Camera_Add_icon,
+                                  // ignore: deprecated_member_use
+                                  color: AppColors.textColor3,
+                                  width: screenWidth * 0.045,
+                                  height: screenWidth * 0.045,
+                                ),
                               ),
                             ),
                           ),
@@ -83,7 +119,7 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
                     Obx(
                       () => Signup_textfield(
                         controller: controller.nameController,
-                        hintText: app_texts.signupName,
+                        hintText: AppTexts.signupName,
                         obscureText: false,
                         keyboardType: TextInputType.name,
                         errorText: controller.nameError.value,
@@ -95,8 +131,11 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
                     // Email (Read-only)
                     Signup_textfield(
                       enabled: false,
-                      initialValue: "Kartick0l@gmail.com",
+                      controller: TextEditingController(
+                        text: email,
+                      ), // <-- Set controller with email
                       hintText: "Email",
+                      obscureText: false,
                       suffixIcon: Padding(
                         padding: EdgeInsets.all(screenWidth * 0.03),
                         child: SvgPicture.asset(
@@ -105,21 +144,11 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
                           height: screenWidth * 0.025,
                         ),
                       ),
-                      obscureText: false,
                     ),
+
                     SizedBox(height: screenHeight * 0.025),
 
-                    // Password Field
-                    Obx(
-                      () => Signup_textfield(
-                        controller: controller.passwordController,
-                        hintText: "Set New Password",
-                        obscureText: true,
-                        onChanged: controller.validatePassword,
-                        errorText: controller.passwordError.value,
-                      ),
-                    ),
-                    SizedBox(height: screenHeight * 0.05),
+                    SizedBox(height: screenHeight * 0.35),
 
                     // Save Button
                     Obx(
@@ -131,11 +160,8 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
                             controller.saveChanges();
                           }
                         },
-                        title: app_texts.Save_changes,
-                        backgroundColor:
-                            isDarkMode
-                                ? AppTheme.darkTheme.scaffoldBackgroundColor
-                                : AppTheme.lightTheme.primaryColor,
+                        title: AppTexts.saveChanges,
+                        backgroundColor: AppColors.primaryColor,
                       ),
                     ),
                   ],

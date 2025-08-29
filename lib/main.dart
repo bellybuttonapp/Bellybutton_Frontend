@@ -1,61 +1,81 @@
-import 'dart:ui';
+// ignore_for_file: avoid_print
 
+import 'dart:async';
+import 'dart:ui';
+import 'package:bellybutton/app_initializer.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
 import 'package:get/get.dart';
-
+import 'package:get_storage/get_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'app/core/constants/app_colors.dart';
 import 'app/routes/app_pages.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+Future<void> main() async {
+  runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
 
-  // Lock orientation to portrait only
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
-  // System UI Styling
-  SystemChrome.setSystemUIOverlayStyle(
-    SystemUiOverlayStyle(
-      statusBarColor: AppTheme.lightTheme.primaryColor,
-      statusBarIconBrightness: Brightness.light,
-    ),
+      // Initialize local storage For Remember Me
+      await GetStorage.init();
+
+      // Initialize Firebase
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      print('✅ Firebase Initialized');
+
+      // Crashlytics
+      FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+
+      // SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      Get.put<SharedPreferences>(prefs);
+
+      // App services
+      await AppInitializer.initialize();
+
+      // Orientation Lock
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+      ]);
+
+      // System UI
+      SystemChrome.setSystemUIOverlayStyle(
+        SystemUiOverlayStyle(
+          statusBarColor: AppTheme.lightTheme.primaryColor,
+          statusBarIconBrightness: Brightness.light,
+        ),
+      );
+
+      // Lifecycle observer
+      WidgetsBinding.instance.addObserver(AppLifecycleHandler());
+
+      runApp(
+        GetMaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: "Application",
+          initialRoute: AppPages.INITIAL,
+          getPages: AppPages.routes,
+          darkTheme: ThemeData.dark(),
+          themeMode: ThemeMode.system,
+          scrollBehavior: const MaterialScrollBehavior().copyWith(
+            dragDevices: {
+              PointerDeviceKind.mouse,
+              PointerDeviceKind.touch,
+              PointerDeviceKind.trackpad,
+            },
+          ),
+        ),
+      );
+    },
+    (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    },
   );
-
-  // Lifecycle Observer
-  WidgetsBinding.instance.addObserver(AppLifecycleListener());
-  runApp(
-    GetMaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: "Application",
-      initialRoute: AppPages.INITIAL,
-      getPages: AppPages.routes,
-
-      // // 🎨 Theming
-      // theme: ThemeData(
-      //   primarySwatch: Colors.indigo,
-      //   scaffoldBackgroundColor: Colors.white,
-      // ),
-      darkTheme: ThemeData.dark(),
-      themeMode: ThemeMode.system,
-
-      // 🖱️ Scroll support for multiple devices
-      scrollBehavior: const MaterialScrollBehavior().copyWith(
-        dragDevices: {
-          PointerDeviceKind.mouse,
-          PointerDeviceKind.touch,
-          PointerDeviceKind.trackpad,
-        },
-      ),
-    ),
-  );
-}
-
-class AppLifecycleListener extends WidgetsBindingObserver {
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    debugPrint('📱 App state changed: $state');
-  }
 }

@@ -1,7 +1,8 @@
+// ignore_for_file: camel_case_types, file_names
+
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/themes/Font_style.dart';
-import '../../../../core/themes/dimensions.dart';
 
 class Signup_textfield extends StatelessWidget {
   final TextEditingController? controller;
@@ -11,7 +12,7 @@ class Signup_textfield extends StatelessWidget {
   final bool enabled;
   final bool readOnly;
   final TextInputType? keyboardType;
-  final Widget? prefixIcon; // added
+  final Widget? prefixIcon;
   final Widget? suffixIcon;
   final String? Function(String?)? validator;
   final String? errorText;
@@ -28,7 +29,7 @@ class Signup_textfield extends StatelessWidget {
     this.enabled = true,
     this.readOnly = false,
     this.keyboardType,
-    this.prefixIcon, // optional
+    this.prefixIcon,
     this.suffixIcon,
     this.validator,
     this.errorText,
@@ -39,11 +40,14 @@ class Signup_textfield extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Stack(
       children: [
         Column(
           children: [
-            const SizedBox(height: 18),
+            SizedBox(height: screenHeight * 0.02), // dynamic spacing
             TextFormField(
               controller: controller,
               initialValue: controller == null ? initialValue : null,
@@ -58,41 +62,45 @@ class Signup_textfield extends StatelessWidget {
               onTap: onTap,
               maxLines: maxLines ?? 1,
               style: customBoldText.copyWith(
-                fontSize: Dimensions.fontSizeSmall,
+                fontSize: screenWidth * 0.035, // responsive font size
                 color: AppColors.tertiaryColor,
               ),
               decoration: InputDecoration(
                 hintStyle: customBoldText.copyWith(
                   color: AppColors.tertiaryColor,
-                  fontSize: Dimensions.fontSizeSmall,
+                  fontSize: screenWidth * 0.035,
                 ),
                 hintText: hintText,
-                prefixIcon: prefixIcon, // apply here
+                prefixIcon: prefixIcon,
                 suffixIcon: suffixIcon,
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: screenHeight * 0.018,
+                  horizontal: screenWidth * 0.035,
+                ),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(5),
+                  borderRadius: BorderRadius.circular(screenWidth * 0.015),
                   borderSide: const BorderSide(
                     color: AppColors.textColor3,
                     width: 1.5,
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(5),
+                  borderRadius: BorderRadius.circular(screenWidth * 0.015),
                   borderSide: const BorderSide(
                     color: Color.fromARGB(255, 241, 240, 240),
                     width: 1.5,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(5),
+                  borderRadius: BorderRadius.circular(screenWidth * 0.015),
                   borderSide: const BorderSide(color: Colors.grey, width: 1.5),
                 ),
                 errorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(screenWidth * 0.02),
                   borderSide: const BorderSide(color: Colors.grey, width: 1.1),
                 ),
                 focusedErrorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(screenWidth * 0.02),
                   borderSide: const BorderSide(color: Colors.grey, width: 1.1),
                 ),
               ),
@@ -107,7 +115,7 @@ class Signup_textfield extends StatelessWidget {
               errorText!,
               style: customBoldText.copyWith(
                 color: AppColors.primaryColor1,
-                fontSize: Dimensions.fontSizeExtraSmall,
+                fontSize: screenWidth * 0.03, // responsive error font size
               ),
             ),
           ),
