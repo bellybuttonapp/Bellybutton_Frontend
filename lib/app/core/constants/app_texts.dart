@@ -96,6 +96,8 @@ class AppTexts {
   static const String upcomingEvent = "Upcoming Event";
   static const String pastEvent = "Past Event";
   static const String createEvent = "Create Event";
+  static const String Please_fix_the_errors_in_the_form = "Please fix the errors in the form";
+  static const String Event_saved_successfully = "Event saved successfully";
 
   static const String upcomingEmpty =
       "Set up an event and invite users to share \n"

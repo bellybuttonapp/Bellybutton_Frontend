@@ -1,6 +1,7 @@
 // ignore_for_file: unrelated_type_equality_checks
 
 import 'package:bellybutton/app/Controllers/oauth.dart';
+import 'package:bellybutton/app/utils/preference.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -13,21 +14,21 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 
 class LoginController extends GetxController {
   final AuthService _authService = AuthService();
-  final storage = GetStorage(); // ✅ Local storage instance
+  final storage = GetStorage(); // Local storage instance
 
-  /// Loading states
+  // Loading states
   var isGoogleLoading = false.obs;
   var isLoading = false.obs;
 
-  /// Form controllers
+  // Form controllers
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
-  /// Validation error messages
+  // Validation error messages
   final emailError = ''.obs;
   final passwordError = ''.obs;
 
-  /// Misc
+  // Misc
   final rememberMe = false.obs;
   final isPasswordHidden = true.obs;
 
@@ -37,9 +38,6 @@ class LoginController extends GetxController {
     _loadRememberedUser();
   }
 
-  /// =========================
-  /// LOAD REMEMBERED EMAIL
-  /// =========================
   void _loadRememberedUser() {
     final savedEmail = storage.read('email');
     final savedRemember = storage.read('rememberMe') ?? false;
@@ -50,18 +48,13 @@ class LoginController extends GetxController {
     }
   }
 
-  /// =========================
-  /// EMAIL & PASSWORD LOGIN
-  /// =========================
   Future<void> login() async {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
-    // Reset errors
     emailError.value = '';
     passwordError.value = '';
 
-    // Validate inputs
     final emailValidation = _validateEmail(email);
     final passwordValidation = _validatePassword(password);
     if (emailValidation != null) emailError.value = emailValidation;
@@ -78,7 +71,7 @@ class LoginController extends GetxController {
       );
 
       if (userCredential != null) {
-        // ✅ Save only email if Remember Me is checked
+        // Save email if Remember Me is checked
         if (rememberMe.value) {
           storage.write('email', email);
           storage.write('rememberMe', true);
@@ -87,11 +80,15 @@ class LoginController extends GetxController {
           storage.write('rememberMe', false);
         }
 
-        // ✅ Use centralized success message
+        // ✅ Use Preference class to save login state
+        Preference.isLoggedIn = true;
+        Preference.email = email;
+
         showCustomSnackBar(
-          "${AppTexts.loginSuccess} (${userCredential.user?.displayName ?? userCredential.user?.email})",
+          "${AppTexts.loginSuccess} (${userCredential.user?.displayName ?? email})",
           SnackbarState.success,
         );
+
         Get.offAllNamed(Routes.DASHBOARD);
       }
     } on FirebaseAuthException catch (e) {
@@ -100,17 +97,14 @@ class LoginController extends GetxController {
           emailError.value = AppTexts.loginNoUser;
           showCustomSnackBar(AppTexts.loginNoUser, SnackbarState.error);
           break;
-
         case 'wrong-password':
           passwordError.value = AppTexts.loginWrongPassword;
           showCustomSnackBar(AppTexts.loginWrongPassword, SnackbarState.error);
           break;
-
         case 'invalid-email':
           emailError.value = AppTexts.loginInvalidEmail;
           showCustomSnackBar(AppTexts.loginInvalidEmail, SnackbarState.error);
           break;
-
         case 'invalid-credential':
         case 'INVALID_LOGIN_CREDENTIALS':
           showCustomSnackBar(
@@ -118,20 +112,11 @@ class LoginController extends GetxController {
             SnackbarState.error,
           );
           break;
-
         default:
-          if (e.message?.contains('supplied auth credential is incorrect') ??
-              false) {
-            showCustomSnackBar(
-              AppTexts.authCredentialError,
-              SnackbarState.error,
-            );
-          } else {
-            showCustomSnackBar(
-              e.message ?? AppTexts.loginFailed,
-              SnackbarState.error,
-            );
-          }
+          showCustomSnackBar(
+            e.message ?? AppTexts.loginFailed,
+            SnackbarState.error,
+          );
       }
     } catch (e) {
       showCustomSnackBar(AppTexts.loginFailed, SnackbarState.error);
@@ -140,14 +125,10 @@ class LoginController extends GetxController {
     }
   }
 
-  /// =========================
-  /// GOOGLE SIGN-IN
-  /// =========================
   Future<void> onSigninWithGoogle() async {
     isGoogleLoading.value = true;
 
     try {
-      // 🔹 Check internet
       final connectivityResult = await Connectivity().checkConnectivity();
       if (connectivityResult == ConnectivityResult.none) {
         showCustomSnackBar(AppTexts.noInternet, SnackbarState.error);
@@ -155,8 +136,10 @@ class LoginController extends GetxController {
       }
 
       final userCredential = await _authService.signInWithGoogle();
-
       if (userCredential != null) {
+        Preference.isLoggedIn = true;
+        Preference.email = userCredential.user?.email ?? '';
+
         showCustomSnackBar(AppTexts.googleSignInSuccess, SnackbarState.success);
         Get.offAllNamed(Routes.DASHBOARD);
       } else {
@@ -169,9 +152,6 @@ class LoginController extends GetxController {
     }
   }
 
-  /// =========================
-  /// NAVIGATION
-  /// =========================
   void navigateToSignup() => Get.toNamed(Routes.SIGNUP);
 
   void forgetPassword() => Get.to(
@@ -180,9 +160,6 @@ class LoginController extends GetxController {
     duration: const Duration(milliseconds: 300),
   );
 
-  /// =========================
-  /// INPUT VALIDATION
-  /// =========================
   void validateEmail(String value) =>
       emailError.value = _validateEmail(value) ?? '';
 

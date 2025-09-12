@@ -6,10 +6,11 @@ import 'package:bellybutton/app/Controllers/oauth.dart';
 import 'package:bellybutton/app/modules/Premium/views/premium_view.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import '../../../global_widgets/CustomPopup/CustomPopup.dart';
 import '../../../core/constants/app_texts.dart';
+import '../../../global_widgets/CustomPopup/CustomPopup.dart';
 import '../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../routes/app_pages.dart';
+import '../../../utils/preference.dart';
 import '../../Auth/login/controllers/login_controller.dart';
 import '../Innermodule/Account_Details/views/account_details_view.dart';
 
@@ -19,7 +20,7 @@ class ProfileController extends GetxController {
   RxBool autoSync = false.obs;
   Rx<User?> currentUser = AuthService().currentUser.obs;
 
-  Rx<File?> pickedImage = Rx<File?>(null); // <-- new
+  Rx<File?> pickedImage = Rx<File?>(null);
 
   @override
   void onInit() {
@@ -30,7 +31,7 @@ class ProfileController extends GetxController {
   }
 
   void updatePickedImage(File? image) {
-    pickedImage.value = image; // update when image is picked
+    pickedImage.value = image;
   }
 
   void onAutoSyncChanged(bool value) => autoSync.value = value;
@@ -81,19 +82,20 @@ class ProfileController extends GetxController {
         isProcessing.value = true;
         try {
           await AuthService().deleteAccount();
+
+          // ✅ Clear login flag and all preferences
+          Preference.clearAll();
+
           Get.deleteAll(force: true);
           Get.back();
-          Get.offAllNamed(Routes.LOGIN);
+          Get.offAllNamed(Routes.ONBOARDING);
 
           showCustomSnackBar(
             AppTexts.accountDeletedSuccess,
             SnackbarState.success,
           );
         } catch (e) {
-          showCustomSnackBar(
-            AppTexts.accountDeleteError,
-            SnackbarState.success,
-          );
+          showCustomSnackBar(AppTexts.accountDeleteError, SnackbarState.error);
         } finally {
           isProcessing.value = false;
         }
@@ -113,6 +115,10 @@ class ProfileController extends GetxController {
         isLoading.value = true;
         try {
           await AuthService().signOut();
+
+          // ✅ Clear login flag using Preference
+          Preference.isLoggedIn = false;
+
           Get.delete<LoginController>(
             force: true,
           ); // only clear login controller
@@ -121,7 +127,7 @@ class ProfileController extends GetxController {
 
           showCustomSnackBar(AppTexts.logoutSuccess, SnackbarState.success);
         } catch (e) {
-          showCustomSnackBar(AppTexts.logoutError, SnackbarState.success);
+          showCustomSnackBar(AppTexts.logoutError, SnackbarState.error);
         } finally {
           isLoading.value = false;
         }

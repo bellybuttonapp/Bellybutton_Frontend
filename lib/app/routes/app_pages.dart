@@ -1,5 +1,3 @@
-// ignore_for_file: constant_identifier_names
-
 import 'package:flutter/material.dart';
 
 import 'package:get/get.dart';
@@ -16,6 +14,8 @@ import '../modules/Dashboard/Innermodule/Upcomming_Event/bindings/upcomming_even
 import '../modules/Dashboard/Innermodule/Upcomming_Event/views/upcomming_event_view.dart';
 import '../modules/Dashboard/Innermodule/create_event/bindings/create_event_binding.dart';
 import '../modules/Dashboard/Innermodule/create_event/views/create_event_view.dart';
+import '../modules/Dashboard/Innermodule/inviteuser/bindings/inviteuser_binding.dart';
+import '../modules/Dashboard/Innermodule/inviteuser/views/inviteuser_view.dart';
 import '../modules/Dashboard/bindings/dashboard_binding.dart';
 import '../modules/Dashboard/views/dashboard_view.dart';
 import '../modules/Notifications/bindings/notifications_binding.dart';
@@ -31,12 +31,14 @@ import '../modules/home/views/home_view.dart';
 import '../modules/onboarding/bindings/onboarding_binding.dart';
 import '../modules/onboarding/views/onboarding_view.dart';
 
+// ignore_for_file: constant_identifier_names
+
 part 'app_routes.dart';
 
 class AppPages {
   AppPages._();
 
-  static const INITIAL = Routes.ONBOARDING;
+  static const INITIAL = Routes.INVITEUSER;
 
   static final routes = [
     GetPage(
@@ -109,6 +111,14 @@ class AppPages {
           page: () => CreateEventView(),
           binding: CreateEventBinding(),
           transition: Transition.fade,
+          curve: Curves.easeInOut,
+          transitionDuration: Duration(milliseconds: 400),
+        ),
+        GetPage(
+          name: _Paths.INVITEUSER,
+          page: () => InviteuserView(),
+          binding: InviteuserBinding(),
+           transition: Transition.fade,
           curve: Curves.easeInOut,
           transitionDuration: Duration(milliseconds: 400),
         ),

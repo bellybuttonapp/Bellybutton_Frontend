@@ -34,7 +34,7 @@ class UpcommingEventController extends GetxController {
       // Simulate some async operation, e.g., API call or navigation delay
       await Future.delayed(const Duration(seconds: 2));
 
-      Get.to(CreateEventView());
+      Get.to(() => CreateEventView());
       print('Button tapped, proceed to next step');
     } finally {
       isLoading.value = false;

@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'dart:ui';
+import 'package:bellybutton/app/utils/preference.dart';
 import 'package:bellybutton/app_initializer.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +20,7 @@ Future<void> main() async {
     () async {
       WidgetsFlutterBinding.ensureInitialized();
 
-      // Initialize local storage For Remember Me
+      // Initialize local storage
       await GetStorage.init();
 
       // Initialize Firebase
@@ -35,6 +36,10 @@ Future<void> main() async {
       // SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       Get.put<SharedPreferences>(prefs);
+
+      // Determine initial route using Preference class
+      String initialRoute =
+          Preference.isLoggedIn ? Routes.DASHBOARD : Routes.ONBOARDING;
 
       // App services
       await AppInitializer.initialize();
@@ -60,7 +65,7 @@ Future<void> main() async {
         GetMaterialApp(
           debugShowCheckedModeBanner: false,
           title: "Application",
-          initialRoute: AppPages.INITIAL,
+          initialRoute: initialRoute,
           getPages: AppPages.routes,
           darkTheme: ThemeData.dark(),
           themeMode: ThemeMode.system,

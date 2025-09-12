@@ -26,6 +26,7 @@ class app_images {
   static const Forget_pswrd = 'assets/images/forget_pswrd.png';
   static const search = 'assets/images/search.svg';
   static const New_pswrd = 'assets/images/newpswrd.svg';
+  static const clock_icon = 'assets/images/clock_icon.svg';
 
   static const success = 'assets/images/Success_check.svg';
   static const error = 'assets/images/Failure_check.svg';
