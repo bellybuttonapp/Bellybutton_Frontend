@@ -3,13 +3,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
-
 import '../../../../../Controllers/oauth.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_images.dart';
 import '../../../../../core/constants/app_texts.dart';
 import '../../../../../global_widgets/Button/global_button.dart';
-import '../../../../Auth/signup/Widgets/Signup_textfield.dart';
+import '../../../../../global_widgets/GlobalTextField/GlobalTextField.dart';
 import '../controllers/account_details_controller.dart';
 import '../../../../../global_widgets/custom_app_bar/custom_app_bar.dart';
 
@@ -117,7 +116,7 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
 
                     // Name Field
                     Obx(
-                      () => Signup_textfield(
+                      () => GlobalTextField(
                         controller: controller.nameController,
                         hintText: AppTexts.signupName,
                         obscureText: false,
@@ -129,7 +128,7 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
                     SizedBox(height: screenHeight * 0.025),
 
                     // Email (Read-only)
-                    Signup_textfield(
+                    GlobalTextField(
                       enabled: false,
                       controller: TextEditingController(
                         text: email,

@@ -1,25 +1,82 @@
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:permission_handler/permission_handler.dart';
+import '../../../../../core/constants/app_texts.dart';
+import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 
 class InviteuserController extends GetxController {
   final TextEditingController searchController = TextEditingController();
   var searchQuery = ''.obs;
   var searchError = ''.obs;
-  var selectedUsers = <int>[].obs;
+  var selectedUsers = <Contact>[].obs;
   var isLoading = false.obs;
+  var contacts = <Contact>[].obs;
+  var filteredContacts = <Contact>[].obs;
 
   @override
   void onInit() {
     super.onInit();
     searchController.addListener(() {
       searchQuery.value = searchController.text.trim();
+      filterContacts();
     });
+    fetchContacts();
   }
 
   @override
   void onClose() {
     searchController.dispose();
     super.onClose();
+  }
+
+  Future<void> fetchContacts() async {
+    var permissionStatus = await Permission.contacts.request();
+
+    if (permissionStatus.isGranted) {
+      // Fetch all contacts with properties AND photos
+      final allContacts = await FlutterContacts.getContacts(
+        withProperties: true,
+        withPhoto: true, // <-- fetch photos
+      );
+      contacts.assignAll(allContacts);
+      filterContacts();
+    } else {
+      searchError.value = "Permission denied to access contacts";
+    }
+  }
+
+  Future<void> fetchPhoto(Contact contact) async {
+    if (contact.photo == null || contact.photo!.isEmpty) {
+      final fullContact = await FlutterContacts.getContact(
+        contact.id,
+        withPhoto: true,
+      );
+      contact.photo = fullContact?.photo;
+    }
+  }
+
+  void filterContacts() {
+    final query = searchQuery.value.toLowerCase();
+
+    if (query.isEmpty) {
+      filteredContacts.assignAll([]);
+      return;
+    }
+
+    final results =
+        contacts.where((contact) {
+          final name = contact.displayName?.toLowerCase() ?? '';
+          return name.contains(query);
+        }).toList();
+
+    filteredContacts.assignAll(results);
+  }
+
+  bool validateAllFields() {
+    validateSearch(searchController.text);
+    return searchError.value.isEmpty;
   }
 
   void validateSearch(String value) {
@@ -48,16 +105,21 @@ class InviteuserController extends GetxController {
     searchError.value = '';
   }
 
-  bool validateAllFields() {
-    validateSearch(searchController.text);
-    return searchError.value.isEmpty;
-  }
+  void toggleUserSelection(Contact contact) {
+    final isSelected = selectedUsers.any((c) => c.id == contact.id);
 
-  void toggleUserSelection(int userId) {
-    if (selectedUsers.contains(userId)) {
-      selectedUsers.remove(userId);
+    if (isSelected) {
+      selectedUsers.removeWhere((c) => c.id == contact.id);
+      HapticFeedback.lightImpact(); // deselect feedback
     } else {
-      selectedUsers.add(userId);
+      if (selectedUsers.length < 5) {
+        selectedUsers.add(contact);
+        HapticFeedback.mediumImpact(); // select feedback
+      } else {
+        HapticFeedback.heavyImpact(); // error feedback
+        showCustomSnackBar(AppTexts.Limit_Reached, SnackbarState.error);
+      }
     }
+    update();
   }
 }

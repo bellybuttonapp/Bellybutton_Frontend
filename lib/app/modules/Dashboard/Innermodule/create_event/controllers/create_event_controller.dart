@@ -150,8 +150,8 @@ class CreateEventController extends GetxController {
 
       final latestEndTime = startDateTime.add(const Duration(hours: 2));
       final initialEndTime = startDateTime.add(
-        const Duration(minutes: 30),
-      ); // Start +30 mins
+        const Duration(minutes: 120),
+      ); // Start +120 mins
 
       picked = await showTimePicker(
         context: context,
@@ -177,14 +177,16 @@ class CreateEventController extends GetxController {
         );
 
         if (selectedEndDateTime.isBefore(
-              startDateTime.add(const Duration(minutes: 1)),
+              startDateTime.add(
+                const Duration(minutes: 10),
+              ), // changed from 1 to 10
             ) ||
             selectedEndDateTime.isAfter(latestEndTime)) {
           await Get.dialog(
             CustomPopup(
               title: "Invalid Time Selection",
               message:
-                  "Please select an end time that is at least 1 minute after the start time and no more than 2 hours later.",
+                  "Please select an end time that is at least 10 minutes after the start time and no more than 2 hours later.",
               confirmText: "OK",
               cancelText: null,
               isProcessing: false.obs,

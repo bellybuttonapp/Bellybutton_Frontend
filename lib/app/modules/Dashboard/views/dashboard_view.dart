@@ -2,6 +2,7 @@
 
 import 'package:bellybutton/app/core/constants/app_colors.dart';
 import 'package:bellybutton/app/core/constants/app_images.dart';
+import 'package:bellybutton/app/core/constants/app_texts.dart';
 import 'package:bellybutton/app/core/themes/Font_style.dart';
 import 'package:bellybutton/app/core/themes/dimensions.dart';
 import 'package:bellybutton/app/global_widgets/custom_app_bar/custom_app_bar.dart';
@@ -13,6 +14,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 
+import '../../../global_widgets/Button/global_button.dart';
 import '../controllers/dashboard_controller.dart';
 
 class DashboardView extends GetView<DashboardController> {
@@ -23,7 +25,6 @@ class DashboardView extends GetView<DashboardController> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    // Get current Firebase user
     final user = FirebaseAuth.instance.currentUser;
     final displayName = user?.displayName ?? 'User';
     final photoURL = user?.photoURL;
@@ -49,7 +50,7 @@ class DashboardView extends GetView<DashboardController> {
                 color: theme.iconTheme.color,
               ),
               onPressed: () {
-                HapticFeedback.mediumImpact(); // vibrate
+                HapticFeedback.mediumImpact();
                 controller.goToNotificationView();
               },
               tooltip: "Notifications",
@@ -59,7 +60,7 @@ class DashboardView extends GetView<DashboardController> {
             preferredSize: const Size.fromHeight(56),
             child: TabBar(
               onTap: (index) {
-                HapticFeedback.selectionClick(); // light vibration on tab tap
+                HapticFeedback.selectionClick();
               },
               dividerColor: Colors.transparent,
               indicatorSize: TabBarIndicatorSize.tab,
@@ -83,9 +84,31 @@ class DashboardView extends GetView<DashboardController> {
             ),
           ),
         ),
-        body: TabBarView(
-          physics: const BouncingScrollPhysics(),
-          children: [UpcommingEventView(), PastEventView()],
+        body: Column(
+          children: [
+            Expanded(
+              child: TabBarView(
+                physics: const BouncingScrollPhysics(),
+                children: [UpcommingEventView(), PastEventView()],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Obx(
+                () => global_button(
+                  loaderWhite: true,
+                  isLoading:
+                      controller
+                          .isLoading
+                          .value, // Use controller's reactive var
+                  title: AppTexts.createEvent,
+                  backgroundColor: AppColors.primaryColor,
+                  textColor: AppColors.textColor3,
+                  onTap: controller.CreateEvent, // Correct function reference
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

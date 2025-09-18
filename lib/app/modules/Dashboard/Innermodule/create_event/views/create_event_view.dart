@@ -15,7 +15,7 @@ import '../../../../../core/themes/Font_style.dart';
 import '../../../../../core/utils/appColors/custom_color.g.dart';
 import '../../../../../global_widgets/Button/global_button.dart';
 import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
-import '../../../../Auth/signup/Widgets/Signup_textfield.dart';
+import '../../../../../global_widgets/GlobalTextField/GlobalTextField.dart';
 import '../controllers/create_event_controller.dart';
 
 class CreateEventView extends GetView<CreateEventController> {
@@ -66,7 +66,7 @@ class CreateEventView extends GetView<CreateEventController> {
 
   Widget _buildTitleField() {
     return Obx(
-      () => Signup_textfield(
+      () => GlobalTextField(
         controller: controller.titleController,
         hintText: "Event Title",
         obscureText: false,
@@ -79,7 +79,7 @@ class CreateEventView extends GetView<CreateEventController> {
 
   Widget _buildDescriptionField() {
     return Obx(
-      () => Signup_textfield(
+      () => GlobalTextField(
         controller: controller.descriptionController,
         hintText: "Description",
         obscureText: false,
@@ -96,7 +96,7 @@ class CreateEventView extends GetView<CreateEventController> {
       () => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Signup_textfield(
+          GlobalTextField(
             controller: controller.dateController,
             hintText: "Set Date",
             obscureText: false,
@@ -230,11 +230,19 @@ class CreateEventView extends GetView<CreateEventController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text(
+          AppTexts.Set_Time_Range,
+          style: customBoldText.copyWith(
+            fontSize: 16,
+            color: AppColors.textColor,
+          ),
+        ),
+        const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
               child: Obx(
-                () => Signup_textfield(
+                () => GlobalTextField(
                   controller: controller.startTimeController,
                   hintText: "Start Time",
                   readOnly: true,
@@ -264,7 +272,7 @@ class CreateEventView extends GetView<CreateEventController> {
             const SizedBox(width: 16),
             Expanded(
               child: Obx(
-                () => Signup_textfield(
+                () => GlobalTextField(
                   controller: controller.endTimeController,
                   hintText: "End Time",
                   readOnly: true,
@@ -278,7 +286,7 @@ class CreateEventView extends GetView<CreateEventController> {
                         context,
                         controller.endTimeController,
                         controller.endTimeError,
-                        isEndTime: true, // Pass the flag here
+                        isEndTime: true,
                       ),
                   suffixIcon: Padding(
                     padding: const EdgeInsets.all(12.0),

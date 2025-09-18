@@ -25,7 +25,6 @@ class LoginView extends GetView<LoginController> {
     // 📱 MediaQuery for responsiveness
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-
     return Scaffold(
       backgroundColor:
           isDarkMode

@@ -28,9 +28,6 @@ class UpcommingEventView extends GetView<UpcommingEventController> {
       body: EmptyJobsPlaceholder(
         imagePath: app_images.upevent,
         description: AppTexts.upcomingEmpty,
-        isLoading: controller.isLoading, // RxBool
-        buttonText: AppTexts.createEvent, // String
-        onButtonTap: controller.goToNext, // VoidCallback
       ),
     );
   }

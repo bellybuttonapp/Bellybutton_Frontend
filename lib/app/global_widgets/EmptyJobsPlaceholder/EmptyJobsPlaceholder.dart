@@ -8,7 +8,7 @@ import '../Button/global_button.dart';
 
 class EmptyJobsPlaceholder extends StatelessWidget {
   final String? title;
-  final String imagePath;
+  final String? imagePath; // Made nullable
   final String description;
   final RxBool? isLoading;
   final String? buttonText;
@@ -17,7 +17,7 @@ class EmptyJobsPlaceholder extends StatelessWidget {
   const EmptyJobsPlaceholder({
     super.key,
     this.title,
-    required this.imagePath,
+    this.imagePath, // Now optional
     required this.description,
     this.isLoading,
     this.buttonText,
@@ -26,35 +26,36 @@ class EmptyJobsPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size; // Screen size
+    final size = MediaQuery.of(context).size;
 
     return Center(
-      child: Transform.translate(
-        offset: Offset(0, -size.height * 0.08), // dynamic offset
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset(
-              imagePath,
-              width: size.width * 0.5, // 50% of screen width
-              height: size.width * 0.5, // maintain square ratio
-            ),
-
-            SizedBox(height: size.height * 0.025),
+            // Only show image if imagePath is provided
+            if (imagePath != null) ...[
+              Image.asset(
+                imagePath!,
+                width: size.width * 0.5,
+                height: size.height * 0.3,
+                fit: BoxFit.contain,
+              ),
+              SizedBox(height: size.height * 0.025),
+            ],
 
             if (title != null) ...[
               Text(
                 title!,
                 style: customBoldText.copyWith(
                   color: AppColors.textColor,
-                  fontSize: size.width * 0.05, // responsive text size
+                  fontSize: size.width * 0.05,
                 ),
               ),
               SizedBox(height: size.height * 0.015),
             ],
-
-            SizedBox(height: size.height * 0.015),
 
             Text(
               description,
@@ -68,9 +69,6 @@ class EmptyJobsPlaceholder extends StatelessWidget {
             if (buttonText != null &&
                 onButtonTap != null &&
                 isLoading != null) ...[
-              // SizedBox(
-              //   height: size.height * 0.20,
-              // ), // only shown if button is shown
               Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: size.width * 0.08,

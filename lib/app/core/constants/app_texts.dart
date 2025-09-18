@@ -96,7 +96,10 @@ class AppTexts {
   static const String upcomingEvent = "Upcoming Event";
   static const String pastEvent = "Past Event";
   static const String createEvent = "Create Event";
-  static const String Please_fix_the_errors_in_the_form = "Please fix the errors in the form";
+  static const String Set_Time_Range = "Set Time Range";
+
+  static const String Please_fix_the_errors_in_the_form =
+      "Please fix the errors in the form";
   static const String Event_saved_successfully = "Event saved successfully";
 
   static const String upcomingEmpty =
@@ -140,6 +143,12 @@ class AppTexts {
   static const String logoutError = "Logout failed. Please try again.";
   static const String authCredentialError =
       "The supplied auth credential is incorrect or expired. Please try again.";
+
+  // ---------------- Invite User Page ----------------
+  static const String No_contacts_found =
+      "No contacts found.\nStart adding contacts to connect with people.";
+  static const String Limit_Reached =
+      "Limit Reached\nYou can only invite up to 5 people.";
 
   // ---------------- Premium ----------------
   static const String premium = "premium";

@@ -8,6 +8,8 @@
 		<string>Bellybutton</string>
 		<key>CFBundleExecutable</key>
 		<string>$(EXECUTABLE_NAME)</string>
+		<key>NSContactsUsageDescription</key>
+		<string>This app requires contacts access to function properly.</string>
 		<!-- Google Sign-in Section -->
 		<key>CFBundleURLTypes</key>
 		<array>
