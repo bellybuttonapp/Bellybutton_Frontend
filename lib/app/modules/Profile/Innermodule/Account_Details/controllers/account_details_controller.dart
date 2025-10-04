@@ -1,25 +1,41 @@
-// ignore_for_file: deprecated_member_use, duplicate_ignore
-
+import 'dart:io';
+import 'package:bellybutton/app/Controllers/oauth.dart';
 import 'package:bellybutton/app/core/constants/app_colors.dart';
 import 'package:bellybutton/app/core/constants/app_images.dart';
 import 'package:bellybutton/app/core/constants/app_texts.dart';
+import 'package:bellybutton/app/global_widgets/CustomBottomSheet/CustomBottomsheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-
-import '../../../../../Controllers/oauth.dart';
-import '../../../../../global_widgets/CustomBottomSheet/CustomBottomsheet.dart';
+import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
+import '../../../../../utils/preference.dart';
 
 class AccountDetailsController extends GetxController {
   final nameController = TextEditingController();
-
+  final emailController = TextEditingController();
   final isLoading = false.obs;
   final nameError = RxnString();
 
-  /// Holds the picked image file
   final Rx<XFile?> pickedImage = Rx<XFile?>(null);
   final ImagePicker _picker = ImagePicker();
+
+  @override
+  void onInit() {
+    super.onInit();
+    final user = AuthService().currentUser;
+
+    // Initialize name & email from Preference or Firebase
+    nameController.text =
+        Preference.userName.isNotEmpty
+            ? Preference.userName
+            : (user?.displayName ?? "Example Name");
+
+    emailController.text =
+        Preference.email.isNotEmpty
+            ? Preference.email
+            : (user?.email ?? "example@email.com");
+  }
 
   /// Pick image from gallery or camera
   Future<void> pickImage() async {
@@ -67,12 +83,13 @@ class AccountDetailsController extends GetxController {
     );
 
     if (image != null) {
-      pickedImage.value = image; // update observable
-      await AuthService().updatePhoto(image.path); // save / upload
+      pickedImage.value = image;
+      await AuthService().updatePhoto(image.path);
+      Preference.profileImage = image.path;
     }
   }
 
-  /// Validate name field
+  /// Validate name
   void validateName(String value) {
     final trimmed = value.trim();
     if (trimmed.isEmpty) {
@@ -86,35 +103,29 @@ class AccountDetailsController extends GetxController {
     }
   }
 
-  /// Save changes (simulate async API call)
+  /// Save changes to Firebase & Preference
+  /// Save changes to Firebase & Preference
   Future<void> saveChanges() async {
     if (nameError.value != null) return;
 
+    final newName = nameController.text.trim();
+    if (newName.isEmpty) return;
+
     try {
       isLoading.value = true;
-      final newName = nameController.text.trim();
 
-      if (newName.isNotEmpty) {
-        await AuthService().updateDisplayName(newName);
-      }
+      // Update Firebase
+      await AuthService().updateDisplayName(newName);
 
-      Get.snackbar(
-        "Success",
-        "Changes saved successfully!",
-        snackPosition: SnackPosition.BOTTOM,
-        // ignore: deprecated_member_use
-        backgroundColor: Colors.green.withOpacity(0.8),
-        colorText: Colors.white,
-      );
+      // Update Preference
+      Preference.userName = newName;
+      Preference.email = emailController.text.trim();
+
+      // Show success snackbar
+      showCustomSnackBar(AppTexts.loginSuccess, SnackbarState.success);
     } catch (e) {
-      Get.snackbar(
-        "Error",
-        "Failed to save changes: $e",
-        snackPosition: SnackPosition.BOTTOM,
-        // ignore: deprecated_member_use
-        backgroundColor: Colors.red.withOpacity(0.8),
-        colorText: Colors.white,
-      );
+      // Show error snackbar
+      showCustomSnackBar(AppTexts.noInternet, SnackbarState.error);
     } finally {
       isLoading.value = false;
     }
@@ -123,6 +134,7 @@ class AccountDetailsController extends GetxController {
   @override
   void onClose() {
     nameController.dispose();
+    emailController.dispose();
     super.onClose();
   }
 }

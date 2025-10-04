@@ -24,6 +24,11 @@
 			</dict>
 		</array>
 		<!-- End Google Sign-in Section -->
+		<!-- Bio Metric Sign-in Section -->
+
+		<key>NSFaceIDUsageDescription</key>
+		<string>This app uses Face ID for authentication to secure your data.</string>
+		<!-- End Bio Metric Sign-in Section -->
 
 
 		<key>NSCameraUsageDescription</key>

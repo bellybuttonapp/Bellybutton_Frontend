@@ -12,6 +12,7 @@ class Signup_textfield extends StatelessWidget {
   final bool enabled;
   final bool readOnly;
   final TextInputType? keyboardType;
+  final TextCapitalization textCapitalization; // ✅ added
   final Widget? prefixIcon;
   final Widget? suffixIcon;
   final String? Function(String?)? validator;
@@ -29,6 +30,7 @@ class Signup_textfield extends StatelessWidget {
     this.enabled = true,
     this.readOnly = false,
     this.keyboardType,
+    this.textCapitalization = TextCapitalization.none, // default
     this.prefixIcon,
     this.suffixIcon,
     this.validator,
@@ -47,7 +49,7 @@ class Signup_textfield extends StatelessWidget {
       children: [
         Column(
           children: [
-            SizedBox(height: screenHeight * 0.02), // dynamic spacing
+            SizedBox(height: screenHeight * 0.02),
             TextFormField(
               controller: controller,
               initialValue: controller == null ? initialValue : null,
@@ -56,13 +58,14 @@ class Signup_textfield extends StatelessWidget {
               obscuringCharacter: '*',
               readOnly: readOnly,
               keyboardType: keyboardType,
+              textCapitalization: textCapitalization, // ✅ apply here
               validator: validator,
               autovalidateMode: AutovalidateMode.onUserInteraction,
               onChanged: onChanged,
               onTap: onTap,
               maxLines: maxLines ?? 1,
               style: customBoldText.copyWith(
-                fontSize: screenWidth * 0.035, // responsive font size
+                fontSize: screenWidth * 0.035,
                 color: AppColors.tertiaryColor,
               ),
               decoration: InputDecoration(
@@ -115,7 +118,7 @@ class Signup_textfield extends StatelessWidget {
               errorText!,
               style: customBoldText.copyWith(
                 color: AppColors.primaryColor1,
-                fontSize: screenWidth * 0.03, // responsive error font size
+                fontSize: screenWidth * 0.03,
               ),
             ),
           ),

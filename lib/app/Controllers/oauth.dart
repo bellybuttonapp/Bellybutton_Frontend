@@ -1,81 +1,44 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, unused_field
 
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:dio/dio.dart';
+import '../api/DioClient.dart';
+import '../api/end_points.dart';
+import '../utils/preference.dart';
 
 class AuthService {
+  // ---------- Firebase ----------
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
+  // ---------- API / Dio ----------
+  final Dio _dio = DioClient().dio;
+
+  // ---------- Firebase User ----------
   User? get currentUser => _auth.currentUser;
   Stream<User?> get authStateChanges => _auth.authStateChanges();
-
-  // --- Register ---
-  Future<UserCredential?> registerWithEmail({
-    required String name,
-    required String email,
-    required String password,
-  }) async {
-    try {
-      UserCredential userCredential = await _auth
-          .createUserWithEmailAndPassword(email: email, password: password);
-      await userCredential.user!.updateDisplayName(name);
-      await _firestore.collection('users').doc(userCredential.user!.uid).set({
-        'name': name,
-        'email': email,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-      return userCredential;
-    } on FirebaseAuthException catch (e) {
-      print('Registration error: ${e.message}');
-      return null;
-    }
-  }
-
-  // --- Sign in ---
-  Future<UserCredential?> signInWithEmail({
-    required String email,
-    required String password,
-  }) async {
-    try {
-      return await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-    } on FirebaseAuthException catch (e) {
-      print('Sign-in error: ${e.message}');
-      rethrow;
-    }
-  }
-
-  // --- Reset password ---
-  Future<void> resetPassword({required String email}) async {
-    try {
-      await _auth.sendPasswordResetEmail(email: email);
-    } on FirebaseAuthException catch (e) {
-      print('Reset password error: ${e.message}');
-    }
-  }
-
-  // --- Google Sign-In ---
+  
+  // ==========================
+  // Firebase Google Sign-In
+  // ==========================
   Future<UserCredential?> signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      final googleUser = await _googleSignIn.signIn();
       if (googleUser == null) return null;
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+
+      final googleAuth = await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
-      UserCredential userCredential = await _auth.signInWithCredential(
-        credential,
-      );
+
+      final userCredential = await _auth.signInWithCredential(credential);
 
       await _firestore.collection('users').doc(userCredential.user!.uid).set({
         'name': userCredential.user!.displayName,
@@ -91,7 +54,106 @@ class AuthService {
     }
   }
 
-  // --- Update display name ---
+  // ==========================
+  // API Signup
+  // ==========================
+  Future<Map<String, dynamic>> registerWithAPI({
+    required String name,
+    required String email,
+    required String password,
+    String profilePhoto = "",
+  }) async {
+    try {
+      final response = await DioClient().postRequest(
+        Endpoints.register,
+        data: {
+          "name": name,
+          "email": email,
+          "password": password,
+          "profilePhoto": profilePhoto,
+        },
+      );
+      return response.data;
+    } on DioException catch (e) {
+      print("API signup error: ${e.response?.data ?? e.message}");
+      return {
+        "result": false,
+        "message": e.response?.data['message'] ?? e.message,
+      };
+    } catch (e) {
+      print("API signup unknown error: $e");
+      return {"result": false, "message": e.toString()};
+    }
+  }
+
+  // ==========================
+  // API Login
+  // ==========================
+  Future<Map<String, dynamic>> loginWithAPI({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final response = await DioClient().postRequest(
+        Endpoints.login,
+        data: {"email": email, "password": password},
+      );
+      return response.data;
+    } on DioException catch (e) {
+      print("API login error: ${e.response?.data ?? e.message}");
+      return {
+        "result": false,
+        "message": e.response?.data['message'] ?? e.message,
+      };
+    } catch (e) {
+      print("API login unknown error: $e");
+      return {"result": false, "message": e.toString()};
+    }
+  }
+
+  // ==========================
+  // AuthService: Reset Password via API
+  // ==========================
+  Future<Map<String, dynamic>> resetPasswordWithAPI({
+    required String email,
+  }) async {
+    try {
+      final response = await DioClient().postRequest(
+        Endpoints.forgetPassword, // Your API endpoint
+        data: {"email": email.trim()},
+      );
+      return response.data;
+    } on DioException catch (e) {
+      print("API reset password error: ${e.response?.data ?? e.message}");
+      return {
+        "result": false,
+        "message": e.response?.data['message'] ?? e.message,
+      };
+    } catch (e) {
+      print("Unknown error in reset password: $e");
+      return {"result": false, "message": e.toString()};
+    }
+  }
+
+  // ==========================
+  // Firebase / Google Sign Out
+  // ==========================
+  Future<void> signOut() async {
+    try {
+      await _auth.signOut();
+      await _googleSignIn.signOut();
+      Preference.isLoggedIn = false;
+      Preference.email = '';
+      print("Signed out successfully");
+    } catch (e) {
+      print("Sign out error: $e");
+      rethrow;
+    }
+  }
+
+  // ==========================
+  // Firebase: Update Name / Photo
+  // ==========================
   Future<void> updateDisplayName(String newName) async {
     try {
       final user = _auth.currentUser;
@@ -103,11 +165,14 @@ class AuthService {
         });
       }
     } catch (e) {
-      print("Error updating username: $e");
+      print("Update name error: $e");
     }
   }
 
-  // --- Update profile photo ---
+  // ==========================
+  // updatePhoto (Firebase)
+  // ==========================
+
   Future<void> updatePhoto(String filePath) async {
     try {
       final user = _auth.currentUser;
@@ -124,26 +189,43 @@ class AuthService {
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      print("Failed to update profile photo: $e");
+      print("Update photo error: $e");
     }
   }
 
-  // --- Delete account ---
+  // ==========================
+  // Delete Account (Firebase + API)
+  // ==========================
   Future<void> deleteAccount() async {
     try {
       final user = _auth.currentUser;
+
+      // 1️⃣ Call API delete endpoint if user is logged in via API
+      try {
+        if (Preference.email.isNotEmpty) {
+          await DioClient().postRequest(
+            Endpoints
+                .deleteAccount, // Make sure you have this endpoint in your API
+            data: {"email": Preference.email},
+          );
+          print("API account deleted successfully");
+        }
+      } catch (apiError) {
+        print("API account deletion error: $apiError");
+      }
+
+      // 2️⃣ Delete Firebase account if user exists
       if (user != null) {
         await _firestore.collection('users').doc(user.uid).delete();
         await user.delete();
+        print("Firebase account deleted successfully");
       }
-    } catch (e) {
-      print("Delete account error: $e");
-    }
-  }
 
-  // --- Sign out ---
-  Future<void> signOut() async {
-    await _auth.signOut();
-    await _googleSignIn.signOut();
+      // 3️⃣ Clear preferences
+      Preference.clearAll();
+    } catch (e) {
+      print("Account deletion error: $e");
+      rethrow;
+    }
   }
 }

@@ -1,11 +1,13 @@
-// ignore_for_file: constant_identifier_names
-
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Preference {
   static final SharedPreferences preferences = Get.find();
 
+  // Reactive variables
+  static RxString userNameRx = (preferences.getString('user_name') ?? '').obs;
+  static RxString userEmailRx = (preferences.getString('email') ?? '').obs;
+  static RxnString profileImageRx = RxnString(); // Nullable reactive string
   // Keys
   static const String TOKEN = 'token';
   static const String USER_NAME = 'user_name';
@@ -22,12 +24,18 @@ class Preference {
   static set token(String value) => preferences.setString(TOKEN, value);
 
   // User name
-  static String get userName => preferences.getString(USER_NAME) ?? '';
-  static set userName(String value) => preferences.setString(USER_NAME, value);
+  static String get userName => userNameRx.value;
+  static set userName(String value) {
+    userNameRx.value = value;
+    preferences.setString(USER_NAME, value);
+  }
 
   // User email
-  static String get email => preferences.getString(USER_EMAIL) ?? '';
-  static set email(String value) => preferences.setString(USER_EMAIL, value);
+  static String get email => userEmailRx.value;
+  static set email(String value) {
+    userEmailRx.value = value;
+    preferences.setString(USER_EMAIL, value);
+  }
 
   // Login status
   static bool get isLoggedIn => preferences.getBool(IS_LOGGED_IN) ?? false;
@@ -57,8 +65,21 @@ class Preference {
   static set languageCode(String value) =>
       preferences.setString(LANGUAGE_CODE, value);
 
+  // Getter and setter for convenience
+  static String? get profileImage => profileImageRx.value;
+  static set profileImage(String? value) {
+    profileImageRx.value = value;
+    if (value != null) {
+      preferences.setString('profile_image', value);
+    } else {
+      preferences.remove('profile_image');
+    }
+  }
+
   // Clear all preferences
   static void clearAll() {
     preferences.clear();
+    userNameRx.value = '';
+    userEmailRx.value = '';
   }
 }

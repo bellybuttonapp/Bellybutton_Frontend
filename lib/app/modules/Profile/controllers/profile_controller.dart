@@ -6,6 +6,8 @@ import 'package:bellybutton/app/Controllers/oauth.dart';
 import 'package:bellybutton/app/modules/Premium/views/premium_view.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import '../../../api/DioClient.dart';
+import '../../../api/end_points.dart';
 import '../../../core/constants/app_texts.dart';
 import '../../../global_widgets/CustomPopup/CustomPopup.dart';
 import '../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
@@ -81,6 +83,17 @@ class ProfileController extends GetxController {
       onConfirm: () async {
         isProcessing.value = true;
         try {
+          // 1️⃣ Call API to delete user account (if logged in via API)
+          try {
+            await DioClient().postRequest(
+              Endpoints.deleteAccount, // make sure you have this endpoint
+              data: {"email": Preference.email},
+            );
+          } catch (apiError) {
+            print("API account deletion error: $apiError");
+          }
+
+          // 2️⃣ Delete Firebase account
           await AuthService().deleteAccount();
 
           // ✅ Clear login flag and all preferences
@@ -88,7 +101,7 @@ class ProfileController extends GetxController {
 
           Get.deleteAll(force: true);
           Get.back();
-          Get.offAllNamed(Routes.ONBOARDING);
+          Get.offAllNamed(Routes.LOGIN);
 
           showCustomSnackBar(
             AppTexts.accountDeletedSuccess,
@@ -96,6 +109,7 @@ class ProfileController extends GetxController {
           );
         } catch (e) {
           showCustomSnackBar(AppTexts.accountDeleteError, SnackbarState.error);
+          print("Account deletion error: $e");
         } finally {
           isProcessing.value = false;
         }
@@ -114,20 +128,28 @@ class ProfileController extends GetxController {
       onConfirm: () async {
         isLoading.value = true;
         try {
+          // Call the AuthService to sign out (Firebase + Google)
           await AuthService().signOut();
 
-          // ✅ Clear login flag using Preference
+          // Clear login flags
           Preference.isLoggedIn = false;
+          Preference.email = '';
 
-          Get.delete<LoginController>(
-            force: true,
-          ); // only clear login controller
+          // Remove only the login controller
+          if (Get.isRegistered<LoginController>()) {
+            Get.delete<LoginController>(force: true);
+          }
+
+          // Close the dialog
           Get.back();
+
+          // Navigate to login screen
           Get.offAllNamed(Routes.LOGIN);
 
           showCustomSnackBar(AppTexts.logoutSuccess, SnackbarState.success);
         } catch (e) {
           showCustomSnackBar(AppTexts.logoutError, SnackbarState.error);
+          print("Logout error: $e");
         } finally {
           isLoading.value = false;
         }

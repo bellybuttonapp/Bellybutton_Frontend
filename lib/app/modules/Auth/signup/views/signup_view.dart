@@ -97,6 +97,7 @@ class SignupView extends GetView<SignupController> {
                         hintText: AppTexts.signupName,
                         obscureText: false,
                         keyboardType: TextInputType.name,
+                        textCapitalization: TextCapitalization.words, // ✅ added
                         errorText: controller.nameError.value,
                         onChanged: controller.validateName,
                       ),
@@ -111,6 +112,9 @@ class SignupView extends GetView<SignupController> {
                         hintText: AppTexts.signupEmail,
                         obscureText: false,
                         keyboardType: TextInputType.emailAddress,
+                        textCapitalization:
+                            TextCapitalization
+                                .none, // Email usually stay as typed
                         errorText: controller.emailError.value,
                         onChanged: controller.validateEmail,
                       ),
@@ -125,6 +129,10 @@ class SignupView extends GetView<SignupController> {
                         hintText: AppTexts.signupPassword,
                         obscureText: controller.isPasswordHidden.value,
                         errorText: controller.passwordError.value,
+                        textCapitalization:
+                            TextCapitalization
+                                .none, // passwords usually stay as typed
+                        keyboardType: TextInputType.visiblePassword, // ✅ added
                         onChanged: controller.validatePassword,
                         suffixIcon: IconButton(
                           icon: Icon(

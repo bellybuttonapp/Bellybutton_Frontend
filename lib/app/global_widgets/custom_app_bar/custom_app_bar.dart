@@ -1,4 +1,7 @@
+// ignore_for_file: avoid_print
+
 import 'package:bellybutton/app/modules/Profile/views/profile_view.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -6,6 +9,7 @@ import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_images.dart';
 import '../../core/themes/Font_style.dart';
+import '../../utils/preference.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
@@ -160,87 +164,95 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     Color textColor,
     Size size,
   ) {
-    final imageProvider =
-        profileImageAsset != null
-            ? AssetImage(profileImageAsset!)
-            : (profileImageNetwork != null
-                ? NetworkImage(profileImageNetwork!)
-                : null);
+    return Obx(() {
+      String prefName = Preference.userNameRx.value;
+      String? prefPhoto = Preference.profileImageRx.value;
 
-    return Padding(
-      padding: EdgeInsets.only(left: size.width * 0.04),
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.mediumImpact(); // <-- Vibration added
-          Get.to(
-            () => ProfileView(),
-            transition: Transition.fade,
-            duration: const Duration(milliseconds: 300),
-          );
-        },
-        child: Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: size.width * 0.03,
-            vertical: size.height * 0.007,
-          ),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                // ignore: deprecated_member_use
-                const Color.fromARGB(255, 166, 216, 233).withOpacity(0.15),
-                // ignore: deprecated_member_use
-                const Color.fromARGB(255, 166, 216, 233).withOpacity(0.15),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      String displayName = firebaseUser?.displayName ?? prefName;
+      String? photoUrl = firebaseUser?.photoURL ?? prefPhoto;
+
+      final imageProvider = photoUrl != null ? NetworkImage(photoUrl) : null;
+
+      return Padding(
+        padding: EdgeInsets.only(left: size.width * 0.02),
+        child: GestureDetector(
+          onTap: () {
+            HapticFeedback.mediumImpact();
+            Get.to(
+              () => ProfileView(),
+              transition: Transition.fade,
+              duration: const Duration(milliseconds: 300),
+            );
+          },
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: size.width * 0.03,
+              vertical: size.height * 0.007,
             ),
-            borderRadius: BorderRadius.circular(size.width * 0.025),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                radius: size.width * 0.045,
-                backgroundColor: Colors.transparent,
-                backgroundImage: imageProvider as ImageProvider?,
-                child:
-                    imageProvider == null
-                        ? SvgPicture.asset(
-                          app_images.person,
-                          height: size.width * 0.055,
-                          width: size.width * 0.055,
-                          // ignore: deprecated_member_use
-                          color: AppColors.textColor,
-                        )
-                        : null,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color.fromARGB(255, 166, 216, 233).withOpacity(0.15),
+                  const Color.fromARGB(255, 166, 216, 233).withOpacity(0.15),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              SizedBox(width: size.width * 0.02),
-              Flexible(
-                child: Tooltip(
-                  message: profileName ?? 'User',
+              borderRadius: BorderRadius.circular(size.width * 0.025),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                CircleAvatar(
+                  radius: size.width * 0.045,
+                  backgroundColor: Colors.transparent,
+                  backgroundImage: imageProvider,
+                  child:
+                      imageProvider == null
+                          ? Hero(
+                            tag: 'profile-photo', // same tag as above
+                            child: SvgPicture.asset(
+                              app_images.person,
+                              height: size.width * 0.055,
+                              width: size.width * 0.055,
+                              color: AppColors.textColor,
+                            ),
+                          )
+                          : Hero(
+                            tag: 'profile-photo',
+                            child: CircleAvatar(
+                              radius: size.width * 0.045,
+                              backgroundImage: imageProvider,
+                            ),
+                          ),
+                ),
+
+                SizedBox(width: size.width * 0.02),
+                Flexible(
                   child: Text(
-                    profileName ?? 'User',
+                    displayName,
                     style: customBoldText.copyWith(
                       color: textColor,
                       fontSize: size.width * 0.035,
                       shadows: [
                         Shadow(
-                          // ignore: deprecated_member_use
                           color: Colors.black.withOpacity(0.3),
                           blurRadius: 2,
                           offset: const Offset(0, 1),
                         ),
                       ],
                     ),
-                    overflow: TextOverflow.ellipsis,
+                    softWrap: true,
+                    overflow: TextOverflow.visible,
+                    maxLines: null, // allow unlimited lines
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
+    });
   }
 }

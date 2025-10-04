@@ -1,5 +1,6 @@
 // ignore_for_file: annotate_overrides
 
+import 'package:bellybutton/app/global_widgets/GlobalTextField/GlobalTextField.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -8,7 +9,6 @@ import '../../../../core/constants/app_texts.dart';
 import '../../../../core/themes/Font_style.dart';
 import '../../../../global_widgets/Button/global_button.dart';
 import '../../../../global_widgets/custom_app_bar/custom_app_bar.dart';
-import '../../login/Widgets/login_textfield.dart';
 import '../controllers/forgot_password_controller.dart';
 
 class ForgotPasswordView extends GetView<ForgotPasswordController> {
@@ -74,7 +74,7 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
 
               /// Email Input
               Obx(
-                () => login_textfield(
+                () => GlobalTextField(
                   controller: controller.emailController,
                   hintText: AppTexts.loginEmail,
                   obscureText: false,

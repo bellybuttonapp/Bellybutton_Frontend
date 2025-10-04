@@ -1,8 +1,14 @@
+// ignore_for_file: unused_field
+
 import 'dart:async';
 import 'package:bellybutton/app/modules/Auth/forgot_password/views/otp_view.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../Controllers/oauth.dart';
+import '../../../../api/DioClient.dart';
+import '../../../../api/end_points.dart';
+import '../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 
 class ForgotPasswordController extends GetxController {
   final AuthService _authService = AuthService();
@@ -30,30 +36,39 @@ class ForgotPasswordController extends GetxController {
 
     isLoading.value = true;
     try {
-      // Send password reset email via Firebase
-      await _authService.resetPassword(email: emailController.text.trim());
-
-      // Show success message
-      Get.snackbar(
-        "Success",
-        "Reset link has been sent to your email! Please check your inbox.",
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green.shade200,
-        colorText: Colors.black,
+      // Call API to send password reset email
+      final response = await DioClient().postRequest(
+        Endpoints.forgetPassword,
+        data: {"email": emailController.text.trim()},
       );
 
-      // Navigate back to login screen so user can log in after resetting
-      Get.offAllNamed('/login');
+      if (response.data['result'] == true) {
+        showCustomSnackBar(
+          response.data['message'] ??
+              "Reset link has been sent to your email! Please check your inbox.",
+          SnackbarState.success,
+        );
 
-      // Optional: start resend countdown for UX
-      startResendTimer();
+        // 👉 Navigate to OtpView
+        navigateToOtp();
+
+        // Optional: start resend countdown
+        startResendTimer();
+      } else {
+        showCustomSnackBar(
+          response.data['message'] ?? "Failed to send reset link",
+          SnackbarState.error,
+        );
+      }
+    } on DioException catch (e) {
+      showCustomSnackBar(
+        e.response?.data['message'] ?? e.message,
+        SnackbarState.error,
+      );
     } catch (e) {
-      Get.snackbar(
-        "Error",
+      showCustomSnackBar(
         "Failed to send reset link: ${e.toString()}",
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.shade200,
-        colorText: Colors.black,
+        SnackbarState.error,
       );
     } finally {
       isLoading.value = false;
@@ -72,10 +87,14 @@ class ForgotPasswordController extends GetxController {
     isLoading.value = false;
 
     if (otp.value == "123456") {
-      Get.snackbar("Success", "OTP Verified! You can reset your password.");
-      // Navigate to reset password screen
+      showCustomSnackBar(
+        "OTP Verified! You can reset your password.",
+        SnackbarState.success,
+      );
+      // 👉 Navigate to reset password screen
     } else {
       otpError.value = "Invalid OTP. Please try again.";
+      showCustomSnackBar("Invalid OTP. Please try again.", SnackbarState.error);
     }
   }
 

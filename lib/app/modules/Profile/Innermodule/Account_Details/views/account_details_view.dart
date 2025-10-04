@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
@@ -9,11 +8,11 @@ import '../../../../../core/constants/app_images.dart';
 import '../../../../../core/constants/app_texts.dart';
 import '../../../../../global_widgets/Button/global_button.dart';
 import '../../../../../global_widgets/GlobalTextField/GlobalTextField.dart';
+import '../../../../../utils/preference.dart';
 import '../controllers/account_details_controller.dart';
 import '../../../../../global_widgets/custom_app_bar/custom_app_bar.dart';
 
 class AccountDetailsView extends GetView<AccountDetailsController> {
-  // ignore: annotate_overrides
   final AccountDetailsController controller = Get.put(
     AccountDetailsController(),
   );
@@ -23,16 +22,33 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     final user = AuthService().currentUser;
-    final displayName = user?.displayName ?? '';
-    final email = user?.email ?? '';
 
-    // Initialize name controller with current name
-    controller.nameController.text = displayName;
+    // Use Firebase displayName first, then Preference, then fallback
+    final initialName =
+        user?.displayName?.isNotEmpty == true
+            ? user!.displayName!
+            : (Preference.userName.isNotEmpty
+                ? Preference.userName
+                : "example User");
+
+    // Initialize the controller's nameController only once
+    controller.nameController.text = initialName;
+
+    ImageProvider<Object>? profileImage() {
+      if (controller.pickedImage.value != null) {
+        return FileImage(File(controller.pickedImage.value!.path));
+      } else if ((Preference.profileImage ?? '').isNotEmpty) {
+        return FileImage(File(Preference.profileImage!));
+      } else if (user?.photoURL != null) {
+        return NetworkImage(user!.photoURL!);
+      }
+      return null;
+    }
 
     return Scaffold(
       backgroundColor:
@@ -59,40 +75,28 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
                         clipBehavior: Clip.none,
                         children: [
                           Obx(
-                            () => CircleAvatar(
-                              radius: screenWidth * 0.16,
-                              backgroundColor: Colors.grey,
-                              backgroundImage:
-                                  controller.pickedImage.value != null
-                                      ? FileImage(
-                                        File(
-                                          controller.pickedImage.value!.path,
-                                        ),
-                                      )
-                                      : (user?.photoURL != null
-                                              ? NetworkImage(user!.photoURL!)
-                                              : null)
-                                          as ImageProvider<Object>?,
-                              child:
-                                  controller.pickedImage.value == null &&
-                                          user?.photoURL == null
-                                      ? Icon(
-                                        Icons.person,
-                                        size: screenWidth * 0.13,
-                                        color: Colors.white,
-                                      )
-                                      : null,
+                            () => Hero(
+                              tag: 'profile-photo', // unique tag for Hero
+                              child: CircleAvatar(
+                                radius: screenWidth * 0.16,
+                                backgroundColor: Colors.grey,
+                                backgroundImage: profileImage(),
+                                child:
+                                    profileImage() == null
+                                        ? Icon(
+                                          Icons.person,
+                                          size: screenWidth * 0.13,
+                                          color: Colors.white,
+                                        )
+                                        : null,
+                              ),
                             ),
                           ),
-
-                          // Inside the Stack where the camera icon is
                           Positioned(
                             bottom: screenWidth * 0.015,
                             right: screenWidth * 0.015,
                             child: GestureDetector(
-                              onTap: () async {
-                                await controller.pickImage();
-                              },
+                              onTap: controller.pickImage,
                               child: Container(
                                 padding: EdgeInsets.all(screenWidth * 0.015),
                                 decoration: const BoxDecoration(
@@ -101,7 +105,6 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
                                 ),
                                 child: SvgPicture.asset(
                                   app_images.Camera_Add_icon,
-                                  // ignore: deprecated_member_use
                                   color: AppColors.textColor3,
                                   width: screenWidth * 0.045,
                                   height: screenWidth * 0.045,
@@ -112,6 +115,7 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
                         ],
                       ),
                     ),
+
                     SizedBox(height: screenHeight * 0.04),
 
                     // Name Field
@@ -127,26 +131,28 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
                     ),
                     SizedBox(height: screenHeight * 0.025),
 
-                    // Email (Read-only)
-                    GlobalTextField(
-                      enabled: false,
-                      controller: TextEditingController(
-                        text: email,
-                      ), // <-- Set controller with email
-                      hintText: "Email",
-                      obscureText: false,
-                      suffixIcon: Padding(
-                        padding: EdgeInsets.all(screenWidth * 0.03),
-                        child: SvgPicture.asset(
-                          app_images.check_icon,
-                          width: screenWidth * 0.025,
-                          height: screenWidth * 0.025,
+                    // Email Field (Read-only, from Preference)
+                    Obx(
+                      () => GlobalTextField(
+                        enabled: false,
+                        controller: TextEditingController(
+                          text:
+                              Preference.email.isNotEmpty
+                                  ? Preference.email
+                                  : (user?.email ?? "example@email.com"),
+                        ),
+                        hintText: "Email",
+                        obscureText: false,
+                        suffixIcon: Padding(
+                          padding: EdgeInsets.all(screenWidth * 0.03),
+                          child: SvgPicture.asset(
+                            app_images.check_icon,
+                            width: screenWidth * 0.025,
+                            height: screenWidth * 0.025,
+                          ),
                         ),
                       ),
                     ),
-
-                    SizedBox(height: screenHeight * 0.025),
-
                     SizedBox(height: screenHeight * 0.35),
 
                     // Save Button

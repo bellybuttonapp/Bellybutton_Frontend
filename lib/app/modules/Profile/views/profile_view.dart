@@ -10,6 +10,7 @@ import '../../../core/constants/app_texts.dart';
 import '../../../core/themes/Font_style.dart';
 import '../../../global_widgets/Button/global_button.dart';
 import '../../../global_widgets/custom_app_bar/custom_app_bar.dart';
+import '../../../utils/preference.dart';
 import '../controllers/profile_controller.dart';
 
 class ProfileView extends GetView<ProfileController> {
@@ -40,16 +41,25 @@ class ProfileView extends GetView<ProfileController> {
                     vertical: screenHeight * 0.015,
                     horizontal: screenWidth * 0.04,
                   ),
-                  child: Builder(
-                    builder: (_) {
-                      final user = AuthService().currentUser;
-                      final displayName = user?.displayName ?? "No Name";
-                      final email = user?.email ?? "No Email";
-                      final photoUrl = user?.photoURL;
+                  child: Obx(() {
+                    final user = AuthService().currentUser;
+                    final displayName =
+                        user?.displayName?.isNotEmpty == true
+                            ? user!.displayName!
+                            : (Preference.userName.isNotEmpty
+                                ? Preference.userName
+                                : "example User");
+                    final email =
+                        Preference.email.isNotEmpty
+                            ? Preference.email
+                            : user?.email ?? "example@email.com";
+                    final photoUrl = user?.photoURL;
 
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: CircleAvatar(
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Hero(
+                        tag: 'profile-photo', // same tag as AccountDetailsView
+                        child: CircleAvatar(
                           radius: screenWidth * 0.075,
                           backgroundColor: Colors.grey,
                           backgroundImage:
@@ -63,31 +73,35 @@ class ProfileView extends GetView<ProfileController> {
                                   )
                                   : null,
                         ),
-                        title: Text(
-                          displayName,
-                          style: customBoldText.copyWith(
-                            fontSize: screenWidth * 0.045,
-                          ),
+                      ),
+
+                      title: Text(
+                        displayName,
+                        style: customBoldText.copyWith(
+                          fontSize: screenWidth * 0.045,
                         ),
-                        subtitle: Text(
-                          email,
-                          style: customBoldText.copyWith(
-                            fontSize: screenWidth * 0.035,
-                            color: AppColors.tertiaryColor,
-                          ),
+                        overflow: TextOverflow.visible,
+                      ),
+                      subtitle: Text(
+                        email,
+                        style: customBoldText.copyWith(
+                          fontSize: screenWidth * 0.035,
+                          color: AppColors.tertiaryColor,
                         ),
-                        trailing: IconButton(
-                          icon: SvgPicture.asset(
-                            app_images.edit_pencil,
-                            width: screenWidth * 0.05,
-                            height: screenWidth * 0.05,
-                          ),
-                          onPressed: controller.onEditProfile,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: IconButton(
+                        icon: SvgPicture.asset(
+                          app_images.edit_pencil,
+                          width: screenWidth * 0.05,
+                          height: screenWidth * 0.05,
                         ),
-                      );
-                    },
-                  ),
+                        onPressed: controller.onEditProfile,
+                      ),
+                    );
+                  }),
                 ),
+
                 const _SectionDivider(),
 
                 Obx(

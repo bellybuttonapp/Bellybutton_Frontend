@@ -1,11 +1,14 @@
-// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: curly_braces_in_flow_control_structures, unrelated_type_equality_checks, avoid_print
 
 import 'package:bellybutton/app/Controllers/oauth.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/constants/app_texts.dart';
 import '../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../../routes/app_pages.dart';
+import '../../../../utils/preference.dart';
 import '../../forgot_password/views/forgot_password_view.dart';
 
 class SignupController extends GetxController {
@@ -39,36 +42,32 @@ class SignupController extends GetxController {
   /// =====================
   /// VALIDATIONS
   /// =====================
-  void validateName(String value) {
-    if (value.isEmpty)
-      nameError.value = 'Name cannot be empty';
-    else if (!RegExp(r"^[a-zA-Z\s]+$").hasMatch(value))
-      nameError.value = 'Name must contain only letters';
-    else if (value.length < 3)
-      nameError.value = 'Name must be at least 3 characters';
-    else
-      nameError.value = null;
+  String? _validateName(String value) {
+    if (value.isEmpty) return 'Name cannot be empty';
+    if (!RegExp(r"^[a-zA-Z\s]+$").hasMatch(value))
+      return 'Name must contain only letters';
+    if (value.length < 3) return 'Name must be at least 3 characters';
+    return null;
   }
 
-  void validateEmail(String value) {
-    if (value.isEmpty)
-      emailError.value = 'Email cannot be empty';
-    else if (!GetUtils.isEmail(value))
-      emailError.value = 'Enter a valid email';
-    else
-      emailError.value = null;
+  String? _validateEmail(String value) {
+    if (value.isEmpty) return 'Email cannot be empty';
+    if (!GetUtils.isEmail(value)) return 'Enter a valid email';
+    return null;
   }
 
-  void validatePassword(String value) {
-    if (value.isEmpty)
-      passwordError.value = 'Password cannot be empty';
-    else if (value.length < 8)
-      passwordError.value = 'Minimum 8 characters required';
-    else if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)').hasMatch(value))
-      passwordError.value = 'Include uppercase, lowercase, and a number';
-    else
-      passwordError.value = null;
+  String? _validatePassword(String value) {
+    if (value.isEmpty) return 'Password cannot be empty';
+    if (value.length < 8) return 'Minimum 8 characters required';
+    if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)').hasMatch(value))
+      return 'Include uppercase, lowercase, and a number';
+    return null;
   }
+
+  void validateName(String value) => nameError.value = _validateName(value);
+  void validateEmail(String value) => emailError.value = _validateEmail(value);
+  void validatePassword(String value) =>
+      passwordError.value = _validatePassword(value);
 
   /// =====================
   /// REMEMBER ME STORAGE
@@ -100,46 +99,93 @@ class SignupController extends GetxController {
   }
 
   /// =====================
+  /// UPDATE PREFERENCES
+  /// =====================
+  void _saveUserPreferences({
+    required String name,
+    required String email,
+    String? photo,
+  }) {
+    Preference.isLoggedIn = true;
+    Preference.email = email;
+    Preference.userName = name;
+    Preference.profileImage = photo;
+  }
+
+  /// =====================
   /// SIGNUP FUNCTION
   /// =====================
-  Future<void> signup() async {
+  Future<void> signup({bool rememberMe = false}) async {
+    this.rememberMe.value = rememberMe;
+
     final name = nameController.text.trim();
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
+    // Reset errors
+    nameError.value = null;
+    emailError.value = null;
+    passwordError.value = null;
+
     // Validate inputs
-    validateName(name);
-    validateEmail(email);
-    validatePassword(password);
+    final nameValidation = _validateName(name);
+    final emailValidation = _validateEmail(email);
+    final passwordValidation = _validatePassword(password);
 
-    if (nameError.value == null &&
-        emailError.value == null &&
-        passwordError.value == null) {
-      isLoading.value = true;
+    if (nameValidation != null) nameError.value = nameValidation;
+    if (emailValidation != null) emailError.value = emailValidation;
+    if (passwordValidation != null) passwordError.value = passwordValidation;
 
-      try {
-        final userCredential = await _authService.registerWithEmail(
-          name: name,
-          email: email,
-          password: password,
+    if (nameError.value != null ||
+        emailError.value != null ||
+        passwordError.value != null)
+      return;
+
+    // Check connectivity
+    final connectivity = await Connectivity().checkConnectivity();
+    if (connectivity == ConnectivityResult.none) {
+      showCustomSnackBar(AppTexts.noInternet, SnackbarState.error);
+      return;
+    }
+
+    isLoading.value = true;
+
+    try {
+      final result = await _authService.registerWithAPI(
+        name: name,
+        email: email,
+        password: password,
+      );
+
+      if (result['status'] == 'success' || result['id'] != null) {
+        if (rememberMe) await saveUserData(name: name, email: email);
+
+        final message = result['message'] ?? '';
+        final userName =
+            (result['name'] as String?)?.trim() ??
+            (message.contains('user:')
+                ? message.split('user:').last.trim()
+                : name);
+
+        _saveUserPreferences(name: userName, email: email);
+
+        showCustomSnackBar(
+          'Signed up successfully as $userName',
+          SnackbarState.success,
         );
 
-        if (userCredential != null) {
-          await saveUserData(); // ✅ Save only if rememberMe checked
-
-          showCustomSnackBar(
-            'Signed up successfully as ${userCredential.user!.displayName ?? name}',
-            SnackbarState.success,
-          );
-          Get.offNamed(Routes.DASHBOARD);
-        } else {
-          showCustomSnackBar('Signup failed. Try again.', SnackbarState.error);
-        }
-      } catch (e) {
-        showCustomSnackBar('Signup failed: $e', SnackbarState.error);
-      } finally {
-        isLoading.value = false;
+        Get.offAllNamed(Routes.DASHBOARD);
+      } else {
+        showCustomSnackBar(
+          result['message'] ?? 'Signup failed',
+          SnackbarState.error,
+        );
       }
+    } catch (e) {
+      showCustomSnackBar('Signup failed', SnackbarState.error);
+      print("Signup error: $e");
+    } finally {
+      isLoading.value = false;
     }
   }
 
@@ -154,7 +200,8 @@ class SignupController extends GetxController {
         final email = userCredential.user?.email ?? "";
         final name = userCredential.user?.displayName ?? "";
 
-        await saveUserData(name: name, email: email); // ✅ store from Google
+        await saveUserData(name: name, email: email);
+        _saveUserPreferences(name: name, email: email);
 
         showCustomSnackBar(
           'Logged in as ${name.isNotEmpty ? name : email}',

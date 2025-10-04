@@ -14,6 +14,7 @@ import 'app/core/constants/app_colors.dart';
 import 'app/routes/app_pages.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 
 Future<void> main() async {
   runZonedGuarded(
@@ -21,13 +22,18 @@ Future<void> main() async {
       WidgetsFlutterBinding.ensureInitialized();
 
       // Initialize local storage
-      await GetStorage.init();
+      await GetStorage.init(); 
 
       // Initialize Firebase
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
       print('✅ Firebase Initialized');
+
+      await FirebaseAppCheck.instance.activate(
+        androidProvider: AndroidProvider.debug,
+        appleProvider: AppleProvider.debug,
+      );
 
       // Crashlytics
       FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;

@@ -61,6 +61,10 @@ class AppTexts {
   // ---------------- Account Details Profile change PopUp ----------------
   static const String Selectimage = "Select Image";
   static const String Choosephotofromgallery = "Choose photo from gallery";
+  static const String Profile_updated_successfully =
+      "Profile updated successfully!";
+  static const String Failed_to_update_profile_Please_try_again =
+      "Failed to update profile. Please try again.";
   static const String Takeaphoto = "Take a photo";
 
   // ---------------- Delete Account Popup ----------------
