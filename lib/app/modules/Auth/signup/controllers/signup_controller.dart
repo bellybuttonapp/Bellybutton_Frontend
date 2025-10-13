@@ -1,11 +1,9 @@
 // ignore_for_file: curly_braces_in_flow_control_structures, unrelated_type_equality_checks, avoid_print
 
+import 'dart:io';
 import 'package:bellybutton/app/Controllers/oauth.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../../../../core/constants/app_texts.dart';
 import '../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../../routes/app_pages.dart';
 import '../../../../utils/preference.dart';
@@ -73,25 +71,20 @@ class SignupController extends GetxController {
   /// REMEMBER ME STORAGE
   /// =====================
   Future<void> saveUserData({String? name, String? email}) async {
-    final prefs = await SharedPreferences.getInstance();
     if (rememberMe.value) {
-      await prefs.setString("signup_name", name ?? nameController.text.trim());
-      await prefs.setString(
-        "signup_email",
-        email ?? emailController.text.trim(),
-      );
+      Preference.userName = name ?? nameController.text.trim();
+      Preference.email = email ?? emailController.text.trim();
     } else {
-      await prefs.remove("signup_name");
-      await prefs.remove("signup_email");
+      Preference.userName = '';
+      Preference.email = '';
     }
   }
 
   Future<void> loadUserData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedName = prefs.getString("signup_name");
-    final savedEmail = prefs.getString("signup_email");
+    final savedName = Preference.userName;
+    final savedEmail = Preference.email;
 
-    if (savedName != null && savedEmail != null) {
+    if (savedName.isNotEmpty && savedEmail.isNotEmpty) {
       nameController.text = savedName;
       emailController.text = savedEmail;
       rememberMe.value = true;
@@ -141,49 +134,52 @@ class SignupController extends GetxController {
         passwordError.value != null)
       return;
 
-    // Check connectivity
-    final connectivity = await Connectivity().checkConnectivity();
-    if (connectivity == ConnectivityResult.none) {
-      showCustomSnackBar(AppTexts.noInternet, SnackbarState.error);
-      return;
-    }
-
     isLoading.value = true;
 
     try {
+      // ✅ Step: Check email availability before signup
+      final emailCheck = await _authService.checkEmailAvailability(email);
+      if (emailCheck['available'] == false) {
+        showCustomSnackBar(
+          emailCheck['message'] ??
+              'Email already exists. Please use another one.',
+          SnackbarState.error,
+        );
+        isLoading.value = false;
+        return;
+      }
+
+      // Continue with signup
       final result = await _authService.registerWithAPI(
-        name: name,
+        name: name.isNotEmpty ? name : "User",
         email: email,
         password: password,
+        profilePhoto: null,
       );
 
+      // Handle no internet explicitly
+      if (result['message'] == "No internet connection.") {
+        showCustomSnackBar(result['message'], SnackbarState.error);
+        return;
+      }
+
+      // Successful signup
       if (result['status'] == 'success' || result['id'] != null) {
         if (rememberMe) await saveUserData(name: name, email: email);
 
-        final message = result['message'] ?? '';
-        final userName =
-            (result['name'] as String?)?.trim() ??
-            (message.contains('user:')
-                ? message.split('user:').last.trim()
-                : name);
-
+        final userName = (result['name'] as String?)?.trim() ?? name;
         _saveUserPreferences(name: userName, email: email);
 
         showCustomSnackBar(
           'Signed up successfully as $userName',
           SnackbarState.success,
         );
-
         Get.offAllNamed(Routes.DASHBOARD);
-      } else {
-        showCustomSnackBar(
-          result['message'] ?? 'Signup failed',
-          SnackbarState.error,
-        );
+      } else if (result['result'] == false && result['message'] != null) {
+        showCustomSnackBar(result['message']!, SnackbarState.error);
       }
-    } catch (e) {
-      showCustomSnackBar('Signup failed', SnackbarState.error);
-      print("Signup error: $e");
+    } catch (e, stackTrace) {
+      print('Signup error: $e\n$stackTrace');
     } finally {
       isLoading.value = false;
     }
@@ -194,25 +190,31 @@ class SignupController extends GetxController {
   /// =====================
   Future<void> signInWithGoogle() async {
     isLoading.value = true;
+
     try {
       final userCredential = await _authService.signInWithGoogle();
-      if (userCredential != null) {
-        final email = userCredential.user?.email ?? "";
-        final name = userCredential.user?.displayName ?? "";
 
-        await saveUserData(name: name, email: email);
-        _saveUserPreferences(name: name, email: email);
-
-        showCustomSnackBar(
-          'Logged in as ${name.isNotEmpty ? name : email}',
-          SnackbarState.success,
-        );
-        Get.offNamed(Routes.DASHBOARD);
-      } else {
+      if (userCredential == null) {
         showCustomSnackBar('Google sign-in canceled', SnackbarState.error);
+        return;
       }
-    } catch (e) {
-      showCustomSnackBar('Google sign-in failed: $e', SnackbarState.error);
+
+      final email = userCredential.user?.email ?? "";
+      final name = userCredential.user?.displayName ?? "";
+
+      await saveUserData(name: name, email: email);
+      _saveUserPreferences(name: name, email: email);
+
+      showCustomSnackBar(
+        'Logged in as ${name.isNotEmpty ? name : email}',
+        SnackbarState.success,
+      );
+
+      Get.offAllNamed(Routes.DASHBOARD);
+    } on SocketException {
+      showCustomSnackBar('No internet connection.', SnackbarState.error);
+    } catch (e, stackTrace) {
+      print('Google sign-in error: $e\n$stackTrace');
     } finally {
       isLoading.value = false;
     }

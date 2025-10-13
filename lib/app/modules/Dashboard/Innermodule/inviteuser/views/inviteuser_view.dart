@@ -51,7 +51,7 @@ class InviteuserView extends GetView<InviteuserController> {
     return Obx(
       () => GlobalTextField(
         controller: controller.searchController,
-        hintText: "Search..",
+        hintText: AppTexts.Search,
         obscureText: false,
         prefixIcon: Padding(
           padding: const EdgeInsets.all(12.0),

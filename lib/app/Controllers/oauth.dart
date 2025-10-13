@@ -23,7 +23,35 @@ class AuthService {
   // ---------- Firebase User ----------
   User? get currentUser => _auth.currentUser;
   Stream<User?> get authStateChanges => _auth.authStateChanges();
-  
+  Future<Map<String, dynamic>> _handleApiCall(Future<Response?> apiCall) async {
+    try {
+      final response = await apiCall;
+
+      if (response == null) return {"result": false};
+
+      // Handle JSON
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      }
+
+      // Handle plain text
+      if (response.data is String) {
+        return {"result": true, "message": response.data};
+      }
+
+      return {"result": false};
+    } on DioException catch (e) {
+      if (e.error is SocketException) {
+        return {"result": false, "message": "No internet connection."};
+      }
+      print("DioException: ${e.message}");
+      return {"result": false};
+    } catch (e) {
+      print("Unexpected error: $e");
+      return {"result": false};
+    }
+  }
+
   // ==========================
   // Firebase Google Sign-In
   // ==========================
@@ -61,10 +89,10 @@ class AuthService {
     required String name,
     required String email,
     required String password,
-    String profilePhoto = "",
+    String? profilePhoto,
   }) async {
-    try {
-      final response = await DioClient().postRequest(
+    return await _handleApiCall(
+      DioClient().postRequest(
         Endpoints.register,
         data: {
           "name": name,
@@ -72,17 +100,62 @@ class AuthService {
           "password": password,
           "profilePhoto": profilePhoto,
         },
+      ),
+    );
+  }
+
+  // ==========================
+  // Check Email Availability
+  // ==========================
+  Future<Map<String, dynamic>> checkEmailAvailability(String email) async {
+    try {
+      final response = await _dio.post(
+        "${Endpoints.checkEmailAvailability}/$email",
       );
-      return response.data;
-    } on DioException catch (e) {
-      print("API signup error: ${e.response?.data ?? e.message}");
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final bool emailNotFound = data['status']?.toString() == 'false';
+
+        return emailNotFound
+            ? {
+              "available": true,
+              "message": "Email not found. You can register.",
+            }
+            : {
+              "available": false,
+              "message": "Email already exists. Please log in.",
+            };
+      }
+
       return {
-        "result": false,
-        "message": e.response?.data['message'] ?? e.message,
+        "available": false,
+        "message": "Unexpected server response (${response.statusCode}).",
       };
-    } catch (e) {
-      print("API signup unknown error: $e");
-      return {"result": false, "message": e.toString()};
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        return {
+          "available": false,
+          "message": "Connection timed out. Try again.",
+        };
+      } else if (e.error is SocketException) {
+        return {"available": false, "message": "No internet connection."};
+      } else if (e.response != null) {
+        return {
+          "available": false,
+          "message":
+              "Server error: ${e.response?.statusMessage ?? 'Unknown error'}",
+        };
+      } else {
+        return {
+          "available": false,
+          "message": "Something went wrong. Please retry.",
+        };
+      }
+    } catch (e, s) {
+      print("checkEmailAvailability() error: $e\n$s");
+      return {"available": false, "message": "Unexpected error occurred."};
     }
   }
 
@@ -93,45 +166,196 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    try {
-      final response = await DioClient().postRequest(
+    return await _handleApiCall(
+      DioClient().postRequest(
         Endpoints.login,
         data: {"email": email, "password": password},
+      ),
+    );
+  }
+
+  // ==========================
+  // AuthService: Forgot Password via API (Production Ready)
+  // ==========================
+  Future<Map<String, dynamic>> forgotPassword({required String email}) async {
+    try {
+      final response = await DioClient().postRequest(
+        Endpoints.forgetPassword,
+        data: {"email": email.trim()},
+        responseType: ResponseType.plain, // handle both text & JSON
       );
-      return response.data;
+
+      if (response == null) {
+        return {"result": false, "message": "No response from server."};
+      }
+
+      // Handle various possible response formats
+      final data = response.data;
+
+      if (data == null) {
+        return {"result": false, "message": "Empty response from server."};
+      }
+
+      // ✅ Case 1: Plain text from backend
+      if (data is String) {
+        final msg = data.trim();
+        if (msg.toLowerCase().contains("otp") ||
+            msg.toLowerCase().contains("sent")) {
+          return {"result": true, "message": msg};
+        } else {
+          return {"result": false, "message": msg};
+        }
+      }
+
+      // ✅ Case 2: JSON object from backend
+      if (data is Map<String, dynamic>) {
+        return {
+          "result": data["result"] ?? data["success"] ?? false,
+          "message": data["message"]?.toString() ?? "No message from server.",
+          "otp": data["otp"],
+        };
+      }
+
+      // ❌ Case 3: Unexpected data type
+      return {"result": false, "message": "Unexpected server response type."};
     } on DioException catch (e) {
-      print("API login error: ${e.response?.data ?? e.message}");
-      return {
-        "result": false,
-        "message": e.response?.data['message'] ?? e.message,
-      };
-    } catch (e) {
-      print("API login unknown error: $e");
-      return {"result": false, "message": e.toString()};
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        return {"result": false, "message": "Connection timed out. Try again."};
+      } else if (e.error is SocketException) {
+        return {"result": false, "message": "No internet connection."};
+      } else if (e.response != null) {
+        return {
+          "result": false,
+          "message":
+              "Server error: ${e.response?.statusMessage ?? 'Unknown error'} (${e.response?.statusCode ?? ''})",
+        };
+      } else {
+        return {
+          "result": false,
+          "message": "Something went wrong. Please retry.",
+        };
+      }
+    } catch (e, s) {
+      print("forgotPassword() error: $e\n$s");
+      return {"result": false, "message": "Unexpected error occurred."};
+    }
+  }
+
+  // ==========================
+  // AuthService: Verify OTP via API
+  // ==========================
+  Future<Map<String, dynamic>> verifyOtpApi({
+    required String email,
+    required String otp,
+  }) async {
+    try {
+      final response = await DioClient().postRequest(
+        Endpoints.verifyOtp,
+        data: {"email": email.trim(), "otp": otp.trim()},
+        responseType: ResponseType.plain, // handle both text & JSON
+      );
+
+      if (response == null) {
+        return {"success": false, "message": "No response from server."};
+      }
+
+      final data = response.data;
+
+      // ✅ Case 1: Plain text response
+      if (data is String) {
+        final msg = data.trim();
+        if (msg.toLowerCase().contains("verified")) {
+          return {"success": true, "message": msg};
+        } else {
+          return {"success": false, "message": msg};
+        }
+      }
+
+      // ✅ Case 2: JSON object response
+      if (data is Map<String, dynamic>) {
+        return {
+          "success": data["success"] ?? data["result"] ?? false,
+          "message": data["message"]?.toString() ?? "No message from server.",
+        };
+      }
+      // ❌ Unexpected data type
+      return {"success": false, "message": "Unexpected server response type."};
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        return {
+          "success": false,
+          "message": "Connection timed out. Try again.",
+        };
+      } else if (e.error is SocketException) {
+        return {"success": false, "message": "No internet connection."};
+      } else if (e.response != null) {
+        return {
+          "success": false,
+          "message":
+              "Server error: ${e.response?.statusMessage ?? 'Unknown error'} (${e.response?.statusCode ?? ''})",
+        };
+      } else {
+        return {
+          "success": false,
+          "message": "Something went wrong. Please retry.",
+        };
+      }
+    } catch (e, s) {
+      print("verifyOtpApi() error: $e\n$s");
+      return {"success": false, "message": "Unexpected error occurred."};
     }
   }
 
   // ==========================
   // AuthService: Reset Password via API
   // ==========================
-  Future<Map<String, dynamic>> resetPasswordWithAPI({
+  Future<Map<String, dynamic>> sendResetPasswordEmail({
     required String email,
   }) async {
     try {
-      final response = await DioClient().postRequest(
-        Endpoints.forgetPassword, // Your API endpoint
+      final response = await Dio().post(
+        Endpoints.resetPassword, // Make sure endpoint is correct
         data: {"email": email.trim()},
       );
-      return response.data;
+
+      if (response.data != null) {
+        final data = response.data;
+        if (data is Map<String, dynamic>) {
+          return {
+            "success": data["success"] ?? false,
+            "message": data["message"] ?? "No message from server",
+          };
+        }
+        if (data is String && data.toLowerCase().contains("success")) {
+          return {"success": true, "message": data};
+        }
+      }
+
+      return {"success": false, "message": "Unexpected server response."};
     } on DioException catch (e) {
-      print("API reset password error: ${e.response?.data ?? e.message}");
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        return {
+          "success": false,
+          "message": "Connection timed out. Try again.",
+        };
+      } else if (e.error is SocketException) {
+        return {"success": false, "message": "No internet connection."};
+      } else if (e.response != null) {
+        return {
+          "success": false,
+          "message":
+              "Server error: ${e.response?.statusMessage ?? 'Unknown error'} (${e.response?.statusCode ?? ''})",
+        };
+      }
       return {
-        "result": false,
-        "message": e.response?.data['message'] ?? e.message,
+        "success": false,
+        "message": "Something went wrong. Please retry.",
       };
     } catch (e) {
-      print("Unknown error in reset password: $e");
-      return {"result": false, "message": e.toString()};
+      return {"success": false, "message": "Unexpected error occurred."};
     }
   }
 

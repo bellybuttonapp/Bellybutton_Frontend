@@ -28,7 +28,7 @@ class PremiumView extends GetView<PremiumController> {
               ? AppTheme.darkTheme.scaffoldBackgroundColor
               : AppTheme.lightTheme.scaffoldBackgroundColor,
       appBar: CustomAppBar(title: AppTexts.premiumTitle),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: EdgeInsets.all(screenWidth * 0.04),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -36,14 +36,14 @@ class PremiumView extends GetView<PremiumController> {
             SizedBox(height: screenHeight * 0.02),
             SvgPicture.asset(
               app_images.Premium,
-              width: screenWidth * 0.14,
-              height: screenWidth * 0.14,
+              width: screenWidth * 0.2,
+              height: screenWidth * 0.2,
             ),
             SizedBox(height: screenHeight * 0.02),
-
             Obx(() {
               final benefits = controller.getBenefitsForPlan();
               return Container(
+                width: double.infinity,
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.blue.shade200, width: 1.5),
                   borderRadius: BorderRadius.circular(12),
@@ -51,7 +51,7 @@ class PremiumView extends GetView<PremiumController> {
                 ),
                 padding: EdgeInsets.all(screenWidth * 0.04),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       AppTexts.premiumSubtitle,
@@ -69,10 +69,10 @@ class PremiumView extends GetView<PremiumController> {
                           children: [
                             SvgPicture.asset(
                               benefit.icon,
-                              width: screenWidth * 0.05,
-                              height: screenWidth * 0.05,
+                              width: screenWidth * 0.06,
+                              height: screenWidth * 0.06,
                             ),
-                            SizedBox(width: screenWidth * 0.02),
+                            SizedBox(width: screenWidth * 0.03),
                             Expanded(
                               child: Text(
                                 benefit.text,
@@ -90,7 +90,6 @@ class PremiumView extends GetView<PremiumController> {
                 ),
               );
             }),
-
             SizedBox(height: screenHeight * 0.03),
             Text(
               AppTexts.premiumChoosePlan,
@@ -99,10 +98,10 @@ class PremiumView extends GetView<PremiumController> {
                 fontSize: screenWidth * 0.06,
               ),
             ),
-            SizedBox(height: screenHeight * 0.015),
-
+            SizedBox(height: screenHeight * 0.02),
             Obx(
               () => Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _planBox(
                     AppTexts.premiumCurrentPlan,
@@ -130,7 +129,6 @@ class PremiumView extends GetView<PremiumController> {
                 ],
               ),
             ),
-
             SizedBox(height: screenHeight * 0.03),
             Text(
               AppTexts.premiumCancelAnytime,
@@ -139,14 +137,12 @@ class PremiumView extends GetView<PremiumController> {
                 fontSize: screenWidth * 0.035,
               ),
             ),
-            Spacer(),
-
-            //Subscribe Button
+            SizedBox(height: screenHeight * 0.03),
             Obx(
               () => global_button(
                 loaderWhite: true,
                 isLoading: controller.isLoading.value,
-                title: AppTexts.Subscribe,
+                title: AppTexts.Subscribenow,
                 backgroundColor: AppColors.primaryColor,
                 textColor: AppColors.textColor3,
                 onTap: controller.SubscribeNow,
@@ -171,7 +167,10 @@ class PremiumView extends GetView<PremiumController> {
         borderRadius: BorderRadius.circular(12),
         onTap: () => Get.find<PremiumController>().selectPlan(index),
         child: Container(
-          padding: EdgeInsets.all(screenWidth * 0.05),
+          padding: EdgeInsets.symmetric(
+            vertical: screenWidth * 0.04,
+            horizontal: screenWidth * 0.03,
+          ),
           decoration: BoxDecoration(
             color: isSelected ? Colors.blue.shade50 : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(12),
@@ -191,8 +190,9 @@ class PremiumView extends GetView<PremiumController> {
                   color:
                       isSelected ? Colors.blue.shade900 : Colors.grey.shade800,
                 ),
+                textAlign: TextAlign.center,
               ),
-              SizedBox(height: screenWidth * 0.04),
+              SizedBox(height: screenWidth * 0.03),
               Text(
                 price,
                 style: customBoldText.copyWith(

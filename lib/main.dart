@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'app/core/constants/app_colors.dart';
 import 'app/routes/app_pages.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -21,8 +21,19 @@ Future<void> main() async {
     () async {
       WidgetsFlutterBinding.ensureInitialized();
 
-      // Initialize local storage
-      await GetStorage.init(); 
+      // Initialize GetStorage (optional)
+      await GetStorage.init();
+      // Initialize Hive
+      await Hive.initFlutter();
+      var hiveBox = await Hive.openBox('appBox');
+
+      // Initialize Preference with Hive box ✅
+      Preference.init(hiveBox);
+
+      // Register Hive box in GetX
+      Get.put<Box>(hiveBox);
+
+      print('✅ Hive Initialized');
 
       // Initialize Firebase
       await Firebase.initializeApp(
@@ -39,11 +50,7 @@ Future<void> main() async {
       FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;
       await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
 
-      // SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      Get.put<SharedPreferences>(prefs);
-
-      // Determine initial route using Preference class
+      // Determine initial route using Hive Preference
       String initialRoute =
           Preference.isLoggedIn ? Routes.DASHBOARD : Routes.ONBOARDING;
 

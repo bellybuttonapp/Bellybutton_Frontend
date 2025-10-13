@@ -24,6 +24,10 @@ abstract class Routes {
   static const PREMIUM = _Paths.PREMIUM;
   static const INVITEUSER =
       _Paths.DASHBOARD + _Paths.INNERMODULE + _Paths.INVITEUSER;
+  static const EVENT_GALLERY =
+      _Paths.DASHBOARD + _Paths.INNERMODULE + _Paths.EVENT_GALLERY;
+  static const RESET_PASSWORD =
+      _Paths.PROFILE + _Paths.INNERMODULE + _Paths.RESET_PASSWORD;
 }
 
 abstract class _Paths {
@@ -43,4 +47,6 @@ abstract class _Paths {
   static const CREATE_EVENT = '/create-event';
   static const PREMIUM = '/premium';
   static const INVITEUSER = '/inviteuser';
+  static const EVENT_GALLERY = '/event-gallery';
+  static const RESET_PASSWORD = '/reset-password';
 }

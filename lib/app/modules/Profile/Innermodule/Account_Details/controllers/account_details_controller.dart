@@ -1,3 +1,5 @@
+// ignore_for_file: unused_import, deprecated_member_use
+
 import 'dart:io';
 import 'package:bellybutton/app/Controllers/oauth.dart';
 import 'package:bellybutton/app/core/constants/app_colors.dart';
@@ -122,7 +124,10 @@ class AccountDetailsController extends GetxController {
       Preference.email = emailController.text.trim();
 
       // Show success snackbar
-      showCustomSnackBar(AppTexts.loginSuccess, SnackbarState.success);
+      showCustomSnackBar(
+        AppTexts.Profile_updated_successfully,
+        SnackbarState.success,
+      );
     } catch (e) {
       // Show error snackbar
       showCustomSnackBar(AppTexts.noInternet, SnackbarState.error);

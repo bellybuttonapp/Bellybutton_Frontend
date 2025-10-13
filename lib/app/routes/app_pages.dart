@@ -8,6 +8,8 @@ import '../modules/Auth/login/bindings/login_binding.dart';
 import '../modules/Auth/login/views/login_view.dart';
 import '../modules/Auth/signup/bindings/signup_binding.dart';
 import '../modules/Auth/signup/views/signup_view.dart';
+import '../modules/Dashboard/Innermodule/Event_gallery/bindings/event_gallery_binding.dart';
+import '../modules/Dashboard/Innermodule/Event_gallery/views/event_gallery_view.dart';
 import '../modules/Dashboard/Innermodule/Past_Event/bindings/past_event_binding.dart';
 import '../modules/Dashboard/Innermodule/Past_Event/views/past_event_view.dart';
 import '../modules/Dashboard/Innermodule/Upcomming_Event/bindings/upcomming_event_binding.dart';
@@ -24,6 +26,8 @@ import '../modules/Premium/bindings/premium_binding.dart';
 import '../modules/Premium/views/premium_view.dart';
 import '../modules/Profile/Innermodule/Account_Details/bindings/account_details_binding.dart';
 import '../modules/Profile/Innermodule/Account_Details/views/account_details_view.dart';
+import '../modules/Profile/Innermodule/Reset_password/bindings/reset_password_binding.dart';
+import '../modules/Profile/Innermodule/Reset_password/views/reset_password_view.dart';
 import '../modules/Profile/bindings/profile_binding.dart';
 import '../modules/Profile/views/profile_view.dart';
 import '../modules/home/bindings/home_binding.dart';
@@ -118,9 +122,14 @@ class AppPages {
           name: _Paths.INVITEUSER,
           page: () => InviteuserView(),
           binding: InviteuserBinding(),
-           transition: Transition.fade,
+          transition: Transition.fade,
           curve: Curves.easeInOut,
           transitionDuration: Duration(milliseconds: 400),
+        ),
+        GetPage(
+          name: _Paths.EVENT_GALLERY,
+          page: () => const EventGalleryView(),
+          binding: EventGalleryBinding(),
         ),
       ],
     ),
@@ -144,6 +153,14 @@ class AppPages {
           name: _Paths.ACCOUNT_DETAILS,
           page: () => AccountDetailsView(),
           binding: AccountDetailsBinding(),
+          transition: Transition.fade,
+          curve: Curves.easeInOut,
+          transitionDuration: Duration(milliseconds: 400),
+        ),
+        GetPage(
+          name: _Paths.RESET_PASSWORD,
+          page: () => ResetPasswordView(),
+          binding: ResetPasswordBinding(),
           transition: Transition.fade,
           curve: Curves.easeInOut,
           transitionDuration: Duration(milliseconds: 400),

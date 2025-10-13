@@ -1,4 +1,6 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, deprecated_member_use, duplicate_ignore
+
+import 'dart:io';
 
 import 'package:bellybutton/app/modules/Profile/views/profile_view.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -66,18 +68,23 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     if (showProfileSection) {
       leadingWidget = _buildProfileSection(context, textColor, size);
     } else if (showBackButton) {
-      leadingWidget = IconButton(
-        tooltip: 'Back',
-        icon: Icon(
-          Icons.arrow_back_ios,
-          color: iconColor,
-          size: size.width * 0.05,
-        ),
-        onPressed: () {
-          HapticFeedback.mediumImpact(); // vibrate
-          Get.back(); // go back
-        },
-      );
+      // IOS/Android Back widget
+      leadingWidget =
+          Platform.isIOS
+              ? const BackButton() // Default iOS back button
+              : IconButton(
+                tooltip: 'Back',
+                icon: SvgPicture.asset(
+                  app_images.Backarrow,
+                  color: iconColor,
+                  width: size.width * 0.06, // ~24px
+                ),
+                padding: EdgeInsets.all(size.width * 0.02), // ~8px
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  Get.back();
+                },
+              );
     }
 
     return AppBar(

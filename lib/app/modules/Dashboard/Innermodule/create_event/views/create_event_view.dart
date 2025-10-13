@@ -68,7 +68,7 @@ class CreateEventView extends GetView<CreateEventController> {
     return Obx(
       () => GlobalTextField(
         controller: controller.titleController,
-        hintText: "Event Title",
+        hintText: AppTexts.EventTitle,
         obscureText: false,
         keyboardType: TextInputType.text,
         errorText: controller.titleError.value,
@@ -81,7 +81,7 @@ class CreateEventView extends GetView<CreateEventController> {
     return Obx(
       () => GlobalTextField(
         controller: controller.descriptionController,
-        hintText: "Description",
+        hintText: AppTexts.Description,
         obscureText: false,
         keyboardType: TextInputType.multiline,
         maxLines: 2,
@@ -98,7 +98,7 @@ class CreateEventView extends GetView<CreateEventController> {
         children: [
           GlobalTextField(
             controller: controller.dateController,
-            hintText: "Set Date",
+                 hintText: AppTexts.SetDate,
             obscureText: false,
             readOnly: true,
             suffixIcon: InkWell(
@@ -244,7 +244,7 @@ class CreateEventView extends GetView<CreateEventController> {
               child: Obx(
                 () => GlobalTextField(
                   controller: controller.startTimeController,
-                  hintText: "Start Time",
+                  hintText: AppTexts.StartTime,
                   readOnly: true,
                   obscureText: false,
                   errorText:
@@ -274,7 +274,7 @@ class CreateEventView extends GetView<CreateEventController> {
               child: Obx(
                 () => GlobalTextField(
                   controller: controller.endTimeController,
-                  hintText: "End Time",
+                  hintText: AppTexts.EndTime,
                   readOnly: true,
                   obscureText: false,
                   errorText:

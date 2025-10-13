@@ -54,7 +54,7 @@ class LoginController extends GetxController {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
-    // Reset errors
+    // Reset input errors
     emailError.value = '';
     passwordError.value = '';
 
@@ -66,54 +66,62 @@ class LoginController extends GetxController {
     if (passwordValidation != null) passwordError.value = passwordValidation;
     if (emailError.value.isNotEmpty || passwordError.value.isNotEmpty) return;
 
-    // Check internet connectivity
-    final connectivity = await Connectivity().checkConnectivity();
-    if (connectivity == ConnectivityResult.none) {
-      showCustomSnackBar(AppTexts.noInternet, SnackbarState.error);
-      return;
-    }
-
     isLoading.value = true;
 
     try {
+      // ✅ Step: Check email availability before attempting login
+      final emailCheck = await _authService.checkEmailAvailability(email);
+
+      if (emailCheck['available'] == true) {
+        // Email not found → cannot log in
+        showCustomSnackBar(
+          'Email not found. Please register first.',
+          SnackbarState.error,
+        );
+        isLoading.value = false;
+        return;
+      }
+
+      // ✅ Email exists → proceed with login
       final result = await _authService.loginWithAPI(
         email: email,
         password: password,
       );
 
-      // Handle successful login
-      if (result['status'] == 'success') {
+      // Handle network issues
+      if (result['message'] == "No internet connection.") {
+        showCustomSnackBar(result['message'], SnackbarState.error);
+        return;
+      }
+
+      // Successful login
+      if (result['result'] == true || result['status'] == 'success') {
         _handleRememberMe(email);
 
         Preference.isLoggedIn = true;
         Preference.email = email;
-
-        // Extract user name if provided
-        final message = result['message'] ?? '';
-        final name =
-            message.contains('user:')
-                ? message.split('user:').last.trim()
-                : result['name'] ?? 'Example Name';
-        Preference.userName = name;
-
-        // Optional: no photo in API, leave null
-        Preference.profileImage = null;
+        Preference.userName = result['name'] ?? 'User';
+        Preference.profileImage = result['profilePhoto'];
 
         showCustomSnackBar(
-          result['notification'] ?? "Login successful",
+          result['notification'] ?? 'Login successful',
           SnackbarState.success,
         );
-
         Get.offAllNamed(Routes.DASHBOARD);
       }
-      // Handle failed login (401 or server message)
-      else {
-        final errorMessage = result['message'] ?? 'Login failed';
-        showCustomSnackBar(errorMessage, SnackbarState.error);
+      // Failed login due to invalid credentials
+      else if (result['result'] == false && result['message'] != null) {
+        showCustomSnackBar(
+          result['message'] ?? 'Invalid email or password',
+          SnackbarState.error,
+        );
       }
-    } catch (e) {
-      showCustomSnackBar('Login failed: $e', SnackbarState.error);
-      print("Login error: $e");
+    } catch (e, stackTrace) {
+      print('Login error: $e\n$stackTrace');
+      showCustomSnackBar(
+        'Login failed. Please try again.',
+        SnackbarState.error,
+      );
     } finally {
       isLoading.value = false;
     }
@@ -185,13 +193,15 @@ class LoginController extends GetxController {
 
     if (email.isEmpty) return 'Email cannot be empty';
 
-    // Common email pattern check
-    final emailPattern =
-        r"^[a-zA-Z0-9.a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9]+\.[a-zA-Z]+";
-    if (!RegExp(emailPattern).hasMatch(email))
+    // Improved email regex (supports subdomains and multiple TLDs)
+    final emailPattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$";
+
+    if (!RegExp(emailPattern).hasMatch(email)) {
       return 'Enter a valid email address';
+    }
 
     if (userNotFound) return 'No account found with this email';
+
     return null;
   }
 

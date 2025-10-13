@@ -7,7 +7,6 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_images.dart';
 import '../../../../core/constants/app_texts.dart';
 import '../../../../core/themes/Font_style.dart';
-import '../../../../core/themes/dimensions.dart';
 import '../../../../global_widgets/Button/global_button.dart';
 import '../../../../global_widgets/custom_app_bar/custom_app_bar.dart';
 import '../controllers/forgot_password_controller.dart';
@@ -21,14 +20,17 @@ class OtpView extends GetView<ForgotPasswordController> {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final screenHeight = mediaQuery.size.height;
+    final screenWidth = mediaQuery.size.width;
+
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     final basePinTheme = PinTheme(
-      margin: const EdgeInsets.symmetric(
-        horizontal: 4,
-      ), // 👈 Space between boxes
-      width: 50,
-      height: 56,
-      textStyle: customBoldText.copyWith(fontSize: Dimensions.fontSizeLarge),
+      margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.01),
+      width: screenWidth * 0.12,
+      height: screenHeight * 0.07,
+      textStyle: customBoldText.copyWith(fontSize: screenWidth * 0.05),
       decoration: BoxDecoration(
         color: AppColors.textColor3,
         borderRadius: BorderRadius.circular(5),
@@ -65,68 +67,71 @@ class OtpView extends GetView<ForgotPasswordController> {
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: EdgeInsets.all(screenWidth * 0.05),
           child: Obx(
             () => Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 40),
+                SizedBox(height: screenHeight * 0.05),
 
                 Center(
-                  child: Image.asset(app_images.Forget_pswrd, height: 150),
+                  child: Image.asset(
+                    app_images.Forget_pswrd,
+                    height: screenHeight * 0.2,
+                  ),
                 ),
-                const SizedBox(height: 30),
+                SizedBox(height: screenHeight * 0.03),
 
                 Text(
                   AppTexts.otpTitle,
-                  style: customBoldText.copyWith(
-                    fontSize: Dimensions.fontSizeLarge,
-                  ),
+                  style: customBoldText.copyWith(fontSize: screenWidth * 0.06),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: screenHeight * 0.01),
 
                 Text(
                   AppTexts.otpSubtitle,
                   style: customBoldText.copyWith(
                     color: AppColors.tertiaryColor,
-                    fontSize: Dimensions.fontSizeSmall,
+                    fontSize: screenWidth * 0.04,
                   ),
                   textAlign: TextAlign.start,
                 ),
-                const SizedBox(height: 30),
+                SizedBox(height: screenHeight * 0.03),
 
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     if (controller.otpError.value.isNotEmpty) ...[
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
+                        padding: EdgeInsets.only(bottom: screenHeight * 0.005),
                         child: Text(
                           controller.otpError.value,
                           style: customBoldText.copyWith(
                             color: AppColors.primaryColor1,
-                            fontSize: Dimensions.fontSizeSmall,
+                            fontSize: screenWidth * 0.035,
                           ),
                           textAlign: TextAlign.right,
                         ),
                       ),
                     ],
-
                     Pinput(
-                      length: 6,
+                      length: 4, // your 4-digit OTP
                       controller: controller.otpController,
                       focusNode: controller.otpFocusNode,
                       autofocus: true,
                       pinAnimationType: PinAnimationType.fade,
                       closeKeyboardWhenCompleted: true,
                       showCursor: true,
-                      // obscureText: true,
-                      // obscuringCharacter: "*",
+                      obscureText: true,
+                      obscuringCharacter: "*",
                       defaultPinTheme: basePinTheme,
                       focusedPinTheme: focusedPinTheme,
                       submittedPinTheme: submittedPinTheme,
                       errorPinTheme: errorPinTheme,
                       pinputAutovalidateMode: PinputAutovalidateMode.onSubmit,
+                      autofillHints: const [
+                        AutofillHints.oneTimeCode,
+                      ], // ✅ Enable OTP autofill
                       onChanged: (val) {
                         controller.otp.value = val;
                         if (controller.otpError.value.isNotEmpty) {
@@ -138,7 +143,7 @@ class OtpView extends GetView<ForgotPasswordController> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: screenHeight * 0.03),
 
                 global_button(
                   loaderWhite: true,
@@ -149,42 +154,54 @@ class OtpView extends GetView<ForgotPasswordController> {
                   onTap: controller.verifyOtp,
                 ),
 
-                const SizedBox(height: 12),
-
-                Row(
-                  children: [
-                    Text(
-                      AppTexts.resendOtp,
-                      style: customBoldText.copyWith(
-                        color: AppColors.tertiaryColor,
-                        fontSize: Dimensions.fontSizeSmall,
+                SizedBox(height: screenHeight * 0.015),
+                Obx(
+                  () => Row(
+                    children: [
+                      Text(
+                        AppTexts.resendOtp,
+                        style: customBoldText.copyWith(
+                          color: AppColors.tertiaryColor,
+                          fontSize: screenWidth * 0.035,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
+                      SizedBox(width: screenWidth * 0.015),
 
-                    controller.isResendEnabled.value
-                        ? GestureDetector(
-                          onTap: () {
-                            controller.startResendTimer();
-                            Get.snackbar("OTP", "Resent code to your email");
-                          },
-                          child: Text(
-                            AppTexts.resendNow,
+                      controller.isResendEnabled.value
+                          ? GestureDetector(
+                            onTap: () async {
+                              await controller
+                                  .resendOtp(); // Only resend, no effect on Verify loader
+                            },
+                            child: Obx(
+                              () =>
+                                  controller.isResendLoading.value
+                                      ? SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                      : Text(
+                                        AppTexts.resendNow,
+                                        style: customBoldText.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.primaryColor,
+                                          fontSize: screenWidth * 0.035,
+                                        ),
+                                      ),
+                            ),
+                          )
+                          : Text(
+                            "Resend in ${controller.resendSeconds.value}s",
                             style: customBoldText.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primaryColor,
-                              fontSize: Dimensions.fontSizeSmall,
+                              color: AppColors.tertiaryColor,
+                              fontSize: screenWidth * 0.035,
                             ),
                           ),
-                        )
-                        : Text(
-                          "Resend in ${controller.resendSeconds.value}s",
-                          style: customBoldText.copyWith(
-                            color: AppColors.tertiaryColor,
-                            fontSize: Dimensions.fontSizeSmall,
-                          ),
-                        ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),

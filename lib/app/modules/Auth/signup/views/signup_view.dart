@@ -269,7 +269,7 @@ class SignupView extends GetView<SignupController> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          AppTexts.alreadyHaveAccount,
+                          AppTexts.AlreadyHaveAccount,
                           style: customBoldText.copyWith(
                             fontSize: screenWidth * 0.035,
                             color: AppColors.textColor,

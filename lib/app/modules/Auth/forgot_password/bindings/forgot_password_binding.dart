@@ -7,6 +7,7 @@ class ForgotPasswordBinding extends Bindings {
   void dependencies() {
     Get.lazyPut<ForgotPasswordController>(
       () => ForgotPasswordController(),
+      fenix: false, // makes it disposed when not used
     );
   }
 }

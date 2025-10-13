@@ -1,3 +1,5 @@
+// ignore_for_file: annotate_overrides, deprecated_member_use
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -141,7 +143,7 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
                                   ? Preference.email
                                   : (user?.email ?? "example@email.com"),
                         ),
-                        hintText: "Email",
+                        hintText: AppTexts.Email,
                         obscureText: false,
                         suffixIcon: Padding(
                           padding: EdgeInsets.all(screenWidth * 0.03),

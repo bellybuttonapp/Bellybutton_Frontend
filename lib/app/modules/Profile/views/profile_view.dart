@@ -153,7 +153,7 @@ class ProfileView extends GetView<ProfileController> {
                       app_images
                           .New_pswrd, // change if you have a password icon
                   title: AppTexts.Newpswd,
-                  onTap: controller.onSetNewPasswordTap,
+                  onTap: controller.ResetPassword,
                 ),
                 const _SectionDivider(),
 

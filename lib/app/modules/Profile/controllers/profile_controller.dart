@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:bellybutton/app/Controllers/oauth.dart';
 import 'package:bellybutton/app/modules/Premium/views/premium_view.dart';
+import 'package:bellybutton/app/modules/Profile/Innermodule/Reset_password/views/reset_password_view.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import '../../../api/DioClient.dart';
@@ -20,6 +21,7 @@ class ProfileController extends GetxController {
   RxBool isLoading = false.obs;
   RxBool isProcessing = false.obs;
   RxBool autoSync = false.obs;
+  RxBool isSigningOut = false.obs;
   Rx<User?> currentUser = AuthService().currentUser.obs;
 
   Rx<File?> pickedImage = Rx<File?>(null);
@@ -50,7 +52,11 @@ class ProfileController extends GetxController {
     Get.to(PremiumView());
   }
 
-  void onSetNewPasswordTap() => print("Set New Password tapped");
+  void ResetPassword() => Get.to(
+    () => ResetPasswordView(),
+    transition: Transition.rightToLeft,
+    duration: const Duration(milliseconds: 300),
+  );
   void onPrivacyTap() => print("Privacy & Permissions tapped");
   void onFaqsTap() => print("FAQs tapped");
 
@@ -126,7 +132,7 @@ class ProfileController extends GetxController {
       message: AppTexts.signOutPopupSubtitle,
       confirmText: AppTexts.logout,
       onConfirm: () async {
-        isLoading.value = true;
+        isSigningOut.value = true;
         try {
           // Call the AuthService to sign out (Firebase + Google)
           await AuthService().signOut();
@@ -151,7 +157,7 @@ class ProfileController extends GetxController {
           showCustomSnackBar(AppTexts.logoutError, SnackbarState.error);
           print("Logout error: $e");
         } finally {
-          isLoading.value = false;
+          isSigningOut.value = false;
         }
       },
     );

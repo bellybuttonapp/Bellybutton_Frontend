@@ -3,7 +3,8 @@
 
 class app_images {
   static const googleicon = 'assets/images/google_svg.svg';
-  // static const onboardingbg = 'assets/images/onboarding.svg';
+  static const Backarrow = 'assets/images/Backarrow.svg';
+  static const userscount = 'assets/images/userscount.svg';
   static const on = 'assets/images/onboard.png';
   static const notification = 'assets/images/notification.svg';
   static const person = 'assets/images/person.svg';
