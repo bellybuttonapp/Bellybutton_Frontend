@@ -1,6 +1,6 @@
 // ignore_for_file: unnecessary_overrides, avoid_print, non_constant_identifier_names
 
-import 'package:bellybutton/app/modules/Dashboard/Innermodule/Event_gallery/views/event_gallery_view.dart';
+import 'package:bellybutton/app/modules/Notifications/views/notifications_view.dart';
 import 'package:get/get.dart';
 
 import '../Innermodule/create_event/views/create_event_view.dart';
@@ -21,7 +21,7 @@ class DashboardController extends GetxController {
   void goToNotificationView() {
     print("Notification button tapped");
     Get.to(
-      () => EventGalleryView(),
+      () => NotificationsView(),
       transition: Transition.fade,
       duration: const Duration(milliseconds: 300),
     );

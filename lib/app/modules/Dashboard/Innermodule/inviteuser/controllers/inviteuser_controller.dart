@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_is_empty
+
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
@@ -58,17 +60,35 @@ class InviteuserController extends GetxController {
   }
 
   void filterContacts() {
-    final query = searchQuery.value.toLowerCase();
-
-    if (query.isEmpty) {
+    final rawQuery = searchQuery.value.trim();
+    if (rawQuery.isEmpty) {
       filteredContacts.assignAll([]);
       return;
     }
 
+    // Normalize query: lowercase, remove spaces, dashes, parentheses, etc.
+    final query = rawQuery.toLowerCase().replaceAll(
+      RegExp(r'[\s\-\(\)\+]'),
+      '',
+    );
+
     final results =
         contacts.where((contact) {
-          final name = contact.displayName?.toLowerCase() ?? '';
-          return name.contains(query);
+          // Normalize name
+          final name =
+              contact.displayName?.toLowerCase().replaceAll(
+                RegExp(r'\s+'),
+                '',
+              ) ??
+              '';
+
+          // Normalize phone numbers
+          final numbers = contact.phones
+              .map((p) => p.number.replaceAll(RegExp(r'[\s\-\(\)\+]'), ''))
+              .join(''); // join all numbers
+
+          // Match query anywhere in name or phone numbers
+          return name.contains(query) || numbers.contains(query);
         }).toList();
 
     filteredContacts.assignAll(results);
@@ -87,21 +107,17 @@ class InviteuserController extends GetxController {
       return;
     }
 
-    if (trimmedValue.length < 2) {
-      searchError.value = "Search term must be at least 2 characters";
+    if (trimmedValue.length < 1) {
+      searchError.value = "Search term must be at least 1 character";
       return;
     }
 
-    if (trimmedValue.length > 30) {
+    if (trimmedValue.length > 50) {
       searchError.value = "Search term is too long";
       return;
     }
 
-    if (!RegExp(r'^[a-zA-Z0-9 ]+$').hasMatch(trimmedValue)) {
-      searchError.value = "Only letters and numbers are allowed";
-      return;
-    }
-
+    // Allow any character (letters, numbers, symbols) for flexible phone search
     searchError.value = '';
   }
 
@@ -115,6 +131,11 @@ class InviteuserController extends GetxController {
       if (selectedUsers.length < 5) {
         selectedUsers.add(contact);
         HapticFeedback.mediumImpact(); // select feedback
+
+        // Clear search field after selecting a user
+        searchController.clear();
+        searchQuery.value = '';
+        filteredContacts.assignAll([]);
       } else {
         HapticFeedback.heavyImpact(); // error feedback
         showCustomSnackBar(AppTexts.Limit_Reached, SnackbarState.error);

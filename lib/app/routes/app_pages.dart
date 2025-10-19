@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'package:get/get.dart';
 
+import '../modules/Auth/SetNewPasswordView/bindings/set_new_password_view_binding.dart';
+import '../modules/Auth/SetNewPasswordView/views/set_new_password_view_view.dart';
 import '../modules/Auth/forgot_password/bindings/forgot_password_binding.dart';
 import '../modules/Auth/forgot_password/views/forgot_password_view.dart';
 import '../modules/Auth/login/bindings/login_binding.dart';
@@ -130,6 +132,9 @@ class AppPages {
           name: _Paths.EVENT_GALLERY,
           page: () => const EventGalleryView(),
           binding: EventGalleryBinding(),
+          transition: Transition.fade,
+          curve: Curves.easeInOut,
+          transitionDuration: Duration(milliseconds: 400),
         ),
       ],
     ),
@@ -171,6 +176,14 @@ class AppPages {
       name: _Paths.PREMIUM,
       page: () => PremiumView(),
       binding: PremiumBinding(),
+      transition: Transition.fade,
+      curve: Curves.easeInOut,
+      transitionDuration: Duration(milliseconds: 400),
+    ),
+    GetPage(
+      name: _Paths.SET_NEW_PASSWORD_VIEW,
+      page: () => SetNewPasswordView(),
+      binding: SetNewPasswordViewBinding(),
       transition: Transition.fade,
       curve: Curves.easeInOut,
       transitionDuration: Duration(milliseconds: 400),

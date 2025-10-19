@@ -3,7 +3,6 @@
 import 'package:bellybutton/app/core/constants/app_images.dart';
 import 'package:bellybutton/app/core/constants/app_texts.dart';
 import 'package:bellybutton/app/global_widgets/custom_app_bar/custom_app_bar.dart';
-import 'package:bellybutton/app/modules/Dashboard/Innermodule/inviteuser/views/inviteuser_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -71,6 +70,7 @@ class CreateEventView extends GetView<CreateEventController> {
         hintText: AppTexts.EventTitle,
         obscureText: false,
         keyboardType: TextInputType.text,
+        maxLength: 50, // limit title to 50 chars
         errorText: controller.titleError.value,
         onChanged: controller.validateTitle,
       ),
@@ -85,6 +85,7 @@ class CreateEventView extends GetView<CreateEventController> {
         obscureText: false,
         keyboardType: TextInputType.multiline,
         maxLines: 2,
+        maxLength: 200, // short description limit
         errorText: controller.descriptionError.value,
         onChanged: controller.validateDescription,
       ),
@@ -98,7 +99,7 @@ class CreateEventView extends GetView<CreateEventController> {
         children: [
           GlobalTextField(
             controller: controller.dateController,
-                 hintText: AppTexts.SetDate,
+            hintText: AppTexts.SetDate,
             obscureText: false,
             readOnly: true,
             suffixIcon: InkWell(
@@ -120,7 +121,10 @@ class CreateEventView extends GetView<CreateEventController> {
                 controller.dateError.value.isEmpty
                     ? null
                     : controller.dateError.value,
-            onTap: () {}, // Prevent keyboard
+            onTap: () {
+              // Toggle calendar visibility when tapping the text field
+              controller.showCalendar.value = !controller.showCalendar.value;
+            },
           ),
           const SizedBox(height: 8),
           if (controller.showCalendar.value) _buildInlineCalendar(size),
@@ -313,7 +317,7 @@ class CreateEventView extends GetView<CreateEventController> {
         isLoading: controller.isLoading.value,
         onTap: () {
           if (controller.validateAllFields()) {
-            Get.off(() => InviteuserView()); // Navigate without back
+            controller.createEvent(); // Call API & navigate inside
           } else {
             showCustomSnackBar(
               AppTexts.Please_fix_the_errors_in_the_form,

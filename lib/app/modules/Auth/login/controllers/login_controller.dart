@@ -47,85 +47,69 @@ class LoginController extends GetxController {
     }
   }
 
-  /// =====================
-  /// LOGIN FUNCTION
-  /// =====================
-  Future<void> login() async {
-    final email = emailController.text.trim();
-    final password = passwordController.text.trim();
+ Future<void> login() async {
+  final email = emailController.text.trim();
+  final password = passwordController.text.trim();
 
-    // Reset input errors
-    emailError.value = '';
-    passwordError.value = '';
+  // Reset errors
+  emailError.value = '';
+  passwordError.value = '';
 
-    // Validate inputs
-    final emailValidation = _validateEmail(email);
-    final passwordValidation = _validatePassword(password);
+  // Validate inputs
+  final emailValidation = _validateEmail(email);
+  final passwordValidation = _validatePassword(password);
 
-    if (emailValidation != null) emailError.value = emailValidation;
-    if (passwordValidation != null) passwordError.value = passwordValidation;
-    if (emailError.value.isNotEmpty || passwordError.value.isNotEmpty) return;
+  if (emailValidation != null) emailError.value = emailValidation;
+  if (passwordValidation != null) passwordError.value = passwordValidation;
+  if (emailError.value.isNotEmpty || passwordError.value.isNotEmpty) return;
 
-    isLoading.value = true;
+  isLoading.value = true;
 
-    try {
-      // ✅ Step: Check email availability before attempting login
-      final emailCheck = await _authService.checkEmailAvailability(email);
-
-      if (emailCheck['available'] == true) {
-        // Email not found → cannot log in
-        showCustomSnackBar(
-          'Email not found. Please register first.',
-          SnackbarState.error,
-        );
-        isLoading.value = false;
-        return;
-      }
-
-      // ✅ Email exists → proceed with login
-      final result = await _authService.loginWithAPI(
-        email: email,
-        password: password,
-      );
-
-      // Handle network issues
-      if (result['message'] == "No internet connection.") {
-        showCustomSnackBar(result['message'], SnackbarState.error);
-        return;
-      }
-
-      // Successful login
-      if (result['result'] == true || result['status'] == 'success') {
-        _handleRememberMe(email);
-
-        Preference.isLoggedIn = true;
-        Preference.email = email;
-        Preference.userName = result['name'] ?? 'User';
-        Preference.profileImage = result['profilePhoto'];
-
-        showCustomSnackBar(
-          result['notification'] ?? 'Login successful',
-          SnackbarState.success,
-        );
-        Get.offAllNamed(Routes.DASHBOARD);
-      }
-      // Failed login due to invalid credentials
-      else if (result['result'] == false && result['message'] != null) {
-        showCustomSnackBar(
-          result['message'] ?? 'Invalid email or password',
-          SnackbarState.error,
-        );
-      }
-    } catch (e, stackTrace) {
-      print('Login error: $e\n$stackTrace');
-      showCustomSnackBar(
-        'Login failed. Please try again.',
-        SnackbarState.error,
-      );
-    } finally {
-      isLoading.value = false;
+  try {
+    // 1️⃣ Check if email exists
+    final emailCheck = await _authService.checkEmailAvailability(email);
+    if (emailCheck['available'] == true) {
+      showCustomSnackBar('Email not found. Please register first.', SnackbarState.error);
+      return;
     }
+
+    // 2️⃣ Proceed with login
+    final result = await _authService.loginWithAPI(
+      email: email,
+      password: password,
+    );
+
+    // Handle no internet
+    if (result['message'] == "No internet connection.") {
+      showCustomSnackBar(result['message'], SnackbarState.error);
+      return;
+    }
+
+    // 3️⃣ Handle success or failure
+    if (result['result'] == true || result['status'] == 'success') {
+      _handleRememberMe(email);
+      Preference.isLoggedIn = true;
+      Preference.email = email;
+      Preference.userName = result['name'] ?? 'User';
+      Preference.profileImage = result['profilePhoto'];
+
+      showCustomSnackBar(result['notification'] ?? 'Login successful', SnackbarState.success);
+      Get.offAllNamed(Routes.DASHBOARD);
+    } else {
+      // Handle invalid credentials or general errors
+      final errorMessage = result['message'] ??
+          result['error'] ??
+          'Invalid email or password';
+      showCustomSnackBar(errorMessage, SnackbarState.error);
+    }
+  } catch (e, stackTrace) {
+    print('Login error: $e\n$stackTrace');
+    showCustomSnackBar('Something went wrong. Please try again.', SnackbarState.error);
+  } finally {
+    isLoading.value = false;
   }
+}
+
 
   /// ✅ Helper to handle Remember Me
   void _handleRememberMe(String email) {

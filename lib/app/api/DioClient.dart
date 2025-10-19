@@ -2,6 +2,7 @@
 
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import '../core/constants/app_constant.dart';
 import '../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 
@@ -24,14 +25,16 @@ class DioClient {
       ),
     );
 
-    // Logging interceptor (optional for debugging)
+    // Add Pretty Dio Logger with emojis
     _dio.interceptors.add(
-      LogInterceptor(
-        request: true,
+      PrettyDioLogger(
         requestHeader: true,
         requestBody: true,
         responseBody: true,
+        responseHeader: false,
         error: true,
+        compact: true,
+        maxWidth: 90,
       ),
     );
 
@@ -57,7 +60,7 @@ class DioClient {
       return await _dio.get(endpoint, queryParameters: queryParams);
     } on DioException catch (e) {
       _handleDioError(e);
-      return null; // silently return null
+      return null;
     }
   }
 
@@ -86,7 +89,6 @@ class DioClient {
     }
 
     // Other errors are ignored for the user
-    // Console log for debugging
     print("Dio Error: ${e.message}");
   }
 }

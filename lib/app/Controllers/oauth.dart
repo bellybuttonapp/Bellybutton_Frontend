@@ -1,5 +1,6 @@
 // ignore_for_file: avoid_print, unused_field
 
+import 'dart:convert';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -355,6 +356,84 @@ class AuthService {
         "message": "Something went wrong. Please retry.",
       };
     } catch (e) {
+      return {"success": false, "message": "Unexpected error occurred."};
+    }
+  }
+
+  // ==========================
+  // AuthService: Reset Password via API (Final Fixed Version)
+  // ==========================
+  Future<Map<String, dynamic>> resetPassword({
+    required String email,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    try {
+      final response = await DioClient().postRequest(
+        Endpoints.resetPassword,
+        data: {
+          "email": email.trim(),
+          "newPassword": newPassword.trim(),
+          "confirmPassword": confirmPassword.trim(),
+        },
+        responseType: ResponseType.plain, // ✅ Handles both text & JSON
+      );
+
+      if (response == null) {
+        return {"success": false, "message": "No response from server."};
+      }
+
+      dynamic data;
+      try {
+        data =
+            response.data is String ? jsonDecode(response.data) : response.data;
+      } catch (_) {
+        data = response.data;
+      }
+
+      // ✅ Case 1: JSON response
+      if (data is Map<String, dynamic>) {
+        final status =
+            data["status"]?.toString().toLowerCase() == "true" ||
+            data["success"] == true;
+        final message =
+            data["message"]?.toString() ?? "Password updated successfully.";
+        return {"success": status, "message": message};
+      }
+
+      // ✅ Case 2: Plain text response
+      if (data is String) {
+        final msg = data.trim();
+        return {
+          "success": msg.toLowerCase().contains("success"),
+          "message": msg,
+        };
+      }
+
+      // ❌ Fallback
+      return {"success": false, "message": "Unexpected server response."};
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        return {
+          "success": false,
+          "message": "Connection timed out. Try again.",
+        };
+      } else if (e.error is SocketException) {
+        return {"success": false, "message": "No internet connection."};
+      } else if (e.response != null) {
+        return {
+          "success": false,
+          "message":
+              "Server error: ${e.response?.statusMessage ?? 'Unknown error'} (${e.response?.statusCode ?? ''})",
+        };
+      }
+      return {
+        "success": false,
+        "message": "Something went wrong. Please retry.",
+      };
+    } catch (e) {
+      print("resetPassword() error: $e");
       return {"success": false, "message": "Unexpected error occurred."};
     }
   }

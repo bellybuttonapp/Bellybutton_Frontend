@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../../../Controllers/oauth.dart';
 import '../../../../../core/constants/app_texts.dart';
 import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
+import '../../../../Auth/forgot_password/views/otp_view.dart';
 
 class ResetPasswordController extends GetxController {
   final AuthService _authService = AuthService();
@@ -58,43 +59,69 @@ class ResetPasswordController extends GetxController {
     return null; // ✅ Valid email
   }
 
-  /// ---------------- RESET PASSWORD - SEND RESET LINK ---------------- ///
+  // /// ---------------- TIMER HANDLER ---------------- ///
+  // void startResendTimer() {
+  //   resendSeconds.value = 30;
+  //   isResendEnabled.value = false;
+
+  //   _timer?.cancel();
+  //   _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+  //     if (resendSeconds.value == 0) {
+  //       isResendEnabled.value = true;
+  //       _timer?.cancel();
+  //     } else {
+  //       resendSeconds.value--;
+  //     }
+  //   });
+  // }
+
+  // ==========================
+  // AUTH - SEND RESET OTP
+  // ==========================
   Future<void> sendResetLink() async {
     final email = emailController.text.trim();
 
-    // 1️⃣ Validate email before sending
+    // 1️⃣ Validate email
     validateEmail(email);
     if (emailError.value.isNotEmpty) return;
 
     isLoading.value = true;
 
     try {
-      // 2️⃣ Check if email exists in backend
+      // 2️⃣ Check if email exists
       final emailCheck = await _authService.checkEmailAvailability(email);
       if (emailCheck['available'] == true) {
-        // Email not registered → show error
         showCustomSnackBar(AppTexts.Email_not_found, SnackbarState.error);
         return;
       }
 
-      // 3️⃣ Email exists → send reset link via API
-      final result = await _authService.sendResetPasswordEmail(email: email);
+      // 3️⃣ Send OTP to the available email
+      final result = await _authService.forgotPassword(email: email);
 
-      if (result['success'] == true) {
-        // ✅ Reset link sent successfully
+      if (result['result'] == true) {
         showCustomSnackBar(
-          result['message'] ?? AppTexts.passwordResetSuccess,
+          result['message']?.toString() ?? AppTexts.otpSent,
           SnackbarState.success,
         );
+        // 4️⃣ Navigate to OTP Verification Screen
+        if (Get.currentRoute != '/otp') {
+          Get.to(
+            () => OtpView(),
+            transition: Transition.fade,
+            duration: const Duration(milliseconds: 300),
+            arguments: {"email": email, "otp": result['otp']?.toString() ?? ""},
+          );
+        }
+
+        // // 5️⃣ Start resend timer
+        // startResendTimer();
       } else {
-        // ❌ Failed to send reset link
         showCustomSnackBar(
-          result['message'] ?? AppTexts.passwordResetFailed,
+          result['message']?.toString() ?? AppTexts.otpFailed,
           SnackbarState.error,
         );
       }
     } catch (e) {
-      // Handle unexpected errors
       showCustomSnackBar("Error: ${e.toString()}", SnackbarState.error);
     } finally {
       isLoading.value = false;

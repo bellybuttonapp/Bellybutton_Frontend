@@ -73,7 +73,6 @@ Future<void> main() async {
 
       // Lifecycle observer
       WidgetsBinding.instance.addObserver(AppLifecycleHandler());
-
       runApp(
         GetMaterialApp(
           debugShowCheckedModeBanner: false,
@@ -81,7 +80,7 @@ Future<void> main() async {
           initialRoute: initialRoute,
           getPages: AppPages.routes,
           darkTheme: ThemeData.dark(),
-          themeMode: ThemeMode.system,
+          themeMode: ThemeMode.light,
           scrollBehavior: const MaterialScrollBehavior().copyWith(
             dragDevices: {
               PointerDeviceKind.mouse,

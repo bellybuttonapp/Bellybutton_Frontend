@@ -53,6 +53,13 @@ class AppTexts {
   static const String resetPasswordSubtitle =
       "Enter your registered email address below, and we’ll send you a link to reset your password.";
 
+  // ---------------- Auth - Set New Password ----------------
+  static const String setNewPassword = "Create New Password";
+  static const String setNewPasswordSubtitle =
+      "Type your new password and confirm it to continue.";
+  static const String newPassword = "New Password";
+  static const String confirmPassword = "Confirm Password";
+
   // ---------------- Email Validation ----------------
   static const String emailConsecutiveDots =
       "Email cannot contain consecutive dots";
@@ -67,6 +74,8 @@ class AppTexts {
   // ---------------- Auth - OTP ----------------
   static const String otpFailed = "Failed to send OTP";
   static const String otpInvalid = "Invalid OTP. Please try again.";
+  static const String Somethingwentwrong =
+      "Something went wrong. Please retry.";
   static const String otpSent = "OTP sent successfully!";
   static const String otpSubtitle =
       "We’ve sent a One-Time Password (OTP) to your \n"

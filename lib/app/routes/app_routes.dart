@@ -28,6 +28,8 @@ abstract class Routes {
       _Paths.DASHBOARD + _Paths.INNERMODULE + _Paths.EVENT_GALLERY;
   static const RESET_PASSWORD =
       _Paths.PROFILE + _Paths.INNERMODULE + _Paths.RESET_PASSWORD;
+  static const SET_NEW_PASSWORD_VIEW =
+      _Paths.AUTH + _Paths.SET_NEW_PASSWORD_VIEW;
 }
 
 abstract class _Paths {
@@ -49,4 +51,6 @@ abstract class _Paths {
   static const INVITEUSER = '/inviteuser';
   static const EVENT_GALLERY = '/event-gallery';
   static const RESET_PASSWORD = '/reset-password';
+  static const SET_NEW_PASSWORD_VIEW = '/set-new-password-view';
+  static const AUTH = '/auth';
 }

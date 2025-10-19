@@ -1,3 +1,5 @@
+// ignore_for_file: file_names
+
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/themes/Font_style.dart';
@@ -8,15 +10,28 @@ class AuthActionForm extends StatelessWidget {
   final String imagePath;
   final String title;
   final String subtitle;
+
+  /// First text field
   final String hintText;
   final TextEditingController controller;
   final String? errorText;
   final void Function(String)? onChanged;
+  final bool obscureText;
+  final TextInputType keyboardType;
+  final Widget? suffixIcon;
+
+  /// Optional second text field
+  final String? hintText2;
+  final TextEditingController? controller2;
+  final String? errorText2;
+  final void Function(String)? onChanged2;
+  final bool obscureText2;
+  final TextInputType keyboardType2;
+  final Widget? suffixIcon2;
+
   final VoidCallback onTap;
   final String buttonText;
   final bool isLoading;
-  final TextInputType keyboardType;
-  final bool obscureText;
 
   const AuthActionForm({
     super.key,
@@ -32,6 +47,15 @@ class AuthActionForm extends StatelessWidget {
     this.obscureText = false,
     this.errorText,
     this.onChanged,
+    this.suffixIcon,
+    // Second text field params
+    this.hintText2,
+    this.controller2,
+    this.errorText2,
+    this.onChanged2,
+    this.obscureText2 = false,
+    this.keyboardType2 = TextInputType.text,
+    this.suffixIcon2,
   });
 
   @override
@@ -72,7 +96,7 @@ class AuthActionForm extends StatelessWidget {
 
             SizedBox(height: screenHeight * 0.04),
 
-            /// Text Field
+            /// First Text Field
             GlobalTextField(
               controller: controller,
               hintText: hintText,
@@ -80,7 +104,22 @@ class AuthActionForm extends StatelessWidget {
               keyboardType: keyboardType,
               errorText: errorText,
               onChanged: onChanged,
+              suffixIcon: suffixIcon,
             ),
+
+            SizedBox(height: screenHeight * 0.025),
+
+            /// Optional Second Text Field
+            if (controller2 != null && hintText2 != null)
+              GlobalTextField(
+                controller: controller2!,
+                hintText: hintText2!,
+                obscureText: obscureText2,
+                keyboardType: keyboardType2,
+                errorText: errorText2,
+                onChanged: onChanged2,
+                suffixIcon: suffixIcon2,
+              ),
 
             SizedBox(height: screenHeight * 0.04),
 

@@ -150,12 +150,14 @@ class InviteuserView extends GetView<InviteuserController> {
           description: AppTexts.No_contacts_found,
         );
       }
+
       // Lazy load photos for visible contacts
       controller.filteredContacts.forEach((contact) {
         if (contact.photo == null || contact.photo!.isEmpty) {
           controller.fetchPhoto(contact);
         }
       });
+
       return ListView.builder(
         itemCount: controller.filteredContacts.length,
         itemBuilder: (context, index) {
@@ -167,6 +169,17 @@ class InviteuserView extends GetView<InviteuserController> {
             );
 
             return ListTile(
+              onTap: () {
+                // Move checkbox logic here
+                if (!isSelected && controller.selectedUsers.length >= 5) {
+                  showCustomSnackBar(
+                    AppTexts.Limit_Reached,
+                    SnackbarState.error,
+                  );
+                  return;
+                }
+                controller.toggleUserSelection(contact);
+              },
               leading: CircleAvatar(
                 backgroundColor: AppColors.primaryColor.withOpacity(0.1),
                 backgroundImage:
@@ -198,18 +211,7 @@ class InviteuserView extends GetView<InviteuserController> {
                 scale: 1.2,
                 child: Checkbox(
                   value: isSelected,
-                  onChanged: (newValue) {
-                    if (newValue == true &&
-                        controller.selectedUsers.length >= 5 &&
-                        !isSelected) {
-                      showCustomSnackBar(
-                        AppTexts.Limit_Reached,
-                        SnackbarState.error,
-                      );
-                      return;
-                    }
-                    controller.toggleUserSelection(contact);
-                  },
+                  onChanged: (_) {}, // checkbox itself does nothing
                   activeColor: AppColors.primaryColor,
                   checkColor: Colors.white,
                   visualDensity: VisualDensity.compact,

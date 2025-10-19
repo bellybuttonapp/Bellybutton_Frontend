@@ -20,6 +20,7 @@ class GlobalTextField extends StatelessWidget {
   final void Function(String)? onChanged;
   final VoidCallback? onTap;
   final int? maxLines;
+  final int? maxLength; // add this in the class properties
 
   const GlobalTextField({
     super.key,
@@ -37,6 +38,8 @@ class GlobalTextField extends StatelessWidget {
     this.onChanged,
     this.onTap,
     this.maxLines,
+    // Inside constructor
+    this.maxLength,
   });
 
   @override
@@ -62,6 +65,28 @@ class GlobalTextField extends StatelessWidget {
               onChanged: onChanged,
               onTap: onTap,
               maxLines: maxLines ?? 1,
+
+              // Inside TextFormField
+              maxLength: maxLength,
+              //This limits input but hides the counter.
+              buildCounter: (
+                _, {
+                required currentLength,
+                maxLength,
+                required isFocused,
+              }) {
+                if (currentLength == maxLength) {
+                  return Text(
+                    '$currentLength / $maxLength',
+                    style: TextStyle(
+                      color: AppColors.primaryColor1,
+                      fontSize: screenWidth * 0.03,
+                    ),
+                  );
+                } else {
+                  return null; // hide counter until max is reached
+                }
+              },
               style: customBoldText.copyWith(
                 fontSize: screenWidth * 0.035,
                 color: AppColors.tertiaryColor,

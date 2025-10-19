@@ -6,7 +6,7 @@ class Endpoints {
   //--------------- Authentication -------------------//
   static const String login = "/userresource/login"; // ✅ Available
   static const String register = "/userresource/register/user"; // ✅ Available
-  static const String logout = "/userresource/logout"; 
+  static const String logout = "/userresource/logout";
   static const String refreshToken = "/userresource/token/refresh";
 
   //--------------- User Management ------------------//
@@ -29,4 +29,8 @@ class Endpoints {
   //--------------- Email Availability ---------------//
   static const String checkEmailAvailability =
       "/userresource/check/email/availability"; // ✅ Available
+
+  //--------------- Event Management -----------------//
+  static const String createEvent =
+      "/eventresource/create/event"; // ✅ Available
 }

@@ -2,22 +2,28 @@
 /// IMPORTS
 /// =====================
 
-// ignore_for_file: dangling_library_doc_comments, use_build_context_synchronously
+// ignore_for_file: dangling_library_doc_comments, use_build_context_synchronously, avoid_print
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+import '../../../../../api/PublicApiService.dart';
 import '../../../../../core/constants/app_texts.dart';
 import '../../../../../global_widgets/CustomPopup/CustomPopup.dart';
 import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
+import '../../../../../utils/coadingRequirement/date_converter.dart';
+import '../../inviteuser/views/inviteuser_view.dart';
 
 /// =====================
 /// CREATE EVENT CONTROLLER
 /// =====================
 
 class CreateEventController extends GetxController {
+  // ---------------- API SERVICE ----------------
+  final _apiService = PublicApiService(); // ✅ define _apiService
+
   /// ---------------- CONTROLLERS ----------------
   final titleController = TextEditingController();
   final descriptionController = TextEditingController();
@@ -69,16 +75,6 @@ class CreateEventController extends GetxController {
         endTimeError.value.isEmpty;
   }
 
-  @override
-  void onClose() {
-    titleController.dispose();
-    descriptionController.dispose();
-    dateController.dispose();
-    startTimeController.dispose();
-    endTimeController.dispose();
-    super.onClose();
-  }
-
   void _checkAndShowDialog() {
     if (dateController.text.isNotEmpty &&
         startTimeController.text.isNotEmpty &&
@@ -119,85 +115,16 @@ class CreateEventController extends GetxController {
       return;
     }
 
-    TimeOfDay? picked;
-
-    if (!isEndTime) {
-      // Start time: Regular time picker
-      picked = await showTimePicker(
-        context: context,
-        initialTime: now,
-        builder: (context, child) {
-          return MediaQuery(
-            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
-            child: child!,
-          );
-        },
-      );
-    } else {
-      // End time: Enforce 2-hour limit from start time
-      if (startTimeController.text.isEmpty) {
-        showCustomSnackBar(
-          "Please select start time first",
-          SnackbarState.error,
+    TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: now,
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+          child: child!,
         );
-        return;
-      }
-
-      DateTime startDateTime = _parseTime(
-        startTimeController.text,
-        dateController.text,
-      );
-
-      final latestEndTime = startDateTime.add(const Duration(hours: 2));
-      final initialEndTime = startDateTime.add(
-        const Duration(minutes: 120),
-      ); // Start +120 mins
-
-      picked = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay(
-          hour: initialEndTime.hour,
-          minute: initialEndTime.minute,
-        ),
-        builder: (context, child) {
-          return MediaQuery(
-            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
-            child: child!,
-          );
-        },
-      );
-
-      if (picked != null) {
-        final selectedEndDateTime = DateTime(
-          selectedDate.year,
-          selectedDate.month,
-          selectedDate.day,
-          picked.hour,
-          picked.minute,
-        );
-
-        if (selectedEndDateTime.isBefore(
-              startDateTime.add(
-                const Duration(minutes: 10),
-              ), // changed from 1 to 10
-            ) ||
-            selectedEndDateTime.isAfter(latestEndTime)) {
-          await Get.dialog(
-            CustomPopup(
-              title: "Invalid Time Selection",
-              message:
-                  "Please select an end time that is at least 10 minutes after the start time and no more than 2 hours later.",
-              confirmText: "OK",
-              cancelText: null,
-              isProcessing: false.obs,
-              onConfirm: () => Get.back(),
-            ),
-          );
-
-          picked = null; // Reset invalid selection
-        }
-      }
-    }
+      },
+    );
 
     if (picked != null) {
       final selectedDateTime = DateTime(
@@ -206,8 +133,10 @@ class CreateEventController extends GetxController {
         selectedDate.day,
         picked.hour,
         picked.minute,
+        0,
       );
 
+      // Prevent past start times
       if (!isEndTime && selectedDateTime.isBefore(DateTime.now())) {
         await Get.dialog(
           CustomPopup(
@@ -219,10 +148,17 @@ class CreateEventController extends GetxController {
             onConfirm: () => Get.back(),
           ),
         );
-      } else {
-        timeController.text = picked.format(context);
-        errorObservable.value = '';
+        return;
       }
+
+      // Directly format in 24-hour for API
+      final formatted24 = DateFormat('HH:mm:ss').format(selectedDateTime);
+
+      // Set controller and clear error
+      timeController.text = formatted24;
+      errorObservable.value = '';
+
+      print("Selected ${isEndTime ? "End" : "Start"} Time (24h): $formatted24");
     }
   }
 
@@ -389,6 +325,80 @@ class CreateEventController extends GetxController {
         SnackbarState.error,
       );
     }
+  }
+
+  // ==========================
+  // 1️⃣ Create Event
+  // ==========================
+
+  Future<void> createEvent() async {
+    isLoading.value = true;
+
+    try {
+      // Convert times
+      final startTime = DateConverter.convertTo24Hour(startTimeController.text);
+      final endTime = DateConverter.convertTo24Hour(endTimeController.text);
+
+      // Print converted times
+      print("Selected Start Time (24h): $startTime");
+      print("Selected End Time (24h): $endTime");
+
+      final response = await _apiService.createEvent(
+        title: titleController.text.trim(),
+        description: descriptionController.text.trim(),
+        eventDate: DateFormat(
+          'yyyy-MM-dd',
+        ).format(DateFormat('dd MMM yyyy').parse(dateController.text)),
+        startTime: startTime, // e.g. "14:10:00"
+        endTime: endTime, // e.g. "16:10:00"
+      );
+
+      print("API Response: $response");
+
+      if (response['id'] != null) {
+        showCustomSnackBar(
+          AppTexts.Event_saved_successfully,
+          SnackbarState.success,
+        );
+        Future.delayed(Duration.zero, () {
+          Get.to(
+            () => InviteuserView(),
+            transition: Transition.fade,
+            duration: const Duration(milliseconds: 300),
+            arguments: {
+              "eventId": response['id'],
+              "title": titleController.text.trim(),
+              "date": dateController.text,
+              "startTime": startTime,
+              "endTime": endTime,
+            },
+          );
+        });
+      } else {
+        showCustomSnackBar(
+          response['message'] ?? 'Failed to create event',
+          SnackbarState.error,
+        );
+      }
+    } catch (e) {
+      print("Error creating event: $e");
+      showCustomSnackBar(
+        'Something went wrong while creating the event',
+        SnackbarState.error,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  @override
+  void onClose() {
+    titleController.dispose();
+    descriptionController.dispose();
+    dateController.dispose();
+    startTimeController.dispose();
+    endTimeController.dispose();
+    super.onClose();
   }
 }
 
