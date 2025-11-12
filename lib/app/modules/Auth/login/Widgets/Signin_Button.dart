@@ -54,7 +54,7 @@ class Signin_Button extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        AppTexts.loginWithGoogle,
+                        AppTexts.LOGIN_WITH_GOOGLE,
                         style: customBoldText.copyWith(
                           fontSize: fontSize,
                           color: Colors.black,
@@ -62,7 +62,7 @@ class Signin_Button extends StatelessWidget {
                       ),
                       SizedBox(width: screenWidth * 0.02),
                       SvgPicture.asset(
-                        app_images.googleicon,
+                        AppImages.GOOGLE_ICON,
                         height: iconSize,
                         width: iconSize,
                       ),

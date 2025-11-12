@@ -53,7 +53,7 @@ class ForgotPasswordController extends GetxController {
       if (result['result'] == true) {
         if (!_isDisposed) {
           showCustomSnackBar(
-            result['message']?.toString() ?? AppTexts.otpSent,
+            result['message']?.toString() ?? AppTexts.OTP_SENT,
             SnackbarState.success,
           );
 
@@ -74,7 +74,7 @@ class ForgotPasswordController extends GetxController {
       } else {
         if (!_isDisposed) {
           showCustomSnackBar(
-            result['message']?.toString() ?? AppTexts.otpFailed,
+            result['message']?.toString() ?? AppTexts.OTP_FAILED,
             SnackbarState.error,
           );
         }
@@ -82,7 +82,7 @@ class ForgotPasswordController extends GetxController {
     } catch (e) {
       if (!_isDisposed) {
         showCustomSnackBar(
-          "${AppTexts.otpFailed}: ${e.toString()}",
+          "${AppTexts.OTP_FAILED}: ${e.toString()}",
           SnackbarState.error,
         );
       }
@@ -105,12 +105,12 @@ class ForgotPasswordController extends GetxController {
       if (!_isDisposed) {
         if (result['result'] == true) {
           showCustomSnackBar(
-            result['message']?.toString() ?? AppTexts.otpSent,
+            result['message']?.toString() ?? AppTexts.OTP_SENT,
             SnackbarState.success,
           );
         } else {
           showCustomSnackBar(
-            result['message']?.toString() ?? AppTexts.otpFailed,
+            result['message']?.toString() ?? AppTexts.OTP_FAILED,
             SnackbarState.error,
           );
         }
@@ -118,7 +118,7 @@ class ForgotPasswordController extends GetxController {
     } catch (e) {
       if (!_isDisposed) {
         showCustomSnackBar(
-          "${AppTexts.otpFailed}: ${e.toString()}",
+          "${AppTexts.OTP_FAILED}: ${e.toString()}",
           SnackbarState.error,
         );
       }
@@ -148,19 +148,19 @@ class ForgotPasswordController extends GetxController {
 
       if (!_isDisposed) {
         if (response['success'] == true) {
-          showCustomSnackBar(AppTexts.otpVerified, SnackbarState.success);
+          showCustomSnackBar(AppTexts.OTP_VERIFIED, SnackbarState.success);
           Get.off(() => SetNewPasswordView(), arguments: {'email': email});
         } else {
-          otpError.value = response['message'] ?? AppTexts.otpInvalid;
+          otpError.value = response['message'] ?? AppTexts.OTP_INVALID;
           showCustomSnackBar(
-            response['message'] ?? AppTexts.otpInvalid,
+            response['message'] ?? AppTexts.OTP_INVALID,
             SnackbarState.error,
           );
         }
       }
     } catch (e) {
       if (!_isDisposed)
-        showCustomSnackBar(AppTexts.Somethingwentwrong, SnackbarState.error);
+        showCustomSnackBar(AppTexts.SOMETHING_WENT_WRONG, SnackbarState.error);
     } finally {
       if (!_isDisposed) isLoading.value = false;
     }
@@ -188,7 +188,7 @@ class ForgotPasswordController extends GetxController {
   }
 
   String? _validateEmail(String? value) {
-    if (value == null || value.trim().isEmpty) return AppTexts.emailRequired;
+    if (value == null || value.trim().isEmpty) return AppTexts.EMAIL_REQUIRED;
 
     final email = value.trim();
     final emailRegex = RegExp(
@@ -197,22 +197,22 @@ class ForgotPasswordController extends GetxController {
       r"(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$",
     );
 
-    if (!emailRegex.hasMatch(email)) return AppTexts.emailInvalid;
-    if (email.contains("..")) return AppTexts.emailConsecutiveDots;
-    if (email.endsWith(".")) return AppTexts.emailEndsWithDot;
+    if (!emailRegex.hasMatch(email)) return AppTexts.EMAIL_INVALID;
+    if (email.contains("..")) return AppTexts.EMAIL_CONSECUTIVE_DOTS;
+    if (email.endsWith(".")) return AppTexts.EMAIL_ENDS_WITH_DOT;
 
     final parts = email.split('@');
-    if (parts.length != 2) return AppTexts.emailInvalid;
+    if (parts.length != 2) return AppTexts.EMAIL_INVALID;
     final local = parts[0];
     final domain = parts[1];
-    if (local.isEmpty || domain.isEmpty) return AppTexts.emailInvalid;
+    if (local.isEmpty || domain.isEmpty) return AppTexts.EMAIL_INVALID;
 
     final domainParts = domain.split('.');
     if (domainParts.length < 2 || domainParts.any((part) => part.isEmpty))
-      return AppTexts.emailDomainInvalid;
+      return AppTexts.EMAIL_DOMAIN_INVALID;
 
-    if (local.length > 64) return AppTexts.emailLocalTooLong;
-    if (email.length > 254) return AppTexts.emailTooLong;
+    if (local.length > 64) return AppTexts.EMAIL_LOCAL_TOO_LONG;
+    if (email.length > 254) return AppTexts.EMAIL_TOO_LONG;
 
     return null;
   }

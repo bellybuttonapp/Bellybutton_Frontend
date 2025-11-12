@@ -11,6 +11,7 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'app/core/constants/app_colors.dart';
+import 'app/database/models/EventModel.dart';
 import 'app/routes/app_pages.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -21,13 +22,20 @@ Future<void> main() async {
     () async {
       WidgetsFlutterBinding.ensureInitialized();
 
-      // Initialize GetStorage (optional)
+      // Initialize GetStorage
       await GetStorage.init();
+
       // Initialize Hive
       await Hive.initFlutter();
-      var hiveBox = await Hive.openBox('appBox');
 
-      // Initialize Preference with Hive box ✅
+      // ✅ Register your custom adapter
+      Hive.registerAdapter(EventModelAdapter());
+
+      // ✅ Open your boxes
+      var hiveBox = await Hive.openBox('appBox');
+      await Hive.openBox<EventModel>('eventsBox');
+
+      // Initialize Preference with Hive box
       Preference.init(hiveBox);
 
       // Register Hive box in GetX
@@ -46,11 +54,11 @@ Future<void> main() async {
         appleProvider: AppleProvider.debug,
       );
 
-      // Crashlytics
+      // Crashlytics setup
       FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;
       await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
 
-      // Determine initial route using Hive Preference
+      // Determine initial route
       String initialRoute =
           Preference.isLoggedIn ? Routes.DASHBOARD : Routes.ONBOARDING;
 
@@ -63,7 +71,7 @@ Future<void> main() async {
         DeviceOrientation.portraitDown,
       ]);
 
-      // System UI
+      // System UI styling
       SystemChrome.setSystemUIOverlayStyle(
         SystemUiOverlayStyle(
           statusBarColor: AppTheme.lightTheme.primaryColor,
@@ -74,7 +82,7 @@ Future<void> main() async {
       // Lifecycle observer
       WidgetsBinding.instance.addObserver(AppLifecycleHandler());
       runApp(
-        GetMaterialApp(
+        GetMaterialApp( 
           debugShowCheckedModeBanner: false,
           title: "Application",
           initialRoute: initialRoute,

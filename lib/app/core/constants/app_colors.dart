@@ -10,7 +10,7 @@ class AppColors {
   static const Color warning = Color(0xFFFFA726); // Orange
   static const Color success = Color(0xFF43A047); // Green
   static const Color pending = Color(0xFF1E88E5); // Blue
-  static const Color other = Color(0xFF757575); // Grey
+  static const Color other = Color.fromARGB(255, 156, 155, 155); // Grey
 
   static const Color tertiaryColor = Color(0xFF818385);
   static const Color disabledColor = Color(0xFFDADADB);

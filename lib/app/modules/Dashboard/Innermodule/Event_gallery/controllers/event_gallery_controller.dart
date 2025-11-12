@@ -1,24 +1,14 @@
 // ignore_for_file: unnecessary_overrides
 
 import 'package:get/get.dart';
+import '../../../../../database/models/EventModel.dart';
 
 class EventGalleryController extends GetxController {
-  final count = 0.obs;
-
-  void increment() => count.value++;
+  late final EventModel event;
 
   @override
   void onInit() {
     super.onInit();
-  }
-
-  @override
-  void onReady() {
-    super.onReady();
-  }
-
-  @override
-  void onClose() {
-    super.onClose();
+    event = Get.arguments as EventModel;
   }
 }

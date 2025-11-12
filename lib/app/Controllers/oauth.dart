@@ -58,27 +58,52 @@ class AuthService {
   // ==========================
   Future<UserCredential?> signInWithGoogle() async {
     try {
+      // Start Google Sign-In flow
       final googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return null;
+      if (googleUser == null) return null; // User canceled login
 
+      // Get Google authentication details
       final googleAuth = await googleUser.authentication;
+
+      // Create a Firebase credential
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
+      // Sign in to Firebase with the Google credential
       final userCredential = await _auth.signInWithCredential(credential);
+      final user = userCredential.user;
 
-      await _firestore.collection('users').doc(userCredential.user!.uid).set({
-        'name': userCredential.user!.displayName,
-        'email': userCredential.user!.email,
-        'photoUrl': userCredential.user!.photoURL,
-        'lastLogin': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      if (user != null) {
+        // ✅ Get Firebase ID Token safely (non-null fallback)
+        final String idToken = await user.getIdToken() ?? '';
+
+        // ✅ Debug print (optional)
+        print('🔥 Firebase ID Token: $idToken');
+
+        // ✅ Save user info to Firestore
+        await _firestore.collection('users').doc(user.uid).set({
+          'name': user.displayName,
+          'email': user.email,
+          'photoUrl': user.photoURL,
+          'lastLogin': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+
+        // ✅ Save user info locally in Hive (Preference)
+        Preference.token = idToken;
+        Preference.userName = user.displayName ?? '';
+        Preference.email = user.email ?? '';
+        Preference.profileImage = user.photoURL ?? '';
+        Preference.isLoggedIn = true;
+
+        print('✅ User data saved to local storage');
+      }
 
       return userCredential;
-    } catch (e) {
-      print('Google sign-in error: $e');
+    } catch (e, s) {
+      print('❌ Google sign-in error: $e');
+      print('Stacktrace: $s');
       return null;
     }
   }
@@ -94,7 +119,7 @@ class AuthService {
   }) async {
     return await _handleApiCall(
       DioClient().postRequest(
-        Endpoints.register,
+        Endpoints.REGISTER,
         data: {
           "name": name,
           "email": email,
@@ -111,7 +136,7 @@ class AuthService {
   Future<Map<String, dynamic>> checkEmailAvailability(String email) async {
     try {
       final response = await _dio.post(
-        "${Endpoints.checkEmailAvailability}/$email",
+        "${Endpoints.CHECK_EMAIL_AVAILABILITY}/$email",
       );
 
       if (response.statusCode == 200) {
@@ -169,7 +194,7 @@ class AuthService {
   }) async {
     return await _handleApiCall(
       DioClient().postRequest(
-        Endpoints.login,
+        Endpoints.LOGIN,
         data: {"email": email, "password": password},
       ),
     );
@@ -181,7 +206,7 @@ class AuthService {
   Future<Map<String, dynamic>> forgotPassword({required String email}) async {
     try {
       final response = await DioClient().postRequest(
-        Endpoints.forgetPassword,
+        Endpoints.FORGET_PASSWORD,
         data: {"email": email.trim()},
         responseType: ResponseType.plain, // handle both text & JSON
       );
@@ -252,7 +277,7 @@ class AuthService {
   }) async {
     try {
       final response = await DioClient().postRequest(
-        Endpoints.verifyOtp,
+        Endpoints.VERIFY_OTP,
         data: {"email": email.trim(), "otp": otp.trim()},
         responseType: ResponseType.plain, // handle both text & JSON
       );
@@ -317,7 +342,7 @@ class AuthService {
   }) async {
     try {
       final response = await Dio().post(
-        Endpoints.resetPassword, // Make sure endpoint is correct
+        Endpoints.RESET_PASSWORD, // Make sure endpoint is correct
         data: {"email": email.trim()},
       );
 
@@ -370,7 +395,7 @@ class AuthService {
   }) async {
     try {
       final response = await DioClient().postRequest(
-        Endpoints.resetPassword,
+        Endpoints.RESET_PASSWORD,
         data: {
           "email": email.trim(),
           "newPassword": newPassword.trim(),
@@ -508,7 +533,7 @@ class AuthService {
         if (Preference.email.isNotEmpty) {
           await DioClient().postRequest(
             Endpoints
-                .deleteAccount, // Make sure you have this endpoint in your API
+                .DELETE_ACCOUNT, // Make sure you have this endpoint in your API
             data: {"email": Preference.email},
           );
           print("API account deleted successfully");

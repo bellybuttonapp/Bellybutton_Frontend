@@ -27,7 +27,7 @@ class PremiumView extends GetView<PremiumController> {
           isDarkMode
               ? AppTheme.darkTheme.scaffoldBackgroundColor
               : AppTheme.lightTheme.scaffoldBackgroundColor,
-      appBar: CustomAppBar(title: AppTexts.premiumTitle),
+      appBar: CustomAppBar(title: AppTexts.PREMIUM_TITLE),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(screenWidth * 0.04),
         child: Column(
@@ -35,7 +35,7 @@ class PremiumView extends GetView<PremiumController> {
           children: [
             SizedBox(height: screenHeight * 0.02),
             SvgPicture.asset(
-              app_images.Premium,
+              AppImages.PREMIUM,
               width: screenWidth * 0.2,
               height: screenWidth * 0.2,
             ),
@@ -54,7 +54,7 @@ class PremiumView extends GetView<PremiumController> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      AppTexts.premiumSubtitle,
+                      AppTexts.PREMIUM_SUBTITLE,
                       style: customBoldText.copyWith(
                         color: AppColors.textColor,
                         fontSize: screenWidth * 0.05,
@@ -92,7 +92,7 @@ class PremiumView extends GetView<PremiumController> {
             }),
             SizedBox(height: screenHeight * 0.03),
             Text(
-              AppTexts.premiumChoosePlan,
+              AppTexts.PREMIUM_CHOOSE_PLAN,
               style: customBoldText.copyWith(
                 color: AppColors.textColor,
                 fontSize: screenWidth * 0.06,
@@ -104,24 +104,24 @@ class PremiumView extends GetView<PremiumController> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _planBox(
-                    AppTexts.premiumCurrentPlan,
-                    AppTexts.premiumFree,
+                    AppTexts.PREMIUM_CURRENT_PLAN,
+                    AppTexts.PREMIUM_FREE,
                     0,
                     controller.selectedPlan.value,
                     screenWidth,
                   ),
                   SizedBox(width: screenWidth * 0.02),
                   _planBox(
-                    AppTexts.premiumBasePlan,
-                    AppTexts.premiumPlan1Price,
+                    AppTexts.PREMIUM_BASE_PLAN,
+                    AppTexts.PREMIUM_PLAN1_PRICE,
                     1,
                     controller.selectedPlan.value,
                     screenWidth,
                   ),
                   SizedBox(width: screenWidth * 0.02),
                   _planBox(
-                    AppTexts.premiumLabel,
-                    AppTexts.premiumPlan2Price,
+                    AppTexts.PREMIUM_LABEL,
+                    AppTexts.PREMIUM_PLAN2_PRICE,
                     2,
                     controller.selectedPlan.value,
                     screenWidth,
@@ -131,7 +131,7 @@ class PremiumView extends GetView<PremiumController> {
             ),
             SizedBox(height: screenHeight * 0.03),
             Text(
-              AppTexts.premiumCancelAnytime,
+              AppTexts.PREMIUM_CANCEL_ANYTIME,
               style: customBoldText.copyWith(
                 color: AppColors.tertiaryColor,
                 fontSize: screenWidth * 0.035,
@@ -142,7 +142,7 @@ class PremiumView extends GetView<PremiumController> {
               () => global_button(
                 loaderWhite: true,
                 isLoading: controller.isLoading.value,
-                title: AppTexts.Subscribenow,
+                title: AppTexts.SUBSCRIBE_NOW,
                 backgroundColor: AppColors.primaryColor,
                 textColor: AppColors.textColor3,
                 onTap: controller.SubscribeNow,

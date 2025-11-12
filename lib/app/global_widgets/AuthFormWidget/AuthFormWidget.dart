@@ -1,4 +1,4 @@
-// ignore_for_file: file_names
+// ignore_for_file: file_names, deprecated_member_use
 
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
@@ -11,7 +11,7 @@ class AuthActionForm extends StatelessWidget {
   final String title;
   final String subtitle;
 
-  /// First text field
+  // First text field
   final String hintText;
   final TextEditingController controller;
   final String? errorText;
@@ -20,7 +20,7 @@ class AuthActionForm extends StatelessWidget {
   final TextInputType keyboardType;
   final Widget? suffixIcon;
 
-  /// Optional second text field
+  // Optional second text field
   final String? hintText2;
   final TextEditingController? controller2;
   final String? errorText2;
@@ -60,8 +60,24 @@ class AuthActionForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+
+    final isDark = theme.brightness == Brightness.dark;
+
+    // 🌙 Adaptive Colors
+    final textColor = isDark ? Colors.white : AppColors.textColor;
+    final subtitleColor =
+        isDark
+            ? Colors
+                .grey
+                .shade400 // softer in dark mode
+            : AppColors.tertiaryColor;
+    final buttonColor =
+        isDark
+            ? AppColors.primaryColor.withOpacity(0.85)
+            : AppColors.primaryColor;
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -73,14 +89,26 @@ class AuthActionForm extends StatelessWidget {
             SizedBox(height: screenHeight * 0.05),
 
             /// Illustration
-            Center(child: Image.asset(imagePath, height: screenHeight * 0.2)),
+            Center(
+              child: Image.asset(
+                imagePath,
+                height: screenHeight * 0.2,
+                color:
+                    isDark
+                        ? Colors.white.withOpacity(0.9)
+                        : null, // 🌙 tint for dark
+              ),
+            ),
 
             SizedBox(height: screenHeight * 0.04),
 
             /// Title
             Text(
               title,
-              style: customBoldText.copyWith(fontSize: screenWidth * 0.06),
+              style: customBoldText.copyWith(
+                fontSize: screenWidth * 0.06,
+                color: textColor,
+              ),
             ),
 
             SizedBox(height: screenHeight * 0.015),
@@ -89,7 +117,7 @@ class AuthActionForm extends StatelessWidget {
             Text(
               subtitle,
               style: customBoldText.copyWith(
-                color: AppColors.tertiaryColor,
+                color: subtitleColor,
                 fontSize: screenWidth * 0.04,
               ),
             ),
@@ -128,7 +156,7 @@ class AuthActionForm extends StatelessWidget {
               loaderWhite: true,
               isLoading: isLoading,
               title: buttonText,
-              backgroundColor: AppColors.primaryColor,
+              backgroundColor: buttonColor,
               textColor: Colors.white,
               onTap: onTap,
             ),

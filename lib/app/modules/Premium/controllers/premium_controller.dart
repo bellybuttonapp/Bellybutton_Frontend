@@ -23,31 +23,28 @@ class PremiumController extends GetxController {
     switch (selectedPlan.value) {
       case 1:
         return [
-          Benefit(AppTexts.premiumPlan1Benefit1, app_images.usersIcon),
-          Benefit(AppTexts.premiumPlan1Benefit2, app_images.uploadIcon),
-          Benefit(AppTexts.premiumPlan1Benefit3, app_images.featureIcon),
-          Benefit(AppTexts.premiumPlan1Benefit4, app_images.shareIcon),
+          Benefit(AppTexts.PREMIUM_PLAN1_BENEFIT1, AppImages.USERS_ICON),
+          Benefit(AppTexts.PREMIUM_PLAN1_BENEFIT2, AppImages.UPLOAD_ICON),
+          Benefit(AppTexts.PREMIUM_PLAN1_BENEFIT3, AppImages.FEATURE_ICON),
+          Benefit(AppTexts.PREMIUM_PLAN1_BENEFIT4, AppImages.SHARE_ICON),
         ];
       case 2:
         return [
-          Benefit(AppTexts.premiumPlan2Benefit1, app_images.usersIcon),
-          Benefit(AppTexts.premiumPlan2Benefit2, app_images.uploadIcon),
-          Benefit(AppTexts.premiumPlan2Benefit3, app_images.featureIcon),
-          Benefit(AppTexts.premiumPlan2Benefit4, app_images.shareIcon),
+          Benefit(AppTexts.PREMIUM_PLAN2_BENEFIT1, AppImages.USERS_ICON),
+          Benefit(AppTexts.PREMIUM_PLAN2_BENEFIT2, AppImages.UPLOAD_ICON),
+          Benefit(AppTexts.PREMIUM_PLAN2_BENEFIT3, AppImages.FEATURE_ICON),
+          Benefit(AppTexts.PREMIUM_PLAN2_BENEFIT4, AppImages.SHARE_ICON),
         ];
       case 3:
         return [
-          Benefit(AppTexts.premiumPlan2Benefit1, app_images.usersIcon),
-          Benefit(AppTexts.premiumPlan2Benefit2, app_images.uploadIcon),
-          Benefit(AppTexts.premiumPlan2Benefit3, app_images.featureIcon),
-          Benefit(AppTexts.premiumPlan2Benefit4, app_images.shareIcon),
+          Benefit(AppTexts.PREMIUM_PLAN2_BENEFIT1, AppImages.USERS_ICON),
+          Benefit(AppTexts.PREMIUM_PLAN2_BENEFIT2, AppImages.UPLOAD_ICON),
+          Benefit(AppTexts.PREMIUM_PLAN2_BENEFIT3, AppImages.FEATURE_ICON),
+          Benefit(AppTexts.PREMIUM_PLAN2_BENEFIT4, AppImages.SHARE_ICON),
         ];
       default:
         return [
-          Benefit(
-            "Free plan – Limited features available.",
-            app_images.usersIcon,
-          ),
+          Benefit(AppTexts.FREE_PLAN_LIMITED_FEATURES, AppImages.USERS_ICON),
         ];
     }
   }
@@ -57,7 +54,7 @@ class PremiumController extends GetxController {
     isLoading.value = true;
 
     // Show error snack
-    showCustomSnackBar(AppTexts.SubscribeNow, SnackbarState.pending);
+    showCustomSnackBar(AppTexts.SUBSCRIBE_NOW, SnackbarState.pending);
 
     // Stop loading after some delay (demo)
     Future.delayed(const Duration(seconds: 2), () {

@@ -3,14 +3,14 @@
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'app/helper/app_permission.dart';
+// import 'app/helper/app_permission.dart';
 
 /// ✅ Handles essential app startup tasks — permissions, Firebase, Crashlytics, etc.
 class AppInitializer {
   static Future<void> initialize() async {
     try {
       // Request necessary permissions
-      await AppPermission.requestAllPermissions();
+      // await AppPermission.requestAllPermissions();
 
       // Check network connectivity
       final connectivityResult = await Connectivity().checkConnectivity();

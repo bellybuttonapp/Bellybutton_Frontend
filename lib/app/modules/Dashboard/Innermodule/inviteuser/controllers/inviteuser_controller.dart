@@ -1,5 +1,6 @@
 // ignore_for_file: prefer_is_empty
 
+import 'package:bellybutton/app/modules/Dashboard/views/dashboard_view.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
@@ -76,7 +77,7 @@ class InviteuserController extends GetxController {
         contacts.where((contact) {
           // Normalize name
           final name =
-              contact.displayName?.toLowerCase().replaceAll(
+              contact.displayName.toLowerCase().replaceAll(
                 RegExp(r'\s+'),
                 '',
               ) ??
@@ -138,9 +139,34 @@ class InviteuserController extends GetxController {
         filteredContacts.assignAll([]);
       } else {
         HapticFeedback.heavyImpact(); // error feedback
-        showCustomSnackBar(AppTexts.Limit_Reached, SnackbarState.error);
+        showCustomSnackBar(AppTexts.LIMIT_REACHED, SnackbarState.error);
       }
     }
     update();
+  }
+
+  /// ✅ Handles the invite button logic (moved from UI)
+  Future<void> inviteSelectedUsers() async {
+    if (selectedUsers.isEmpty) {
+      showCustomSnackBar(
+        AppTexts.PLEASE_SELECT_AT_LEAST_ONE_USER,
+        SnackbarState.error,
+      );
+      return;
+    }
+
+    isLoading.value = true;
+    try {
+      await Future.delayed(const Duration(seconds: 2));
+      showCustomSnackBar(
+        AppTexts.USERS_INVITED_SUCCESSFULLY,
+        SnackbarState.success,
+      );
+      Get.off(() => const DashboardView());
+    } catch (e) {
+      showCustomSnackBar(AppTexts.SOMETHING_WENT_WRONG, SnackbarState.error);
+    } finally {
+      isLoading.value = false;
+    }
   }
 }

@@ -31,7 +31,7 @@ class CreateEventView extends GetView<CreateEventController> {
           isDarkMode
               ? AppTheme.darkTheme.scaffoldBackgroundColor
               : AppTheme.lightTheme.scaffoldBackgroundColor,
-      appBar: CustomAppBar(title: AppTexts.createEvent),
+      appBar: CustomAppBar(title: AppTexts.CREATE_EVENT),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
@@ -67,7 +67,7 @@ class CreateEventView extends GetView<CreateEventController> {
     return Obx(
       () => GlobalTextField(
         controller: controller.titleController,
-        hintText: AppTexts.EventTitle,
+        hintText: AppTexts.EVENT_TITLE,
         obscureText: false,
         keyboardType: TextInputType.text,
         maxLength: 50, // limit title to 50 chars
@@ -81,7 +81,7 @@ class CreateEventView extends GetView<CreateEventController> {
     return Obx(
       () => GlobalTextField(
         controller: controller.descriptionController,
-        hintText: AppTexts.Description,
+        hintText: AppTexts.DESCRIPTION,
         obscureText: false,
         keyboardType: TextInputType.multiline,
         maxLines: 2,
@@ -99,18 +99,21 @@ class CreateEventView extends GetView<CreateEventController> {
         children: [
           GlobalTextField(
             controller: controller.dateController,
-            hintText: AppTexts.SetDate,
+            hintText: AppTexts.SET_DATE,
             obscureText: false,
             readOnly: true,
             suffixIcon: InkWell(
-              onTap:
-                  () =>
-                      controller.showCalendar.value =
-                          !controller.showCalendar.value,
+              onTap: () {
+                // Close any open keyboard
+                FocusScope.of(Get.context!).unfocus();
+
+                // Toggle calendar visibility
+                controller.showCalendar.value = !controller.showCalendar.value;
+              },
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: Image.asset(
-                  app_images.Calendar,
+                  AppImages.CALENDAR,
                   height: 20,
                   width: 20,
                   color: AppColors.textColor,
@@ -122,6 +125,9 @@ class CreateEventView extends GetView<CreateEventController> {
                     ? null
                     : controller.dateError.value,
             onTap: () {
+              // Close any open keyboard
+              FocusScope.of(Get.context!).unfocus();
+
               // Toggle calendar visibility when tapping the text field
               controller.showCalendar.value = !controller.showCalendar.value;
             },
@@ -235,7 +241,7 @@ class CreateEventView extends GetView<CreateEventController> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          AppTexts.Set_Time_Range,
+          AppTexts.SET_TIME_RANGE,
           style: customBoldText.copyWith(
             fontSize: 16,
             color: AppColors.textColor,
@@ -248,7 +254,7 @@ class CreateEventView extends GetView<CreateEventController> {
               child: Obx(
                 () => GlobalTextField(
                   controller: controller.startTimeController,
-                  hintText: AppTexts.StartTime,
+                  hintText: AppTexts.START_TIME,
                   readOnly: true,
                   obscureText: false,
                   errorText:
@@ -264,7 +270,7 @@ class CreateEventView extends GetView<CreateEventController> {
                   suffixIcon: Padding(
                     padding: const EdgeInsets.all(12.0),
                     child: SvgPicture.asset(
-                      app_images.clock_icon,
+                      AppImages.CLOCK_ICON,
                       height: 20,
                       width: 20,
                       color: AppColors.textColor,
@@ -278,7 +284,7 @@ class CreateEventView extends GetView<CreateEventController> {
               child: Obx(
                 () => GlobalTextField(
                   controller: controller.endTimeController,
-                  hintText: AppTexts.EndTime,
+                  hintText: AppTexts.END_TIME,
                   readOnly: true,
                   obscureText: false,
                   errorText:
@@ -290,12 +296,12 @@ class CreateEventView extends GetView<CreateEventController> {
                         context,
                         controller.endTimeController,
                         controller.endTimeError,
-                        isEndTime: true,
+                        // isEndTime: true,
                       ),
                   suffixIcon: Padding(
                     padding: const EdgeInsets.all(12.0),
                     child: SvgPicture.asset(
-                      app_images.clock_icon,
+                      AppImages.CLOCK_ICON,
                       height: 20,
                       width: 20,
                       color: AppColors.textColor,
@@ -317,15 +323,16 @@ class CreateEventView extends GetView<CreateEventController> {
         isLoading: controller.isLoading.value,
         onTap: () {
           if (controller.validateAllFields()) {
-            controller.createEvent(); // Call API & navigate inside
+            controller
+                .showEventConfirmationDialog(); // 🟢 Show popup before create/update
           } else {
-            showCustomSnackBar(
-              AppTexts.Please_fix_the_errors_in_the_form,
-              SnackbarState.error,
-            );
+            showCustomSnackBar(AppTexts.FIX_FORM_ERRORS, SnackbarState.error);
           }
         },
-        title: AppTexts.createEvent,
+        title:
+            controller.isEditMode.value
+                ? AppTexts.UPDATE_EVENT
+                : AppTexts.CREATE_EVENT,
         backgroundColor:
             isDarkMode
                 ? AppTheme.darkTheme.scaffoldBackgroundColor

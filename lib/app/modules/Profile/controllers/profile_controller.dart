@@ -1,7 +1,6 @@
 // ignore_for_file: non_constant_identifier_names, avoid_print
 
 import 'dart:io';
-
 import 'package:bellybutton/app/Controllers/oauth.dart';
 import 'package:bellybutton/app/modules/Premium/views/premium_view.dart';
 import 'package:bellybutton/app/modules/Profile/Innermodule/Reset_password/views/reset_password_view.dart';
@@ -26,16 +25,23 @@ class ProfileController extends GetxController {
 
   Rx<File?> pickedImage = Rx<File?>(null);
 
+  void updatePickedImage(File? image) => pickedImage.value = image;
+
   @override
   void onInit() {
     super.onInit();
+
+    // ✅ Load saved profile image if it’s a local file
+    if (Preference.profileImage != null &&
+        Preference.profileImage!.isNotEmpty &&
+        !Preference.profileImage!.startsWith('http')) {
+      pickedImage.value = File(Preference.profileImage!);
+    }
+
+    // ✅ Listen for Firebase Auth changes
     AuthService().authStateChanges.listen((user) {
       currentUser.value = user;
     });
-  }
-
-  void updatePickedImage(File? image) {
-    pickedImage.value = image;
   }
 
   void onAutoSyncChanged(bool value) => autoSync.value = value;
@@ -43,20 +49,27 @@ class ProfileController extends GetxController {
   void onEditProfile() {
     Get.to(
       () => AccountDetailsView(),
-      transition: Transition.upToDown,
+      transition: Transition.fade,
       duration: const Duration(milliseconds: 300),
     );
   }
 
   void PremiumScreen() {
-    Get.to(PremiumView());
+    Get.to(
+      () => PremiumView(),
+      transition: Transition.rightToLeft,
+      duration: const Duration(milliseconds: 300),
+    );
   }
 
-  void ResetPassword() => Get.to(
-    () => ResetPasswordView(),
-    transition: Transition.rightToLeft,
-    duration: const Duration(milliseconds: 300),
-  );
+  void ResetPassword() {
+    Get.to(
+      () => ResetPasswordView(),
+      transition: Transition.rightToLeft,
+      duration: const Duration(milliseconds: 300),
+    );
+  }
+
   void onPrivacyTap() => print("Privacy & Permissions tapped");
   void onFaqsTap() => print("FAQs tapped");
 
@@ -71,7 +84,7 @@ class ProfileController extends GetxController {
         title: title,
         message: message,
         confirmText: confirmText,
-        cancelText: AppTexts.cancel,
+        cancelText: AppTexts.CANCEL,
         isProcessing: isProcessing,
         onConfirm: onConfirm,
       ),
@@ -83,16 +96,16 @@ class ProfileController extends GetxController {
   /// =====================
   void onDeleteAccountTap() {
     _showConfirmationDialog(
-      title: AppTexts.deletePopupTitle,
-      message: AppTexts.deletePopupSubtitle,
-      confirmText: AppTexts.delete,
+      title: AppTexts.DELETE_POPUP_TITLE,
+      message: AppTexts.DELETE_POPUP_SUBTITLE,
+      confirmText: AppTexts.DELETE,
       onConfirm: () async {
         isProcessing.value = true;
         try {
-          // 1️⃣ Call API to delete user account (if logged in via API)
+          // 1️⃣ API account deletion
           try {
             await DioClient().postRequest(
-              Endpoints.deleteAccount, // make sure you have this endpoint
+              Endpoints.DELETE_ACCOUNT,
               data: {"email": Preference.email},
             );
           } catch (apiError) {
@@ -102,19 +115,21 @@ class ProfileController extends GetxController {
           // 2️⃣ Delete Firebase account
           await AuthService().deleteAccount();
 
-          // ✅ Clear login flag and all preferences
+          // ✅ Clear data and navigate to login
           Preference.clearAll();
-
           Get.deleteAll(force: true);
           Get.back();
           Get.offAllNamed(Routes.LOGIN);
 
           showCustomSnackBar(
-            AppTexts.accountDeletedSuccess,
+            AppTexts.ACCOUNT_DELETED_SUCCESS,
             SnackbarState.success,
           );
         } catch (e) {
-          showCustomSnackBar(AppTexts.accountDeleteError, SnackbarState.error);
+          showCustomSnackBar(
+            AppTexts.ACCOUNT_DELETE_ERROR,
+            SnackbarState.error,
+          );
           print("Account deletion error: $e");
         } finally {
           isProcessing.value = false;
@@ -128,33 +143,25 @@ class ProfileController extends GetxController {
   /// =====================
   void onSignOut() {
     _showConfirmationDialog(
-      title: AppTexts.signOutPopupTitle,
-      message: AppTexts.signOutPopupSubtitle,
-      confirmText: AppTexts.logout,
+      title: AppTexts.SIGNOUT_POPUP_TITLE,
+      message: AppTexts.SIGNOUT_POPUP_SUBTITLE,
+      confirmText: AppTexts.LOGOUT,
       onConfirm: () async {
         isSigningOut.value = true;
         try {
-          // Call the AuthService to sign out (Firebase + Google)
           await AuthService().signOut();
-
-          // Clear login flags
           Preference.isLoggedIn = false;
           Preference.email = '';
 
-          // Remove only the login controller
           if (Get.isRegistered<LoginController>()) {
             Get.delete<LoginController>(force: true);
           }
 
-          // Close the dialog
           Get.back();
-
-          // Navigate to login screen
           Get.offAllNamed(Routes.LOGIN);
-
-          showCustomSnackBar(AppTexts.logoutSuccess, SnackbarState.success);
+          showCustomSnackBar(AppTexts.LOGOUT_SUCCESS, SnackbarState.success);
         } catch (e) {
-          showCustomSnackBar(AppTexts.logoutError, SnackbarState.error);
+          showCustomSnackBar(AppTexts.LOGOUT_ERROR, SnackbarState.error);
           print("Logout error: $e");
         } finally {
           isSigningOut.value = false;

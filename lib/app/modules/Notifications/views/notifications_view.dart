@@ -23,13 +23,13 @@ class NotificationsView extends GetView<NotificationsController> {
           isDarkMode
               ? AppTheme.darkTheme.scaffoldBackgroundColor
               : AppTheme.lightTheme.scaffoldBackgroundColor,
-      appBar: CustomAppBar(title: AppTexts.notification),
+      appBar: CustomAppBar(title: AppTexts.NOTIFICATION),
       body: EmptyJobsPlaceholder(
-        imagePath: app_images.object,
-        title: AppTexts.noNotification,
-        description: AppTexts.notificationSubtitle,
+        imagePath: AppImages.OBJECT,
+        title: AppTexts.NO_NOTIFICATION,
+        description: AppTexts.NOTIFICATION_SUBTITLE,
         isLoading: controller.isLoading, // RxBool
-        buttonText: AppTexts.goBack, // String
+        buttonText: AppTexts.GO_BACK, // String
         onButtonTap: controller.goToBack, // VoidCallback
       ),
     );

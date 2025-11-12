@@ -121,22 +121,22 @@ class AppPages {
           transitionDuration: Duration(milliseconds: 400),
         ),
         GetPage(
-          name: _Paths.INVITEUSER,
-          page: () => InviteuserView(),
-          binding: InviteuserBinding(),
-          transition: Transition.fade,
-          curve: Curves.easeInOut,
-          transitionDuration: Duration(milliseconds: 400),
-        ),
-        GetPage(
           name: _Paths.EVENT_GALLERY,
-          page: () => const EventGalleryView(),
+          page: () => EventGalleryView(),
           binding: EventGalleryBinding(),
           transition: Transition.fade,
           curve: Curves.easeInOut,
           transitionDuration: Duration(milliseconds: 400),
         ),
       ],
+    ),
+    GetPage(
+      name: _Paths.INVITEUSER,
+      page: () => InviteuserView(),
+      binding: InviteuserBinding(),
+      transition: Transition.fade,
+      curve: Curves.easeInOut,
+      transitionDuration: Duration(milliseconds: 400),
     ),
     GetPage(
       name: _Paths.NOTIFICATIONS,
@@ -190,3 +190,5 @@ class AppPages {
     ),
   ];
 }
+// End of file
+// lib/app/routes/app_pages.dart

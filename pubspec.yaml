@@ -67,6 +67,12 @@ dependencies:
   hive: ^2.2.3
   auto_size_text_field: ^2.2.4
   pretty_dio_logger: ^1.4.0
+  auto_size_text: ^3.0.0
+  image_cropper: ^11.0.0
+  pull_to_refresh_flutter3: ^2.0.2
+  adaptive_scrollbar: ^2.1.2
+  popup_menu_plus: ^0.0.6
+  # very_good_infinite_list: ^0.9.0
 
 dev_dependencies:
   flutter_test:

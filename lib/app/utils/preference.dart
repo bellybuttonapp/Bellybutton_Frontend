@@ -12,12 +12,18 @@ class Preference {
     userNameRx.value = box.get(USER_NAME, defaultValue: '') ?? '';
     userEmailRx.value = box.get(USER_EMAIL, defaultValue: '') ?? '';
     profileImageRx.value = box.get(PROFILE_IMAGE);
+    bioRx.value = box.get(BIO, defaultValue: '') ?? '';
+    phoneRx.value = box.get(PHONE, defaultValue: '') ?? '';
+    addressRx.value = box.get(ADDRESS, defaultValue: '') ?? '';
   }
 
   // Reactive variables
   static RxString userNameRx = ''.obs;
   static RxString userEmailRx = ''.obs;
   static RxnString profileImageRx = RxnString();
+  static RxString bioRx = ''.obs;
+  static RxString phoneRx = ''.obs;
+  static RxString addressRx = ''.obs;
 
   // Keys
   static const String TOKEN = 'token';
@@ -30,6 +36,9 @@ class Preference {
   static const String ANDROID_ID = 'android_id';
   static const String LANGUAGE_CODE = 'language_code';
   static const String PROFILE_IMAGE = 'profile_image';
+  static const String BIO = 'bio';
+  static const String PHONE = 'phone';
+  static const String ADDRESS = 'address';
 
   // Token
   static String get token => box.get(TOKEN, defaultValue: '') ?? '';
@@ -49,19 +58,44 @@ class Preference {
     box.put(USER_EMAIL, value);
   }
 
+  // Bio
+  static String get bio => bioRx.value;
+  static set bio(String value) {
+    bioRx.value = value;
+    box.put(BIO, value);
+  }
+
+  // Phone
+  static String get phone => phoneRx.value;
+  static set phone(String value) {
+    phoneRx.value = value;
+    box.put(PHONE, value);
+  }
+
+  // Address
+  static String get address => addressRx.value;
+  static set address(String value) {
+    addressRx.value = value;
+    box.put(ADDRESS, value);
+  }
+
   // Login status
-  static bool get isLoggedIn => box.get(IS_LOGGED_IN, defaultValue: false) ?? false;
+  static bool get isLoggedIn =>
+      box.get(IS_LOGGED_IN, defaultValue: false) ?? false;
   static set isLoggedIn(bool value) => box.put(IS_LOGGED_IN, value);
 
   // Location
-  static double get latitude => (box.get(LATITUDE, defaultValue: 0.0) ?? 0.0).toDouble();
+  static double get latitude =>
+      (box.get(LATITUDE, defaultValue: 0.0) ?? 0.0).toDouble();
   static set latitude(double value) => box.put(LATITUDE, value);
 
-  static double get longitude => (box.get(LONGITUDE, defaultValue: 0.0) ?? 0.0).toDouble();
+  static double get longitude =>
+      (box.get(LONGITUDE, defaultValue: 0.0) ?? 0.0).toDouble();
   static set longitude(double value) => box.put(LONGITUDE, value);
 
   // Selected Country
-  static String get selectedCountry => box.get(SELECTED_COUNTRY, defaultValue: '') ?? '';
+  static String get selectedCountry =>
+      box.get(SELECTED_COUNTRY, defaultValue: '') ?? '';
   static set selectedCountry(String value) => box.put(SELECTED_COUNTRY, value);
 
   // Android ID
@@ -69,11 +103,13 @@ class Preference {
   static set androidID(String value) => box.put(ANDROID_ID, value);
 
   // Language Code
-  static String get languageCode => box.get(LANGUAGE_CODE, defaultValue: 'en') ?? 'en';
+  static String get languageCode =>
+      box.get(LANGUAGE_CODE, defaultValue: 'en') ?? 'en';
   static set languageCode(String value) => box.put(LANGUAGE_CODE, value);
 
   // Profile image
-  static String? get profileImage => profileImageRx.value ?? box.get(PROFILE_IMAGE);
+  static String? get profileImage =>
+      profileImageRx.value ?? box.get(PROFILE_IMAGE);
   static set profileImage(String? value) {
     profileImageRx.value = value;
     if (value != null) {
@@ -89,5 +125,8 @@ class Preference {
     userNameRx.value = '';
     userEmailRx.value = '';
     profileImageRx.value = null;
+    bioRx.value = '';
+    phoneRx.value = '';
+    addressRx.value = '';
   }
 }

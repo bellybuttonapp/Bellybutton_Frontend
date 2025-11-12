@@ -25,7 +25,7 @@ class ResetPasswordController extends GetxController {
 
   /// ---------------- PRODUCTION-READY EMAIL VALIDATOR ---------------- ///
   String? validateEmailProduction(String? value) {
-    if (value == null || value.trim().isEmpty) return AppTexts.emailRequired;
+    if (value == null || value.trim().isEmpty) return AppTexts.EMAIL_REQUIRED;
 
     final email = value.trim();
 
@@ -35,26 +35,26 @@ class ResetPasswordController extends GetxController {
       r"(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$",
     );
 
-    if (!emailRegex.hasMatch(email)) return AppTexts.emailInvalid;
-    if (email.contains("..")) return AppTexts.emailConsecutiveDots;
-    if (email.endsWith(".")) return AppTexts.emailEndsWithDot;
+    if (!emailRegex.hasMatch(email)) return AppTexts.EMAIL_INVALID;
+    if (email.contains("..")) return AppTexts.EMAIL_CONSECUTIVE_DOTS;
+    if (email.endsWith(".")) return AppTexts.EMAIL_ENDS_WITH_DOT;
 
     final parts = email.split('@');
-    if (parts.length != 2) return AppTexts.emailInvalid;
+    if (parts.length != 2) return AppTexts.EMAIL_INVALID;
 
     final local = parts[0];
     final domain = parts[1];
 
-    if (local.isEmpty) return AppTexts.emailInvalid;
-    if (domain.isEmpty) return AppTexts.emailInvalid;
+    if (local.isEmpty) return AppTexts.EMAIL_INVALID;
+    if (domain.isEmpty) return AppTexts.EMAIL_INVALID;
 
     final domainParts = domain.split('.');
     if (domainParts.length < 2 || domainParts.any((part) => part.isEmpty)) {
-      return AppTexts.emailDomainInvalid;
+      return AppTexts.EMAIL_DOMAIN_INVALID;
     }
 
-    if (local.length > 64) return AppTexts.emailLocalTooLong;
-    if (email.length > 254) return AppTexts.emailTooLong;
+    if (local.length > 64) return AppTexts.EMAIL_LOCAL_TOO_LONG;
+    if (email.length > 254) return AppTexts.EMAIL_TOO_LONG;
 
     return null; // ✅ Valid email
   }
@@ -91,7 +91,7 @@ class ResetPasswordController extends GetxController {
       // 2️⃣ Check if email exists
       final emailCheck = await _authService.checkEmailAvailability(email);
       if (emailCheck['available'] == true) {
-        showCustomSnackBar(AppTexts.Email_not_found, SnackbarState.error);
+        showCustomSnackBar(AppTexts.EMAIL_NOT_FOUND, SnackbarState.error);
         return;
       }
 
@@ -100,7 +100,7 @@ class ResetPasswordController extends GetxController {
 
       if (result['result'] == true) {
         showCustomSnackBar(
-          result['message']?.toString() ?? AppTexts.otpSent,
+          result['message']?.toString() ?? AppTexts.OTP_SENT,
           SnackbarState.success,
         );
         // 4️⃣ Navigate to OTP Verification Screen
@@ -117,7 +117,7 @@ class ResetPasswordController extends GetxController {
         // startResendTimer();
       } else {
         showCustomSnackBar(
-          result['message']?.toString() ?? AppTexts.otpFailed,
+          result['message']?.toString() ?? AppTexts.OTP_FAILED,
           SnackbarState.error,
         );
       }

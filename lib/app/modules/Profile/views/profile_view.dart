@@ -1,5 +1,7 @@
 // ignore_for_file: deprecated_member_use, duplicate_ignore
 
+import 'dart:io';
+
 import 'package:bellybutton/app/core/constants/app_images.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -12,6 +14,7 @@ import '../../../global_widgets/Button/global_button.dart';
 import '../../../global_widgets/custom_app_bar/custom_app_bar.dart';
 import '../../../utils/preference.dart';
 import '../controllers/profile_controller.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 
 class ProfileView extends GetView<ProfileController> {
   // ignore: annotate_overrides
@@ -29,7 +32,7 @@ class ProfileView extends GetView<ProfileController> {
           isDark
               ? AppTheme.darkTheme.scaffoldBackgroundColor
               : AppTheme.lightTheme.scaffoldBackgroundColor,
-      appBar: CustomAppBar(title: AppTexts.profile),
+      appBar: CustomAppBar(title: AppTexts.PROFILE),
       body: Column(
         children: [
           Expanded(
@@ -48,39 +51,55 @@ class ProfileView extends GetView<ProfileController> {
                             ? user!.displayName!
                             : (Preference.userName.isNotEmpty
                                 ? Preference.userName
-                                : "example User");
+                                : "Example User");
                     final email =
                         Preference.email.isNotEmpty
                             ? Preference.email
                             : user?.email ?? "example@email.com";
-                    final photoUrl = user?.photoURL;
+
+                    final localImage = controller.pickedImage.value?.path;
+                    final networkImage = user?.photoURL;
 
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: Hero(
-                        tag: 'profile-photo', // same tag as AccountDetailsView
+                        tag: 'profile-photo',
                         child: CircleAvatar(
                           radius: screenWidth * 0.075,
-                          backgroundColor: Colors.grey,
+                          backgroundColor: AppColors.other,
                           backgroundImage:
-                              photoUrl != null ? NetworkImage(photoUrl) : null,
+                              localImage != null
+                                  ? FileImage(File(localImage))
+                                  : (networkImage != null
+                                          ? NetworkImage(networkImage)
+                                          : null)
+                                      as ImageProvider?,
                           child:
-                              photoUrl == null
-                                  ? Icon(
-                                    Icons.person,
-                                    size: screenWidth * 0.075,
-                                    color: Colors.white,
+                              localImage == null && networkImage == null
+                                  ? SvgPicture.asset(
+                                    AppImages.PERSON,
+                                    height: screenWidth * 0.055,
+                                    width: screenWidth * 0.055,
+                                    color: AppColors.textColor,
                                   )
                                   : null,
                         ),
                       ),
-
-                      title: Text(
-                        displayName,
-                        style: customBoldText.copyWith(
-                          fontSize: screenWidth * 0.045,
+                      title: Hero(
+                        tag:
+                            'profile-name-$displayName', // must match tag in CustomAppBar
+                        child: Material(
+                          color: Colors.transparent,
+                          child: AutoSizeText(
+                            displayName,
+                            style: customBoldText.copyWith(
+                              fontSize: screenWidth * 0.045,
+                            ),
+                            maxLines: 1,
+                            minFontSize: 12,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                        overflow: TextOverflow.visible,
                       ),
                       subtitle: Text(
                         email,
@@ -92,7 +111,7 @@ class ProfileView extends GetView<ProfileController> {
                       ),
                       trailing: IconButton(
                         icon: SvgPicture.asset(
-                          app_images.edit_pencil,
+                          AppImages.EDIT_PENCIL,
                           width: screenWidth * 0.05,
                           height: screenWidth * 0.05,
                         ),
@@ -120,12 +139,12 @@ class ProfileView extends GetView<ProfileController> {
                         horizontal: screenWidth * 0.02,
                       ),
                       secondary: SvgPicture.asset(
-                        app_images.Auto_sync_icon,
+                        AppImages.AUTO_SYNC_ICON,
                         width: screenWidth * 0.055,
                         height: screenWidth * 0.055,
                       ),
                       title: Text(
-                        AppTexts.autoSyncSettings,
+                        AppTexts.AUTO_SYNC_SETTINGS,
                         style: customBoldText.copyWith(
                           fontSize: screenWidth * 0.035,
                           color: isDark ? Colors.white : Colors.black,
@@ -140,8 +159,8 @@ class ProfileView extends GetView<ProfileController> {
                 const _SectionDivider(),
 
                 _ProfileMenuTile(
-                  svgPath: app_images.permissions_icon,
-                  title: AppTexts.privacyPermissions,
+                  svgPath: AppImages.PERMISSIONS_ICON,
+                  title: AppTexts.PRIVACY_PERMISSIONS,
                   onTap: controller.onPrivacyTap,
                 ),
 
@@ -150,33 +169,31 @@ class ProfileView extends GetView<ProfileController> {
                 // Menu items
                 _ProfileMenuTile(
                   svgPath:
-                      app_images
-                          .New_pswrd, // change if you have a password icon
-                  title: AppTexts.Newpswd,
+                      AppImages.NEW_PSWRD, // change if you have a password icon
+                  title: AppTexts.NEW_PSWD,
                   onTap: controller.ResetPassword,
                 ),
                 const _SectionDivider(),
 
                 _ProfileMenuTile(
                   svgPath:
-                      app_images
-                          .New_pswrd, // change if you have a password icon
-                  title: AppTexts.premium,
+                      AppImages.NEW_PSWRD, // change if you have a password icon
+                  title: AppTexts.PREMIUM,
                   onTap: controller.PremiumScreen,
                 ),
 
                 const _SectionDivider(),
 
                 _ProfileMenuTile(
-                  svgPath: app_images.Faq_icon,
-                  title: AppTexts.faqs,
+                  svgPath: AppImages.FAQ_ICON,
+                  title: AppTexts.FAQS,
                   onTap: controller.onFaqsTap,
                 ),
                 const _SectionDivider(),
 
                 _ProfileMenuTile(
-                  svgPath: app_images.Delete_account_icon,
-                  title: AppTexts.deleteAccount,
+                  svgPath: AppImages.DELETE_ACCOUNT_ICON,
+                  title: AppTexts.DELETE_ACCOUNT,
                   titleColor: Colors.red,
                   svgColor: Colors.red,
                   onTap: controller.onDeleteAccountTap,
@@ -194,7 +211,7 @@ class ProfileView extends GetView<ProfileController> {
                     () => global_button(
                       loaderWhite: true,
                       isLoading: controller.isLoading.value,
-                      title: AppTexts.signOut,
+                      title: AppTexts.SIGNOUT,
                       backgroundColor: AppColors.primaryColor,
                       textColor: AppColors.textColor3,
                       onTap: controller.onSignOut,

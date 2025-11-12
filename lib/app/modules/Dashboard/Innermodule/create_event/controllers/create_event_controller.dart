@@ -1,65 +1,94 @@
-/// =====================
-/// IMPORTS
-/// =====================
-
-// ignore_for_file: dangling_library_doc_comments, use_build_context_synchronously, avoid_print
+// ignore_for_file: file_names, avoid_print, use_build_context_synchronously, unnecessary_null_comparison
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
-
 import '../../../../../api/PublicApiService.dart';
 import '../../../../../core/constants/app_texts.dart';
+import '../../../../../database/models/EventModel.dart';
 import '../../../../../global_widgets/CustomPopup/CustomPopup.dart';
 import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../../../utils/coadingRequirement/date_converter.dart';
 import '../../inviteuser/views/inviteuser_view.dart';
 
-/// =====================
-/// CREATE EVENT CONTROLLER
-/// =====================
-
 class CreateEventController extends GetxController {
-  // ---------------- API SERVICE ----------------
-  final _apiService = PublicApiService(); // ✅ define _apiService
+  final _apiService = PublicApiService();
 
   /// ---------------- CONTROLLERS ----------------
-  final titleController = TextEditingController();
-  final descriptionController = TextEditingController();
-  final dateController = TextEditingController();
-  var startTimeController = TextEditingController();
-  var endTimeController = TextEditingController();
+  late TextEditingController titleController;
+  late TextEditingController descriptionController;
+  late TextEditingController dateController;
+  late TextEditingController startTimeController;
+  late TextEditingController endTimeController;
 
-  /// ---------------- ERROR OBSERVABLES ----------------
-  var startTimeError = ''.obs;
-  var endTimeError = ''.obs;
+  /// ---------------- STATES ----------------
+  RxBool isLoading = false.obs;
+  RxBool isProcessing = false.obs;
+  RxBool isEditMode = false.obs;
+
+  EventModel? editingEvent;
+
+  /// ---------------- VALIDATION ----------------
   var titleError = ''.obs;
   var descriptionError = ''.obs;
   var dateError = ''.obs;
-  RxBool isProcessing = false.obs;
+  var startTimeError = ''.obs;
+  var endTimeError = ''.obs;
 
-  /// ---------------- STATE OBSERVABLES ----------------
+  /// ---------------- CALENDAR ----------------
   var showCalendar = false.obs;
-  var isLoading = false.obs;
-  var selectedUsers = <int>[].obs;
-  var focusedDay = DateTime.now().obs;
   var selectedDay = DateTime.now().obs;
+  var focusedDay = DateTime.now().obs;
   var calendarFormat = CalendarFormat.month.obs;
 
-  bool isDialogShown = false;
+  bool _isInitializing = false;
 
   @override
   void onInit() {
     super.onInit();
-
-    // Auto-trigger confirmation dialog when date + times are filled
-    dateController.addListener(_checkAndShowDialog);
-    startTimeController.addListener(_checkAndShowDialog);
-    endTimeController.addListener(_checkAndShowDialog);
+    _initControllers();
   }
 
-  /// ---------------- VALIDATE ALL FIELDS ----------------
+  void _initControllers() {
+    titleController = TextEditingController();
+    descriptionController = TextEditingController();
+    dateController = TextEditingController();
+    startTimeController = TextEditingController();
+    endTimeController = TextEditingController();
+  }
+
+  @override
+  void onReady() {
+    super.onReady();
+    _loadEventData();
+  }
+
+  /// ✅ Load data safely when editing
+  void _loadEventData() {
+    _isInitializing = true;
+    final args = Get.arguments;
+    print("🟢 Received Arguments: $args");
+
+    if (args is EventModel) {
+      isEditMode.value = true;
+      editingEvent = args;
+
+      titleController.text = args.title ?? '';
+      descriptionController.text = args.description ?? '';
+      dateController.text = DateFormat('dd MMM yyyy').format(args.eventDate);
+      startTimeController.text = args.startTime ?? '';
+      endTimeController.text = args.endTime ?? '';
+    } else {
+      clearForm();
+    }
+
+    Future.delayed(const Duration(milliseconds: 400), () {
+      _isInitializing = false;
+    });
+  }
+
+  // ---------------- FIELD VALIDATIONS ----------------
   bool validateAllFields() {
     validateTitle(titleController.text);
     validateDescription(descriptionController.text);
@@ -67,7 +96,6 @@ class CreateEventController extends GetxController {
     validateStartTime(startTimeController.text);
     validateEndTime(endTimeController.text);
 
-    // Return true only if all errors are empty
     return titleError.value.isEmpty &&
         descriptionError.value.isEmpty &&
         dateError.value.isEmpty &&
@@ -75,22 +103,254 @@ class CreateEventController extends GetxController {
         endTimeError.value.isEmpty;
   }
 
-  void _checkAndShowDialog() {
-    if (dateController.text.isNotEmpty &&
-        startTimeController.text.isNotEmpty &&
-        endTimeController.text.isNotEmpty &&
-        !isDialogShown) {
-      isDialogShown = true;
-      showEventConfirmationDialog();
+  void validateTitle(String value) {
+    titleError.value =
+        value.trim().length < 3 ? "Title must be at least 3 characters" : '';
+  }
+
+  void validateDescription(String value) {
+    descriptionError.value =
+        value.trim().length < 5
+            ? "Description must be at least 5 characters"
+            : '';
+  }
+
+  void validateDate(String value) {
+    dateError.value = value.trim().isEmpty ? "Please select date" : '';
+  }
+
+  void validateStartTime(String value) {
+    startTimeError.value =
+        value.trim().isEmpty ? "Please select start time" : '';
+  }
+
+  void validateEndTime(String value) {
+    if (value.trim().isEmpty) {
+      endTimeError.value = "Please select end time";
+      return;
     }
 
-    if (dateController.text.isEmpty ||
-        startTimeController.text.isEmpty ||
-        endTimeController.text.isEmpty) {
-      isDialogShown = false;
+    if (startTimeController.text.isNotEmpty && dateController.text.isNotEmpty) {
+      try {
+        final start = _parseTime(startTimeController.text, dateController.text);
+        final end = _parseTime(value, dateController.text);
+
+        // Prevent past event time
+        final now = DateTime.now();
+        if (start.isBefore(now)) {
+          endTimeError.value = "Event time cannot be in the past";
+          return;
+        }
+
+        final diff = end.difference(start).inMinutes;
+        if (diff <= 0) {
+          endTimeError.value = "End time must be after start time";
+        } else if (diff > 120) {
+          endTimeError.value = "Event duration cannot exceed 2 hours";
+        } else {
+          endTimeError.value = '';
+        }
+      } catch (_) {
+        endTimeError.value = "Invalid time format";
+      }
     }
   }
 
+  // Helper to convert time string to DateTime
+  DateTime _parseTime(String time, String date) {
+    final datePart = DateFormat('dd MMM yyyy').parse(date);
+    final timeParts = time.split(RegExp(r'[:\s]')); // Handles 12-hour format
+    int hour = int.parse(timeParts[0]);
+    final minute = int.parse(timeParts[1]);
+    final isPM = time.toLowerCase().contains('pm');
+
+    if (isPM && hour != 12) hour += 12;
+    if (!isPM && hour == 12) hour = 0;
+
+    return DateTime(datePart.year, datePart.month, datePart.day, hour, minute);
+  }
+
+  // ---------------- DATE & TIME ----------------
+  void selectDay(DateTime selected, DateTime focused) {
+    selectedDay.value = selected;
+    focusedDay.value = focused;
+    dateController.text = DateFormat('dd MMM yyyy').format(selected);
+  }
+
+  // ---------------- CREATE EVENT ----------------
+  Future<void> createEvent() async {
+    isLoading.value = true;
+    try {
+      final start = DateConverter.convertTo24Hour(startTimeController.text);
+      final end = DateConverter.convertTo24Hour(endTimeController.text);
+
+      // Print converted times
+      print("Selected Start Time (24h): $start");
+      print("Selected End Time (24h): $end");
+
+      final response = await _apiService.createEvent(
+        title: titleController.text.trim(),
+        description: descriptionController.text.trim(),
+        eventDate: DateFormat(
+          'yyyy-MM-dd',
+        ).format(DateFormat('dd MMM yyyy').parse(dateController.text)),
+        startTime: start,
+        endTime: end,
+      );
+
+      // ✅ Fixed condition: check if ID exists instead of response["id"] == true
+      if (response != null && response["id"] != null) {
+        showCustomSnackBar(
+          AppTexts.EVENT_SAVED_SUCCESSFULLY,
+          SnackbarState.success,
+        );
+
+        final eventId = response['id'];
+
+        final newEvent = EventModel(
+          id: eventId,
+          title: titleController.text.trim(),
+          description: descriptionController.text.trim(),
+          eventDate: DateFormat(
+            'dd MMM yyyy',
+          ).parse(dateController.text.trim()),
+          startTime: start,
+          endTime: end,
+          invitedPeople: [],
+        );
+
+        clearForm();
+        Get.off(() => InviteuserView(), arguments: newEvent);
+      } else {
+        showCustomSnackBar(
+          response?["message"] ?? "Failed to create event",
+          SnackbarState.error,
+        );
+      }
+    } catch (e) {
+      showCustomSnackBar("Error: $e", SnackbarState.error);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // ---------------- UPDATE EVENT ----------------
+  Future<void> updateEvent() async {
+    if (editingEvent == null) return;
+    isLoading.value = true;
+
+    try {
+      final start = DateConverter.convertTo24Hour(startTimeController.text);
+      final end = DateConverter.convertTo24Hour(endTimeController.text);
+
+      final response = await _apiService.updateEvent(
+        id: editingEvent!.id!,
+        title: titleController.text.trim(),
+        description: descriptionController.text.trim(),
+        eventDate: DateFormat(
+          'yyyy-MM-dd',
+        ).format(DateFormat('dd MMM yyyy').parse(dateController.text)),
+        startTime: start,
+        endTime: end,
+      );
+
+      print("🔍 API Response: $response");
+
+      final bool isSuccess =
+          response["success"] == true || response["id"] != null;
+
+      if (isSuccess) {
+        showCustomSnackBar("Event updated successfully", SnackbarState.success);
+        await Future.delayed(const Duration(milliseconds: 700));
+
+        final updatedEvent = EventModel(
+          id: response["id"] ?? editingEvent!.id,
+          title: titleController.text.trim(),
+          description: descriptionController.text.trim(),
+          eventDate: DateFormat(
+            'dd MMM yyyy',
+          ).parse(dateController.text.trim()),
+          startTime: start,
+          endTime: end,
+          invitedPeople: [],
+        );
+
+        clearForm();
+        Get.off(() => InviteuserView(), arguments: updatedEvent);
+      } else {
+        showCustomSnackBar(
+          response["message"] ?? "Failed to update event",
+          SnackbarState.error,
+        );
+      }
+    } catch (e) {
+      showCustomSnackBar("Error updating event: $e", SnackbarState.error);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // ---------------- CLEAR FORM ----------------
+  void clearForm() {
+    titleController.clear();
+    descriptionController.clear();
+    dateController.clear();
+    startTimeController.clear();
+    endTimeController.clear();
+    editingEvent = null;
+    isEditMode.value = false;
+  }
+
+  // ---------------- CONFIRMATION POPUP ----------------
+  void showEventConfirmationDialog() {
+    _showConfirmationDialog(
+      title:
+          isEditMode.value
+              ? AppTexts.CONFIRM_EVENT_UPDATE
+              : AppTexts.CONFIRM_EVENT_CREATION,
+      confirmText: AppTexts.OK,
+      messageWidget: RichText(
+        text: TextSpan(
+          style: const TextStyle(color: Colors.black, fontSize: 16),
+          children: [
+            TextSpan(
+              text:
+                  isEditMode.value
+                      ? AppTexts.CONFIRM_EVENT_UPDATE_MESSAGE
+                      : AppTexts.CONFIRM_EVENT_CREATION_MESSAGE,
+            ),
+            TextSpan(
+              text: titleController.text,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const TextSpan(text: " on "),
+            TextSpan(
+              text: dateController.text,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const TextSpan(text: " from "),
+            TextSpan(
+              text: startTimeController.text,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const TextSpan(text: " to "),
+            TextSpan(
+              text: endTimeController.text,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const TextSpan(text: "?"),
+          ],
+        ),
+      ),
+      isProcessing: isProcessing,
+      onConfirm: () async {
+        if (Get.isDialogOpen ?? false) Get.back();
+        isEditMode.value ? await updateEvent() : await createEvent();
+      },
+    );
+  }
+
+  // ---------------- TIME PICKER ----------------
   Future<void> selectTime(
     BuildContext context,
     TextEditingController timeController,
@@ -159,235 +419,11 @@ class CreateEventController extends GetxController {
       errorObservable.value = '';
 
       print("Selected ${isEndTime ? "End" : "Start"} Time (24h): $formatted24");
-    }
-  }
 
-  void validateTitle(String value) {
-    titleError.value =
-        value.trim().length < 3 ? "Title must be at least 3 characters" : '';
-  }
-
-  void validateDescription(String value) {
-    descriptionError.value =
-        value.trim().length < 5
-            ? "Description must be at least 5 characters"
-            : '';
-  }
-
-  void validateDate(String value) {
-    dateError.value = value.trim().isEmpty ? "Please select date" : '';
-  }
-
-  void validateStartTime(String value) {
-    startTimeError.value =
-        value.trim().isEmpty ? "Please select start time" : '';
-  }
-
-  void validateEndTime(String value) {
-    if (value.trim().isEmpty) {
-      endTimeError.value = "Please select end time";
-      return;
-    }
-
-    // Check difference with start time
-    if (startTimeController.text.isNotEmpty) {
-      try {
-        final startTime = _parseTime(
-          startTimeController.text,
-          dateController.text,
-        );
-        final endTime = _parseTime(value, dateController.text);
-
-        final difference = endTime.difference(startTime).inMinutes;
-
-        if (difference <= 0) {
-          endTimeError.value = "End time must be after start time";
-        } else if (difference > 120) {
-          // 2 hours = 120 minutes
-          endTimeError.value = "Event duration cannot exceed 2 hours";
-        } else {
-          endTimeError.value = '';
-        }
-      } catch (e) {
-        endTimeError.value = "Invalid time format";
-      }
-    }
-  }
-
-  // Helper to convert time string to DateTime
-  DateTime _parseTime(String time, String date) {
-    final datePart = DateFormat('dd MMM yyyy').parse(date);
-    final timeParts = time.split(RegExp(r'[:\s]')); // Handles 12-hour format
-    int hour = int.parse(timeParts[0]);
-    final minute = int.parse(timeParts[1]);
-    final isPM = time.toLowerCase().contains('pm');
-
-    if (isPM && hour != 12) hour += 12;
-    if (!isPM && hour == 12) hour = 0;
-
-    return DateTime(datePart.year, datePart.month, datePart.day, hour, minute);
-  }
-
-  void selectDay(DateTime selected, DateTime focused) {
-    selectedDay.value = selected;
-    focusedDay.value = focused;
-    dateController.text = DateFormat('dd MMM yyyy').format(selected);
-  }
-
-  void showEventConfirmationDialog() {
-    validateTitle(titleController.text);
-    validateDescription(descriptionController.text);
-    validateDate(dateController.text);
-    validateStartTime(startTimeController.text);
-    validateEndTime(endTimeController.text);
-
-    if (titleError.value.isEmpty &&
-        descriptionError.value.isEmpty &&
-        dateError.value.isEmpty &&
-        startTimeError.value.isEmpty &&
-        endTimeError.value.isEmpty) {
-      _showConfirmationDialog(
-        title: "Confirm Event",
-        confirmText: "Ok",
-        messageWidget: RichText(
-          text: TextSpan(
-            style: TextStyle(color: Colors.black, fontSize: 16),
-            children: [
-              const TextSpan(
-                text: "Are you sure you want to create the event ",
-              ),
-              TextSpan(
-                text: titleController.text,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const TextSpan(text: " on "),
-              TextSpan(
-                text: dateController.text,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const TextSpan(text: " from "),
-              TextSpan(
-                text: startTimeController.text,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const TextSpan(text: " to "),
-              TextSpan(
-                text: endTimeController.text,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const TextSpan(text: "?"),
-            ],
-          ),
-        ),
-        isProcessing: isProcessing,
-        onConfirm: () async {
-          isLoading.value = true;
-          await Future.delayed(const Duration(seconds: 1));
-          isLoading.value = false;
-          showCustomSnackBar(
-            AppTexts.Event_saved_successfully,
-            SnackbarState.success,
-          );
-          Get.back();
-        },
-      );
-    } else {
-      showCustomSnackBar(
-        AppTexts.Please_fix_the_errors_in_the_form,
-        SnackbarState.error,
-      );
-    }
-  }
-
-  void saveChanges() {
-    validateTitle(titleController.text);
-    validateDescription(descriptionController.text);
-    validateDate(dateController.text);
-    validateStartTime(startTimeController.text);
-    validateEndTime(endTimeController.text);
-
-    if (titleError.value.isEmpty &&
-        descriptionError.value.isEmpty &&
-        dateError.value.isEmpty &&
-        startTimeError.value.isEmpty &&
-        endTimeError.value.isEmpty) {
-      isLoading.value = true;
-      Future.delayed(const Duration(seconds: 1), () {
-        isLoading.value = false;
-        showCustomSnackBar(
-          AppTexts.Event_saved_successfully,
-          SnackbarState.success,
-        );
-      });
-    } else {
-      showCustomSnackBar(
-        AppTexts.Please_fix_the_errors_in_the_form,
-        SnackbarState.error,
-      );
-    }
-  }
-
-  // ==========================
-  // 1️⃣ Create Event
-  // ==========================
-
-  Future<void> createEvent() async {
-    isLoading.value = true;
-
-    try {
-      // Convert times
-      final startTime = DateConverter.convertTo24Hour(startTimeController.text);
-      final endTime = DateConverter.convertTo24Hour(endTimeController.text);
-
-      // Print converted times
-      print("Selected Start Time (24h): $startTime");
-      print("Selected End Time (24h): $endTime");
-
-      final response = await _apiService.createEvent(
-        title: titleController.text.trim(),
-        description: descriptionController.text.trim(),
-        eventDate: DateFormat(
-          'yyyy-MM-dd',
-        ).format(DateFormat('dd MMM yyyy').parse(dateController.text)),
-        startTime: startTime, // e.g. "14:10:00"
-        endTime: endTime, // e.g. "16:10:00"
-      );
-
-      print("API Response: $response");
-
-      if (response['id'] != null) {
-        showCustomSnackBar(
-          AppTexts.Event_saved_successfully,
-          SnackbarState.success,
-        );
-        Future.delayed(Duration.zero, () {
-          Get.to(
-            () => InviteuserView(),
-            transition: Transition.fade,
-            duration: const Duration(milliseconds: 300),
-            arguments: {
-              "eventId": response['id'],
-              "title": titleController.text.trim(),
-              "date": dateController.text,
-              "startTime": startTime,
-              "endTime": endTime,
-            },
-          );
-        });
-      } else {
-        showCustomSnackBar(
-          response['message'] ?? 'Failed to create event',
-          SnackbarState.error,
-        );
-      }
-    } catch (e) {
-      print("Error creating event: $e");
-      showCustomSnackBar(
-        'Something went wrong while creating the event',
-        SnackbarState.error,
-      );
-    } finally {
-      isLoading.value = false;
+      // // ✅ Show confirmation dialog immediately after selecting end time
+      // if (isEndTime) {
+      //   showEventConfirmationDialog();
+      // }
     }
   }
 
@@ -402,6 +438,7 @@ class CreateEventController extends GetxController {
   }
 }
 
+/// ---------------- HELPER POPUP ----------------
 void _showConfirmationDialog({
   required String title,
   String? message,
@@ -421,7 +458,7 @@ void _showConfirmationDialog({
       message: message,
       messageWidget: messageWidget,
       confirmText: confirmText,
-      cancelText: AppTexts.cancel,
+      cancelText: AppTexts.CANCEL,
       isProcessing: isProcessing,
       onConfirm: onConfirm,
     ),

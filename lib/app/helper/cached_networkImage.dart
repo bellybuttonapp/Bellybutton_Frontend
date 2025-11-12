@@ -43,7 +43,7 @@ class ImageLoader extends StatelessWidget {
           errorWidget:
               (context, url, error) => ClipRRect(
                 borderRadius: BorderRadius.circular(Dimensions.RADIUS_DEFAULT),
-                child: SvgPicture.asset(app_images.check_icon),
+                child: SvgPicture.asset(AppImages.CHECK_ICON),
               ),
           placeholder:
               (context, url) => const SizedBox(

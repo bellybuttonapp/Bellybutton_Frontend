@@ -1,7 +1,6 @@
 // ignore_for_file: avoid_print, deprecated_member_use, duplicate_ignore
 
 import 'dart:io';
-
 import 'package:bellybutton/app/modules/Profile/views/profile_view.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -26,9 +25,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? titleWidget;
   final double toolbarHeight;
 
-  // ignore: use_super_parameters
   const CustomAppBar({
-    Key? key,
+    super.key,
     this.title,
     this.actions,
     this.bottom,
@@ -43,8 +41,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   }) : assert(
          !(showProfileSection && showBackButton),
          'Cannot show both profile section and back button at the same time.',
-       ),
-       super(key: key);
+       );
 
   @override
   Size get preferredSize =>
@@ -55,31 +52,32 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
     final isDark = theme.brightness == Brightness.dark;
+
+    // 🌙 Adaptive Colors
     final bgColor =
         backgroundColor ??
         (isDark
-            ? AppTheme.darkTheme.scaffoldBackgroundColor
-            : AppTheme.lightTheme.scaffoldBackgroundColor);
+            ? const Color(0xFF121212) // Dark scaffold
+            : Colors.white); // ☀️ Light scaffold
 
-    final iconColor = AppColors.textColor;
-    final textColor = isDark ? AppColors.textColor3 : AppColors.textColor;
+    final iconColor = isDark ? Colors.white : AppColors.textColor;
+    final textColor = isDark ? Colors.white : AppColors.textColor;
 
     Widget? leadingWidget;
     if (showProfileSection) {
-      leadingWidget = _buildProfileSection(context, textColor, size);
+      leadingWidget = _buildProfileSection(context, textColor, size, isDark);
     } else if (showBackButton) {
-      // IOS/Android Back widget
       leadingWidget =
           Platform.isIOS
-              ? const BackButton() // Default iOS back button
+              ? const BackButton()
               : IconButton(
                 tooltip: 'Back',
                 icon: SvgPicture.asset(
-                  app_images.Backarrow,
+                  AppImages.BACK_ARROW,
                   color: iconColor,
-                  width: size.width * 0.06, // ~24px
+                  width: size.width * 0.06,
                 ),
-                padding: EdgeInsets.all(size.width * 0.02), // ~8px
+                padding: EdgeInsets.all(size.width * 0.02),
                 onPressed: () {
                   HapticFeedback.mediumImpact();
                   Get.back();
@@ -136,22 +134,28 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(size.width * 0.025),
                     gradient: LinearGradient(
-                      colors: [
-                        const Color.fromARGB(
-                          255,
-                          166,
-                          216,
-                          233,
-                          // ignore: deprecated_member_use
-                        ).withOpacity(0.15),
-                        const Color.fromARGB(
-                          255,
-                          166,
-                          216,
-                          233,
-                          // ignore: deprecated_member_use
-                        ).withOpacity(0.15),
-                      ],
+                      colors:
+                          isDark
+                              ? [
+                                Colors.blueGrey.withOpacity(
+                                  0.25,
+                                ), // 🌙 darker shade
+                                Colors.black26,
+                              ]
+                              : [
+                                const Color.fromARGB(
+                                  255,
+                                  166,
+                                  216,
+                                  233,
+                                ).withOpacity(0.15),
+                                const Color.fromARGB(
+                                  255,
+                                  166,
+                                  216,
+                                  233,
+                                ).withOpacity(0.15),
+                              ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -170,16 +174,27 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     BuildContext context,
     Color textColor,
     Size size,
+    bool isDark,
   ) {
     return Obx(() {
       String prefName = Preference.userNameRx.value;
       String? prefPhoto = Preference.profileImageRx.value;
 
       final firebaseUser = FirebaseAuth.instance.currentUser;
-      String displayName = firebaseUser?.displayName ?? prefName;
-      String? photoUrl = firebaseUser?.photoURL ?? prefPhoto;
+      String displayName =
+          firebaseUser?.displayName?.isNotEmpty == true
+              ? firebaseUser!.displayName!
+              : prefName;
 
-      final imageProvider = photoUrl != null ? NetworkImage(photoUrl) : null;
+      File? localImageFile =
+          (prefPhoto != null && prefPhoto.isNotEmpty) ? File(prefPhoto) : null;
+
+      ImageProvider? imageProvider;
+      if (localImageFile != null && localImageFile.existsSync()) {
+        imageProvider = FileImage(localImageFile);
+      } else if (firebaseUser?.photoURL != null) {
+        imageProvider = NetworkImage(firebaseUser!.photoURL!);
+      }
 
       return Padding(
         padding: EdgeInsets.only(left: size.width * 0.02),
@@ -199,10 +214,26 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  const Color.fromARGB(255, 166, 216, 233).withOpacity(0.15),
-                  const Color.fromARGB(255, 166, 216, 233).withOpacity(0.15),
-                ],
+                colors:
+                    isDark
+                        ? [
+                          Colors.blueGrey.withOpacity(0.25), // 🌙
+                          Colors.black26,
+                        ]
+                        : [
+                          const Color.fromARGB(
+                            255,
+                            166,
+                            216,
+                            233,
+                          ).withOpacity(0.15), // ☀️
+                          const Color.fromARGB(
+                            255,
+                            166,
+                            216,
+                            233,
+                          ).withOpacity(0.15),
+                        ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -211,48 +242,50 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                CircleAvatar(
-                  radius: size.width * 0.045,
-                  backgroundColor: Colors.transparent,
-                  backgroundImage: imageProvider,
-                  child:
-                      imageProvider == null
-                          ? Hero(
-                            tag: 'profile-photo', // same tag as above
-                            child: SvgPicture.asset(
-                              app_images.person,
+                Hero(
+                  tag: 'profile-photo',
+                  child: CircleAvatar(
+                    radius: size.width * 0.045,
+                    backgroundColor: Colors.transparent,
+                    backgroundImage: imageProvider,
+                    child:
+                        imageProvider == null
+                            ? SvgPicture.asset(
+                              AppImages.PERSON,
                               height: size.width * 0.055,
                               width: size.width * 0.055,
-                              color: AppColors.textColor,
-                            ),
-                          )
-                          : Hero(
-                            tag: 'profile-photo',
-                            child: CircleAvatar(
-                              radius: size.width * 0.045,
-                              backgroundImage: imageProvider,
-                            ),
-                          ),
+                              color: textColor,
+                            )
+                            : null,
+                  ),
                 ),
-
                 SizedBox(width: size.width * 0.02),
                 Flexible(
-                  child: Text(
-                    displayName,
-                    style: customBoldText.copyWith(
-                      color: textColor,
-                      fontSize: size.width * 0.035,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black.withOpacity(0.3),
-                          blurRadius: 2,
-                          offset: const Offset(0, 1),
+                  child: Hero(
+                    tag: 'profile-name-$displayName',
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Text(
+                        displayName,
+                        style: customBoldText.copyWith(
+                          color: textColor,
+                          fontSize: size.width * 0.035,
+                          shadows: [
+                            Shadow(
+                              color:
+                                  isDark
+                                      ? Colors.black.withOpacity(0.6)
+                                      : Colors.grey.withOpacity(0.3),
+                              blurRadius: 2,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
                         ),
-                      ],
+                        softWrap: true,
+                        overflow: TextOverflow.visible,
+                        maxLines: null,
+                      ),
                     ),
-                    softWrap: true,
-                    overflow: TextOverflow.visible,
-                    maxLines: null, // allow unlimited lines
                   ),
                 ),
               ],

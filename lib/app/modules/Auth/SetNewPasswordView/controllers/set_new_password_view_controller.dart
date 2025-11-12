@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_interpolation_to_compose_strings, avoid_print
+// ignore_for_file: prefer_interpolation_to_compose_strings, avoid_print, curly_braces_in_flow_control_structures
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -61,7 +61,7 @@ class SetNewPasswordViewController extends GetxController {
         confirmPassword: confirmPassword,
       );
 
-      final message = response['message'] ?? AppTexts.setNewPassword;
+      final message = response['message'] ?? AppTexts.SET_NEW_PASSWORD;
       final success =
           response['success'] == true ||
           message.toLowerCase().contains('success');
@@ -74,15 +74,15 @@ class SetNewPasswordViewController extends GetxController {
         Preference.email = '';
 
         showCustomSnackBar(message, SnackbarState.success);
-        Future.delayed(const Duration(seconds: 2), () {
-          Get.offAllNamed(Routes.LOGIN);
-        });
+        await Future.delayed(const Duration(milliseconds: 500));
+        FocusScope.of(Get.context!).unfocus();
+        Get.offAllNamed(Routes.LOGIN);
       } else {
         showCustomSnackBar(message, SnackbarState.error);
       }
     } catch (e, stack) {
       print("SetNewPassword Error: $e\n$stack");
-      showCustomSnackBar(AppTexts.Somethingwentwrong, SnackbarState.error);
+      showCustomSnackBar(AppTexts.SOMETHING_WENT_WRONG, SnackbarState.error);
     } finally {
       isLoading.value = false;
     }

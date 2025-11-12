@@ -23,10 +23,10 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
       appBar: CustomAppBar(),
       body: Obx(
         () => AuthActionForm(
-          imagePath: app_images.Forget_pswrd,
-          title: AppTexts.forgotPasswordTitle,
-          subtitle: AppTexts.forgotPasswordSubtitle,
-          hintText: AppTexts.loginEmail,
+          imagePath: AppImages.FORGET_PSWRD,
+          title: AppTexts.FORGOT_PASSWORD_TITLE,
+          subtitle: AppTexts.FORGOT_PASSWORD_SUBTITLE,
+          hintText: AppTexts.LOGIN_EMAIL,
           controller: controller.emailController,
           errorText: controller.emailError.value,
           onChanged: controller.validateEmail,
@@ -34,7 +34,7 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
             final email = controller.emailController.text.trim();
             controller.sendOtp(email);
           },
-          buttonText: AppTexts.Sendcode,
+          buttonText: AppTexts.SEND_CODE,
           isLoading: controller.isLoading.value,
           keyboardType: TextInputType.emailAddress,
         ),

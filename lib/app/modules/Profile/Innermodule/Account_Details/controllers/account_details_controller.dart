@@ -1,4 +1,4 @@
-// ignore_for_file: unused_import, deprecated_member_use
+// ignore_for_file: unused_import, deprecated_member_use, unused_field
 
 import 'dart:io';
 import 'package:bellybutton/app/Controllers/oauth.dart';
@@ -10,12 +10,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
+import '../../../../../api/PublicApiService.dart';
 import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../../../utils/preference.dart';
+import '../../../controllers/profile_controller.dart';
 
 class AccountDetailsController extends GetxController {
   final nameController = TextEditingController();
   final emailController = TextEditingController();
+  final bioController = TextEditingController();
   final isLoading = false.obs;
   final nameError = RxnString();
 
@@ -27,7 +31,6 @@ class AccountDetailsController extends GetxController {
     super.onInit();
     final user = AuthService().currentUser;
 
-    // Initialize name & email from Preference or Firebase
     nameController.text =
         Preference.userName.isNotEmpty
             ? Preference.userName
@@ -41,54 +44,114 @@ class AccountDetailsController extends GetxController {
 
   /// Pick image from gallery or camera
   Future<void> pickImage() async {
-    final XFile? image = await Get.bottomSheet<XFile?>(
-      CustomBottomSheet(
-        title: AppTexts.Selectimage,
-        actions: [
-          SheetAction(
-            icon: SvgPicture.asset(
-              app_images.Gallery,
-              width: 20,
-              height: 20,
-              color: AppColors.primaryColor,
+    try {
+      final ImagePicker picker = ImagePicker();
+      XFile? selectedImage;
+
+      await Get.bottomSheet<void>(
+        CustomBottomSheet(
+          title: AppTexts.SELECT_IMAGE,
+          actions: [
+            SheetAction(
+              icon: SvgPicture.asset(
+                AppImages.GALLERY,
+                width: 20,
+                height: 20,
+                color: AppColors.primaryColor,
+              ),
+              label: AppTexts.CHOOSE_PHOTO_FROM_GALLERY,
+              onTap: () async {
+                await Future.delayed(const Duration(milliseconds: 200));
+                selectedImage = await picker.pickImage(
+                  source: ImageSource.gallery,
+                );
+                await _handleCropAndUpload(selectedImage);
+              },
             ),
-            label: AppTexts.Choosephotofromgallery,
-            onTap: () async {
-              final picked = await _picker.pickImage(
-                source: ImageSource.gallery,
-              );
-              Get.back(result: picked);
-            },
-          ),
-          SheetAction(
-            icon: SvgPicture.asset(
-              app_images.Camera,
-              width: 20,
-              height: 20,
-              color: AppColors.success,
+            SheetAction(
+              icon: SvgPicture.asset(
+                AppImages.CAMERA,
+                width: 20,
+                height: 20,
+                color: AppColors.success,
+              ),
+              label: AppTexts.TAKE_PHOTO,
+              onTap: () async {
+                await Future.delayed(const Duration(milliseconds: 200));
+                selectedImage = await picker.pickImage(
+                  source: ImageSource.camera,
+                );
+                await _handleCropAndUpload(selectedImage);
+              },
             ),
-            label: AppTexts.Takeaphoto,
-            onTap: () async {
-              final picked = await _picker.pickImage(
-                source: ImageSource.camera,
-              );
-              Get.back(result: picked);
-            },
-          ),
-        ],
-      ),
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
+          ],
+        ),
+        backgroundColor: Colors.transparent,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+      );
+    } catch (e) {
+      debugPrint("Image picker error: $e");
+      showCustomSnackBar(
+        AppTexts.FAILED_TO_UPDATE_PROFILE_PHOTO,
+        SnackbarState.error,
+      );
+    }
+  }
+
+  /// Crop + Update local & remote
+  Future<void> _handleCropAndUpload(XFile? selectedImage) async {
+    if (selectedImage == null) {
+      showCustomSnackBar(AppTexts.NO_IMAGE_SELECTED, SnackbarState.warning);
+      return;
+    }
+
+    final croppedFile = await ImageCropper().cropImage(
+      sourcePath: selectedImage.path,
+      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+      compressQuality: 90,
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: AppTexts.EDIT_PROFILE_PHOTO,
+          toolbarColor: AppColors.primaryColor,
+          toolbarWidgetColor: Colors.white,
+          backgroundColor: Colors.black,
+          activeControlsWidgetColor: AppColors.primaryColor,
+        ),
+        IOSUiSettings(
+          title: AppTexts.EDIT_PROFILE_PHOTO,
+          aspectRatioLockEnabled: true,
+          doneButtonTitle: AppTexts.DONE,
+          cancelButtonTitle: AppTexts.CANCEL,
+        ),
+      ],
     );
 
-    if (image != null) {
-      pickedImage.value = image;
-      await AuthService().updatePhoto(image.path);
-      Preference.profileImage = image.path;
+    if (croppedFile == null) {
+      showCustomSnackBar(
+        AppTexts.IMAGE_CROPPING_CANCELLED,
+        SnackbarState.warning,
+      );
+      return;
     }
+
+    final croppedXFile = XFile(croppedFile.path);
+    pickedImage.value = croppedXFile;
+
+    // ✅ Update Firebase photo
+    await AuthService().updatePhoto(croppedXFile.path);
+    Preference.profileImage = croppedXFile.path;
+
+    if (Get.isRegistered<ProfileController>()) {
+      Get.find<ProfileController>().updatePickedImage(File(croppedXFile.path));
+    }
+
+    showCustomSnackBar(
+      AppTexts.PROFILE_PHOTO_UPDATED_SUCCESSFULLY,
+      SnackbarState.success,
+    );
   }
 
   /// Validate name
@@ -105,32 +168,59 @@ class AccountDetailsController extends GetxController {
     }
   }
 
-  /// Save changes to Firebase & Preference
-  /// Save changes to Firebase & Preference
+  /// Save changes with API integration
   Future<void> saveChanges() async {
     if (nameError.value != null) return;
 
     final newName = nameController.text.trim();
-    if (newName.isEmpty) return;
+    final newBio = bioController.text.trim();
+    final email = emailController.text.trim();
+    final imagePath = Preference.profileImage ?? '';
+    final phone = Preference.phone ?? "";
+    final address = Preference.address ?? "";
+
+    if (newName.isEmpty) {
+      showCustomSnackBar("Name cannot be empty", SnackbarState.warning);
+      return;
+    }
 
     try {
       isLoading.value = true;
 
-      // Update Firebase
-      await AuthService().updateDisplayName(newName);
-
-      // Update Preference
-      Preference.userName = newName;
-      Preference.email = emailController.text.trim();
-
-      // Show success snackbar
-      showCustomSnackBar(
-        AppTexts.Profile_updated_successfully,
-        SnackbarState.success,
+      // ✅ API call
+      final apiResponse = await PublicApiService().updateProfile(
+        email: email,
+        fullName: newName,
+        phone: phone,
+        address: address,
+        bio: newBio,
+        profileImageUrl: imagePath,
       );
+
+      if (apiResponse["status"] == true ||
+          apiResponse["success"] == true ||
+          apiResponse["message"] == "Profile updated successfully") {
+        // ✅ Firebase
+        await AuthService().updateDisplayName(newName);
+
+        // ✅ Local update
+        Preference.userName = newName;
+        Preference.email = email;
+        Preference.bio = newBio;
+
+        showCustomSnackBar(
+          AppTexts.PROFILE_UPDATED_SUCCESSFULLY,
+          SnackbarState.success,
+        );
+      } else {
+        showCustomSnackBar(
+          apiResponse["message"] ?? "Failed to update profile",
+          SnackbarState.error,
+        );
+      }
     } catch (e) {
-      // Show error snackbar
-      showCustomSnackBar(AppTexts.noInternet, SnackbarState.error);
+      debugPrint("❌ Profile update failed: $e");
+      showCustomSnackBar(AppTexts.NO_INTERNET, SnackbarState.error);
     } finally {
       isLoading.value = false;
     }
@@ -140,6 +230,7 @@ class AccountDetailsController extends GetxController {
   void onClose() {
     nameController.dispose();
     emailController.dispose();
+    bioController.dispose();
     super.onClose();
   }
 }

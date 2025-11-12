@@ -28,7 +28,7 @@ class InviteuserView extends GetView<InviteuserController> {
           isDarkMode
               ? AppTheme.darkTheme.scaffoldBackgroundColor
               : AppTheme.lightTheme.scaffoldBackgroundColor,
-      appBar: CustomAppBar(title: AppTexts.invite),
+      appBar: CustomAppBar(title: AppTexts.INVITE),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -51,11 +51,11 @@ class InviteuserView extends GetView<InviteuserController> {
     return Obx(
       () => GlobalTextField(
         controller: controller.searchController,
-        hintText: AppTexts.Search,
+        hintText: AppTexts.SEARCH,
         obscureText: false,
         prefixIcon: Padding(
           padding: const EdgeInsets.all(12.0),
-          child: SvgPicture.asset(app_images.search, width: 24, height: 24),
+          child: SvgPicture.asset(AppImages.SEARCH, width: 24, height: 24),
         ),
         errorText:
             controller.searchError.value.isEmpty
@@ -88,8 +88,8 @@ class InviteuserView extends GetView<InviteuserController> {
                       (contact.photo == null || contact.photo!.isEmpty)
                           ? Text(
                             contact.displayName != null &&
-                                    contact.displayName!.isNotEmpty
-                                ? contact.displayName![0].toUpperCase()
+                                    contact.displayName.isNotEmpty
+                                ? contact.displayName[0].toUpperCase()
                                 : '?',
                             style: customBoldText.copyWith(
                               color: AppColors.textColor,
@@ -106,7 +106,7 @@ class InviteuserView extends GetView<InviteuserController> {
                   ),
                 ),
                 deleteIcon: SvgPicture.asset(
-                  app_images.close,
+                  AppImages.CLOSE,
                   color: AppColors.textColor,
                 ),
                 onDeleted:
@@ -147,7 +147,7 @@ class InviteuserView extends GetView<InviteuserController> {
 
       if (controller.filteredContacts.isEmpty) {
         return const EmptyJobsPlaceholder(
-          description: AppTexts.No_contacts_found,
+          description: AppTexts.NO_CONTACTS_FOUND,
         );
       }
 
@@ -167,13 +167,11 @@ class InviteuserView extends GetView<InviteuserController> {
             final isSelected = controller.selectedUsers.any(
               (c) => c.id == contact.id,
             );
-
             return ListTile(
               onTap: () {
-                // Move checkbox logic here
                 if (!isSelected && controller.selectedUsers.length >= 5) {
                   showCustomSnackBar(
-                    AppTexts.Limit_Reached,
+                    AppTexts.LIMIT_REACHED,
                     SnackbarState.error,
                   );
                   return;
@@ -190,8 +188,8 @@ class InviteuserView extends GetView<InviteuserController> {
                     (contact.photo == null || contact.photo!.isEmpty)
                         ? Text(
                           contact.displayName != null &&
-                                  contact.displayName!.isNotEmpty
-                              ? contact.displayName![0].toUpperCase()
+                                  contact.displayName.isNotEmpty
+                              ? contact.displayName[0].toUpperCase()
                               : '?',
                           style: customBoldText.copyWith(
                             color: AppColors.textColor,
@@ -211,7 +209,16 @@ class InviteuserView extends GetView<InviteuserController> {
                 scale: 1.2,
                 child: Checkbox(
                   value: isSelected,
-                  onChanged: (_) {}, // checkbox itself does nothing
+                  onChanged: (_) {
+                    if (!isSelected && controller.selectedUsers.length >= 5) {
+                      showCustomSnackBar(
+                        AppTexts.LIMIT_REACHED,
+                        SnackbarState.error,
+                      );
+                      return;
+                    }
+                    controller.toggleUserSelection(contact);
+                  },
                   activeColor: AppColors.primaryColor,
                   checkColor: Colors.white,
                   visualDensity: VisualDensity.compact,
@@ -230,30 +237,12 @@ class InviteuserView extends GetView<InviteuserController> {
       () => global_button(
         loaderWhite: true,
         isLoading: controller.isLoading.value,
-        onTap: () async {
-          if (controller.selectedUsers.isNotEmpty) {
-            controller.isLoading.value = true;
-            await Future.delayed(const Duration(seconds: 2));
-            controller.isLoading.value = false;
-
-            showCustomSnackBar(
-              "Users invited successfully!",
-              SnackbarState.success,
-            );
-
-            Get.back();
-          } else {
-            showCustomSnackBar(
-              "Please select at least one user",
-              SnackbarState.error,
-            );
-          }
-        },
-        title: AppTexts.invite,
+        title: AppTexts.INVITE,
         backgroundColor:
             isDarkMode
                 ? AppTheme.darkTheme.scaffoldBackgroundColor
                 : AppTheme.lightTheme.primaryColor,
+        onTap: controller.inviteSelectedUsers, // ✅ simplified
       ),
     );
   }

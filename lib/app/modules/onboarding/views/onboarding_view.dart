@@ -29,7 +29,7 @@ class OnboardingView extends GetView<OnboardingController> {
         children: [
           /// Background
           Positioned.fill(
-            child: Image.asset(app_images.onboarding_png, fit: BoxFit.cover),
+            child: Image.asset(AppImages.ONBOARDING_PNG, fit: BoxFit.cover),
           ),
 
           /// Content
@@ -63,7 +63,7 @@ class OnboardingView extends GetView<OnboardingController> {
                   child: Obx(
                     () => global_button(
                       isLoading: controller.isLoading.value, // ✅ Reactive
-                      title: AppTexts.onboardingButton,
+                      title: AppTexts.ONBOARDING_BUTTON,
                       backgroundColor: AppColors.textColor3,
                       textColor: AppColors.primaryColor,
                       onTap: controller.goToNext,
@@ -81,7 +81,7 @@ class OnboardingView extends GetView<OnboardingController> {
   /// Title Widget
   Widget _buildTitle(Size size) {
     return Text(
-      AppTexts.onboardingTitle1,
+      AppTexts.ONBOARDING_TITLE1,
       textAlign: TextAlign.center,
       style: customBoldText.copyWith(
         color: AppColors.textColor3,
@@ -93,7 +93,7 @@ class OnboardingView extends GetView<OnboardingController> {
   /// Subtitle Widget
   Widget _buildSubtitle(Size size) {
     return Text(
-      AppTexts.onboardingSubtitle1,
+      AppTexts.ONBOARDING_SUBTITLE1,
       textAlign: TextAlign.center,
       style: customBoldText.copyWith(
         color: AppColors.tertiaryColor,

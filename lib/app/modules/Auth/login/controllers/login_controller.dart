@@ -47,69 +47,83 @@ class LoginController extends GetxController {
     }
   }
 
- Future<void> login() async {
-  final email = emailController.text.trim();
-  final password = passwordController.text.trim();
+  Future<void> login() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
 
-  // Reset errors
-  emailError.value = '';
-  passwordError.value = '';
+    // Reset errors
+    emailError.value = '';
+    passwordError.value = '';
 
-  // Validate inputs
-  final emailValidation = _validateEmail(email);
-  final passwordValidation = _validatePassword(password);
+    // Validate inputs
+    final emailValidation = _validateEmail(email);
+    final passwordValidation = _validatePassword(password);
 
-  if (emailValidation != null) emailError.value = emailValidation;
-  if (passwordValidation != null) passwordError.value = passwordValidation;
-  if (emailError.value.isNotEmpty || passwordError.value.isNotEmpty) return;
+    if (emailValidation != null) emailError.value = emailValidation;
+    if (passwordValidation != null) passwordError.value = passwordValidation;
+    if (emailError.value.isNotEmpty || passwordError.value.isNotEmpty) return;
 
-  isLoading.value = true;
+    isLoading.value = true;
 
-  try {
-    // 1️⃣ Check if email exists
-    final emailCheck = await _authService.checkEmailAvailability(email);
-    if (emailCheck['available'] == true) {
-      showCustomSnackBar('Email not found. Please register first.', SnackbarState.error);
-      return;
+    try {
+      // 1️⃣ Check if email exists
+      final emailCheck = await _authService.checkEmailAvailability(email);
+      if (emailCheck['available'] == true) {
+        showCustomSnackBar(AppTexts.EMAIL_NOT_FOUND, SnackbarState.error);
+        return;
+      }
+
+      // 2️⃣ Proceed with login
+      final result = await _authService.loginWithAPI(
+        email: email,
+        password: password,
+      );
+
+      // Handle no internet
+      if (result['message'] == "No internet connection.") {
+        showCustomSnackBar(result['message'], SnackbarState.error);
+        return;
+      }
+
+      // 3️⃣ Handle success or failure
+      if (result['result'] == true || result['status'] == 'success') {
+        _handleRememberMe(email);
+        Preference.isLoggedIn = true;
+        Preference.email = email;
+        final message = result['message'] ?? '';
+        final name =
+            message.contains(':') ? message.split(':').last.trim() : 'User';
+
+        Preference.isLoggedIn = true;
+        Preference.email = email;
+        Preference.userName = name;
+        Preference.profileImage = result['profilePhoto'];
+
+        // ✅ Debug prints
+        print("✅ Login saved to Hive:");
+        print("isLoggedIn: ${Preference.isLoggedIn}");
+        print("email: ${Preference.email}");
+        print("userName: ${Preference.userName}");
+        print("profileImage: ${Preference.profileImage}");
+
+        showCustomSnackBar(
+          result['notification'] ?? 'Login successful',
+          SnackbarState.success,
+        );
+        Get.offAllNamed(Routes.DASHBOARD);
+      } else {
+        // Handle invalid credentials or general errors
+        final errorMessage =
+            result['message'] ?? result['error'] ?? 'Invalid email or password';
+        showCustomSnackBar(errorMessage, SnackbarState.error);
+      }
+    } catch (e, stackTrace) {
+      print('Login error: $e\n$stackTrace');
+      showCustomSnackBar(AppTexts.SOMETHING_WENT_WRONG, SnackbarState.error);
+    } finally {
+      isLoading.value = false;
     }
-
-    // 2️⃣ Proceed with login
-    final result = await _authService.loginWithAPI(
-      email: email,
-      password: password,
-    );
-
-    // Handle no internet
-    if (result['message'] == "No internet connection.") {
-      showCustomSnackBar(result['message'], SnackbarState.error);
-      return;
-    }
-
-    // 3️⃣ Handle success or failure
-    if (result['result'] == true || result['status'] == 'success') {
-      _handleRememberMe(email);
-      Preference.isLoggedIn = true;
-      Preference.email = email;
-      Preference.userName = result['name'] ?? 'User';
-      Preference.profileImage = result['profilePhoto'];
-
-      showCustomSnackBar(result['notification'] ?? 'Login successful', SnackbarState.success);
-      Get.offAllNamed(Routes.DASHBOARD);
-    } else {
-      // Handle invalid credentials or general errors
-      final errorMessage = result['message'] ??
-          result['error'] ??
-          'Invalid email or password';
-      showCustomSnackBar(errorMessage, SnackbarState.error);
-    }
-  } catch (e, stackTrace) {
-    print('Login error: $e\n$stackTrace');
-    showCustomSnackBar('Something went wrong. Please try again.', SnackbarState.error);
-  } finally {
-    isLoading.value = false;
   }
-}
-
 
   /// ✅ Helper to handle Remember Me
   void _handleRememberMe(String email) {
@@ -131,7 +145,7 @@ class LoginController extends GetxController {
     try {
       final connectivityResult = await Connectivity().checkConnectivity();
       if (connectivityResult == ConnectivityResult.none) {
-        showCustomSnackBar(AppTexts.noInternet, SnackbarState.error);
+        showCustomSnackBar(AppTexts.NO_INTERNET, SnackbarState.error);
         return;
       }
 
@@ -140,13 +154,19 @@ class LoginController extends GetxController {
         Preference.isLoggedIn = true;
         Preference.email = userCredential.user?.email ?? '';
 
-        showCustomSnackBar(AppTexts.googleSignInSuccess, SnackbarState.success);
+        showCustomSnackBar(
+          AppTexts.GOOGLE_SIGNIN_SUCCESS,
+          SnackbarState.success,
+        );
         Get.offAllNamed(Routes.DASHBOARD);
       } else {
-        showCustomSnackBar(AppTexts.googleSignInCanceled, SnackbarState.error);
+        showCustomSnackBar(
+          AppTexts.GOOGLE_SIGNIN_CANCELED,
+          SnackbarState.error,
+        );
       }
     } catch (e) {
-      showCustomSnackBar(AppTexts.googleSignInFailed, SnackbarState.error);
+      showCustomSnackBar(AppTexts.GOOGLE_SIGNIN_FAILED, SnackbarState.error);
     } finally {
       isGoogleLoading.value = false;
     }

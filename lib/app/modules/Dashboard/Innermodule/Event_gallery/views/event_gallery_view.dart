@@ -1,3 +1,5 @@
+// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api
+
 import 'package:bellybutton/app/global_widgets/custom_app_bar/custom_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -6,14 +8,14 @@ import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_images.dart';
 import '../../../../../core/constants/app_texts.dart';
 import '../../../../../global_widgets/GlobalTextField/GlobalTextField.dart';
+import '../../../../../global_widgets/Shimmers/EventGalleryShimmer.dart';
 import '../controllers/event_gallery_controller.dart';
-import 'package:shimmer/shimmer.dart';
 
 class EventGalleryView extends GetView<EventGalleryController> {
-  const EventGalleryView({super.key});
-
   @override
   Widget build(BuildContext context) {
+    // ✅ Initialize controller with event data passed from previous screen
+    final controller = Get.put(EventGalleryController());
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final theme = Theme.of(context);
@@ -24,17 +26,16 @@ class EventGalleryView extends GetView<EventGalleryController> {
           isDarkMode
               ? AppTheme.darkTheme.scaffoldBackgroundColor
               : AppTheme.lightTheme.scaffoldBackgroundColor,
-      appBar: const CustomAppBar(title: AppTexts.Event),
+      appBar: const CustomAppBar(title: AppTexts.EVENT),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            SizedBox(height: screenHeight * 0.01), // reduced space
-            _buildTitleField(screenWidth),
-            _buildDescriptionField(),
+            SizedBox(height: screenHeight * 0.01),
+            _buildTitleField(screenWidth, controller),
+            _buildDescriptionField(controller),
             const SizedBox(height: 12),
-            // Skeleton grid placeholder
             Expanded(child: _buildSkeletonGrid(screenWidth)),
           ],
         ),
@@ -42,9 +43,13 @@ class EventGalleryView extends GetView<EventGalleryController> {
     );
   }
 
-  Widget _buildTitleField(double screenWidth) {
+  Widget _buildTitleField(
+    double screenWidth,
+    EventGalleryController controller,
+  ) {
     return GlobalTextField(
-      hintText: AppTexts.EventTitle,
+      hintText: AppTexts.EVENT_TITLE,
+      initialValue: controller.event.title ?? '',
       obscureText: false,
       keyboardType: TextInputType.text,
       suffixIcon: Padding(
@@ -62,8 +67,7 @@ class EventGalleryView extends GetView<EventGalleryController> {
             mainAxisSize: MainAxisSize.min,
             children: [
               SvgPicture.asset(
-                // color: Colors.black,
-                app_images.userscount,
+                AppImages.USERS_COUNT,
                 width: screenWidth * 0.045,
                 height: screenWidth * 0.045,
               ),
@@ -83,39 +87,17 @@ class EventGalleryView extends GetView<EventGalleryController> {
     );
   }
 
-  Widget _buildDescriptionField() {
+  Widget _buildDescriptionField(EventGalleryController controller) {
     return GlobalTextField(
-      hintText: AppTexts.Description,
+      hintText: AppTexts.DESCRIPTION,
+      initialValue: controller.event.description ?? '',
       obscureText: false,
       keyboardType: TextInputType.multiline,
       maxLines: 2,
     );
   }
 
-  // Skeleton grid loader widget with shimmer
   Widget _buildSkeletonGrid(double screenWidth) {
-    return Shimmer.fromColors(
-      baseColor: Colors.grey.shade300,
-      highlightColor: Colors.grey.shade100,
-      child: GridView.builder(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.only(top: 16),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4, // Number of columns
-          mainAxisSpacing: 08,
-          crossAxisSpacing: 08,
-          childAspectRatio: 1, // Make items square
-        ),
-        itemCount: 100, // Number of skeleton items
-        itemBuilder: (context, index) {
-          return Container(
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(screenWidth * 0.02),
-            ),
-          );
-        },
-      ),
-    );
+    return const EventGalleryShimmer(itemCount: 100, crossAxisCount: 4);
   }
 }

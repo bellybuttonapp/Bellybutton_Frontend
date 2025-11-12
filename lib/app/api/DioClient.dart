@@ -82,6 +82,23 @@ class DioClient {
     }
   }
 
+  // ==========================
+  // Generic DELETE request
+  // ==========================
+  Future<Response?> deleteRequest(String endpoint) async {
+    try {
+      return await _dio.delete(
+        endpoint,
+        options: Options(
+          responseType: ResponseType.plain,
+        ), // backend sends plain text
+      );
+    } on DioException catch (e) {
+      _handleDioError(e);
+      return null;
+    }
+  }
+
   // Only show "No Internet" to the user
   void _handleDioError(DioException e) {
     if (e.error is SocketException) {
@@ -90,5 +107,25 @@ class DioClient {
 
     // Other errors are ignored for the user
     print("Dio Error: ${e.message}");
+  }
+
+  // ==========================
+  // Generic PUT request
+  // ==========================
+  Future<Response?> putRequest(
+    String endpoint, {
+    dynamic data,
+    ResponseType responseType = ResponseType.json,
+  }) async {
+    try {
+      return await _dio.put(
+        endpoint,
+        data: data,
+        options: Options(responseType: responseType),
+      );
+    } on DioException catch (e) {
+      _handleDioError(e);
+      return null;
+    }
   }
 }

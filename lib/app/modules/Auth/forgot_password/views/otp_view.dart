@@ -76,20 +76,20 @@ class OtpView extends GetView<ForgotPasswordController> {
 
                 Center(
                   child: Image.asset(
-                    app_images.Forget_pswrd,
+                    AppImages.FORGET_PSWRD,
                     height: screenHeight * 0.2,
                   ),
                 ),
                 SizedBox(height: screenHeight * 0.03),
 
                 Text(
-                  AppTexts.otpTitle,
+                  AppTexts.OTP_TITLE,
                   style: customBoldText.copyWith(fontSize: screenWidth * 0.06),
                 ),
                 SizedBox(height: screenHeight * 0.01),
 
                 Text(
-                  AppTexts.otpSubtitle,
+                  AppTexts.OTP_SUBTITLE,
                   style: customBoldText.copyWith(
                     color: AppColors.tertiaryColor,
                     fontSize: screenWidth * 0.04,
@@ -159,7 +159,7 @@ class OtpView extends GetView<ForgotPasswordController> {
                   () => Row(
                     children: [
                       Text(
-                        AppTexts.resendOtp,
+                        AppTexts.RESEND_OTP,
                         style: customBoldText.copyWith(
                           color: AppColors.tertiaryColor,
                           fontSize: screenWidth * 0.035,
@@ -184,7 +184,7 @@ class OtpView extends GetView<ForgotPasswordController> {
                                         ),
                                       )
                                       : Text(
-                                        AppTexts.resendNow,
+                                        AppTexts.RESEND_NOW,
                                         style: customBoldText.copyWith(
                                           fontWeight: FontWeight.bold,
                                           color: AppColors.primaryColor,

@@ -27,11 +27,11 @@ class SetNewPasswordView extends GetView<SetNewPasswordViewController> {
           return Obx(() {
             // if (controller.isDisposed) return SizedBox.shrink();
             return AuthActionForm(
-              imagePath: app_images.Forget_pswrd,
-              title: AppTexts.setNewPassword,
-              subtitle: AppTexts.setNewPasswordSubtitle,
+              imagePath: AppImages.FORGET_PSWRD,
+              title: AppTexts.SET_NEW_PASSWORD,
+              subtitle: AppTexts.SET_NEW_PASSWORD_SUBTITLE,
 
-              hintText: AppTexts.newPassword,
+              hintText: AppTexts.NEW_PASSWORD,
               controller: controller.newPasswordController,
               errorText: controller.newPasswordError.value,
               onChanged: controller.validateNewPassword,
@@ -48,8 +48,7 @@ class SetNewPasswordView extends GetView<SetNewPasswordViewController> {
                   controller.isPasswordHidden.toggle();
                 },
               ),
-
-              hintText2: AppTexts.confirmPassword,
+              hintText2: AppTexts.CONFIRM_PASSWORD,
               controller2: controller.confirmPasswordController,
               errorText2: controller.confirmPasswordError.value,
               onChanged2: controller.validateConfirmPassword,
@@ -68,7 +67,7 @@ class SetNewPasswordView extends GetView<SetNewPasswordViewController> {
               //   },
               // ),
               onTap: controller.confirmNewPassword,
-              buttonText: AppTexts.confirmPassword,
+              buttonText: AppTexts.CONFIRM_PASSWORD,
               isLoading: controller.isLoading.value,
             );
           });

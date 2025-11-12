@@ -17,6 +17,7 @@ import '../../../../../global_widgets/custom_app_bar/custom_app_bar.dart';
 class AccountDetailsView extends GetView<AccountDetailsController> {
   final AccountDetailsController controller = Get.put(
     AccountDetailsController(),
+    permanent: true,
   );
   final _formKey = GlobalKey<FormState>();
 
@@ -30,7 +31,6 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
 
     final user = AuthService().currentUser;
 
-    // Use Firebase displayName first, then Preference, then fallback
     final initialName =
         user?.displayName?.isNotEmpty == true
             ? user!.displayName!
@@ -38,17 +38,23 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
                 ? Preference.userName
                 : "example User");
 
-    // Initialize the controller's nameController only once
     controller.nameController.text = initialName;
+    controller.bioController.text =
+        Preference.bio.isNotEmpty ? Preference.bio : "";
 
     ImageProvider<Object>? profileImage() {
-      if (controller.pickedImage.value != null) {
-        return FileImage(File(controller.pickedImage.value!.path));
-      } else if ((Preference.profileImage ?? '').isNotEmpty) {
-        return FileImage(File(Preference.profileImage!));
-      } else if (user?.photoURL != null) {
-        return NetworkImage(user!.photoURL!);
+      final picked = controller.pickedImage.value;
+      final savedImage = Preference.profileImage ?? '';
+      final photoUrl = user?.photoURL;
+
+      if (picked != null) return FileImage(File(picked.path));
+      if (savedImage.isNotEmpty) {
+        return savedImage.startsWith('http')
+            ? NetworkImage(savedImage)
+            : FileImage(File(savedImage));
       }
+      if (photoUrl != null && photoUrl.isNotEmpty)
+        return NetworkImage(photoUrl);
       return null;
     }
 
@@ -57,7 +63,7 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
           isDarkMode
               ? AppTheme.darkTheme.scaffoldBackgroundColor
               : AppTheme.lightTheme.scaffoldBackgroundColor,
-      appBar: CustomAppBar(title: AppTexts.accountDetails),
+      appBar: CustomAppBar(title: AppTexts.ACCOUNT_DETAILS),
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
@@ -78,17 +84,24 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
                         children: [
                           Obx(
                             () => Hero(
-                              tag: 'profile-photo', // unique tag for Hero
+                              tag: 'profile-photo',
                               child: CircleAvatar(
                                 radius: screenWidth * 0.16,
-                                backgroundColor: Colors.grey,
+                                backgroundColor: AppColors.other,
                                 backgroundImage: profileImage(),
                                 child:
                                     profileImage() == null
-                                        ? Icon(
-                                          Icons.person,
-                                          size: screenWidth * 0.13,
-                                          color: Colors.white,
+                                        ? Padding(
+                                          padding: EdgeInsets.all(
+                                            screenWidth * 0.03,
+                                          ),
+                                          child: SvgPicture.asset(
+                                            AppImages.PERSON,
+                                            height: screenWidth * 0.08,
+                                            width: screenWidth * 0.08,
+                                            color: AppColors.textColor
+                                                .withOpacity(0.7),
+                                          ),
                                         )
                                         : null,
                               ),
@@ -106,7 +119,7 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
                                   shape: BoxShape.circle,
                                 ),
                                 child: SvgPicture.asset(
-                                  app_images.Camera_Add_icon,
+                                  AppImages.CAMERA_ADD_ICON,
                                   color: AppColors.textColor3,
                                   width: screenWidth * 0.045,
                                   height: screenWidth * 0.045,
@@ -124,38 +137,49 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
                     Obx(
                       () => GlobalTextField(
                         controller: controller.nameController,
-                        hintText: AppTexts.signupName,
+                        hintText: AppTexts.SIGNUP_NAME,
                         obscureText: false,
                         keyboardType: TextInputType.name,
                         errorText: controller.nameError.value,
                         onChanged: controller.validateName,
                       ),
                     ),
+
                     SizedBox(height: screenHeight * 0.025),
 
-                    // Email Field (Read-only, from Preference)
-                    Obx(
-                      () => GlobalTextField(
-                        enabled: false,
-                        controller: TextEditingController(
-                          text:
-                              Preference.email.isNotEmpty
-                                  ? Preference.email
-                                  : (user?.email ?? "example@email.com"),
-                        ),
-                        hintText: AppTexts.Email,
-                        obscureText: false,
-                        suffixIcon: Padding(
-                          padding: EdgeInsets.all(screenWidth * 0.03),
-                          child: SvgPicture.asset(
-                            app_images.check_icon,
-                            width: screenWidth * 0.025,
-                            height: screenWidth * 0.025,
-                          ),
+                    // Bio Field
+                    GlobalTextField(
+                      controller: controller.bioController,
+                      hintText: AppTexts.BIO,
+                      obscureText: false,
+                      keyboardType: TextInputType.text,
+                      maxLines: 3,
+                    ),
+
+                    SizedBox(height: screenHeight * 0.025),
+
+                    // Email Field (Read-only)
+                    GlobalTextField(
+                      enabled: false,
+                      controller: TextEditingController(
+                        text:
+                            Preference.email.isNotEmpty
+                                ? Preference.email
+                                : (user?.email ?? "example@email.com"),
+                      ),
+                      hintText: AppTexts.EMAIL,
+                      obscureText: false,
+                      suffixIcon: Padding(
+                        padding: EdgeInsets.all(screenWidth * 0.03),
+                        child: SvgPicture.asset(
+                          AppImages.CHECK_ICON,
+                          width: screenWidth * 0.025,
+                          height: screenWidth * 0.025,
                         ),
                       ),
                     ),
-                    SizedBox(height: screenHeight * 0.35),
+
+                    SizedBox(height: screenHeight * 0.25),
 
                     // Save Button
                     Obx(
@@ -167,7 +191,7 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
                             controller.saveChanges();
                           }
                         },
-                        title: AppTexts.saveChanges,
+                        title: AppTexts.SAVE_CHANGES,
                         backgroundColor: AppColors.primaryColor,
                       ),
                     ),
