@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/themes/Font_style.dart';
+import 'package:bellybutton/app/core/utils/index.dart';
+
 import '../loader/global_loader.dart';
 
 // ignore: camel_case_types
@@ -10,7 +11,9 @@ class global_button extends StatelessWidget {
   final Color backgroundColor;
   final Color textColor;
   final bool isLoading;
-  final bool loaderWhite; // Flag to switch loader color
+  final bool loaderWhite;
+
+  final bool removeMargin; // NEW → remove button margin when needed
 
   const global_button({
     super.key,
@@ -20,6 +23,7 @@ class global_button extends StatelessWidget {
     this.textColor = AppColors.textColor3,
     this.isLoading = false,
     this.loaderWhite = false,
+    this.removeMargin = false, // NEW DEFAULT
   });
 
   @override
@@ -31,21 +35,26 @@ class global_button extends StatelessWidget {
       onTap: isLoading ? null : onTap,
       child: Container(
         padding: EdgeInsets.symmetric(
-          vertical: screenHeight * 0.018, // ✅ responsive vertical padding
-          horizontal: screenWidth * 0.06, // ✅ responsive horizontal padding
+          vertical: screenHeight * 0.018,
+          horizontal: screenWidth * 0.06,
         ),
-        margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+
+        // 🔥 margin is removed only when needed
+        margin:
+            removeMargin
+                ? EdgeInsets.zero
+                : EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+
         decoration: BoxDecoration(
           color: backgroundColor,
-          borderRadius: BorderRadius.circular(
-            screenWidth * 0.02,
-          ), // ✅ responsive radius
+          borderRadius: BorderRadius.circular(screenWidth * 0.02),
         ),
+
         child: Center(
           child:
               isLoading
                   ? SizedBox(
-                    height: screenHeight * 0.025, // ✅ responsive loader size
+                    height: screenHeight * 0.025,
                     width: screenHeight * 0.025,
                     child: Global_Loader(
                       color:
@@ -57,7 +66,7 @@ class global_button extends StatelessWidget {
                   : Text(
                     title,
                     style: customBoldText.copyWith(
-                      fontSize: screenWidth * 0.038, // ✅ responsive font size
+                      fontSize: screenWidth * 0.038,
                       color: textColor,
                     ),
                   ),

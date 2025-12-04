@@ -2,9 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import '../../core/constants/app_colors.dart';
-import '../../core/themes/Font_style.dart';
+import 'package:bellybutton/app/core/utils/index.dart';
 import '../loader/global_loader.dart';
 
 class CustomPopup extends StatelessWidget {
@@ -13,8 +12,13 @@ class CustomPopup extends StatelessWidget {
   final RichText? messageWidget;
   final String confirmText;
   final String? cancelText;
-  final VoidCallback onConfirm;
+  final VoidCallback? onConfirm;
   final RxBool isProcessing;
+
+  /// For sync download popup only
+  final RxInt? savedCount;
+  final RxInt? totalCount;
+  final bool showProgress;
 
   const CustomPopup({
     super.key,
@@ -25,134 +29,182 @@ class CustomPopup extends StatelessWidget {
     this.cancelText,
     required this.onConfirm,
     required this.isProcessing,
+    this.savedCount,
+    this.totalCount,
+    this.showProgress = false,
   }) : assert(
          message != null || messageWidget != null,
-         'Either message or messageWidget must be provided',
+         "Provide either message or messageWidget",
        );
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final size = MediaQuery.of(context).size;
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque, // detect taps anywhere
-      onTap: () => Get.back(), // close dialog on outside tap
-      child: Center(
-        child: GestureDetector(
-          onTap: () {}, // prevent close when tapping inside the popup
-          child: Container(
-            width: size.width * 0.85,
-            padding: EdgeInsets.all(size.width * 0.05),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.textColor2 : AppColors.textColor3,
-              borderRadius: BorderRadius.circular(size.width * 0.03),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: Obx(
-                () => Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Text(
-                        title,
-                        style: customBoldText.copyWith(
-                          fontSize: size.width * 0.05,
-                          color:
-                              isDark
-                                  ? AppColors.textColor2
-                                  : AppColors.textColor,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: size.height * 0.02),
-                    messageWidget ??
+    /// 🔥 MediaQuery Added Here
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
+      child: Stack(
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => Get.back(),
+          ),
+
+          Center(
+            child: GestureDetector(
+              onTap: () {},
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  width: size.width * 0.85,
+                  padding: EdgeInsets.all(size.width * 0.05),
+                  decoration: BoxDecoration(
+                    color: AppColors.textColor3,
+                    borderRadius: BorderRadius.circular(size.width * 0.03),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black26, blurRadius: 8),
+                    ],
+                  ),
+
+                  child: Obx(
+                    () => Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        /// Title
                         Text(
-                          message ?? '',
+                          title,
                           textAlign: TextAlign.center,
                           style: customBoldText.copyWith(
-                            fontSize: size.width * 0.04,
-                            color: isDark ? Colors.white70 : Colors.black87,
+                            fontSize: size.width * 0.05,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                    SizedBox(height: size.height * 0.03),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        if (cancelText != null && cancelText!.isNotEmpty)
-                          OutlinedButton(
-                            onPressed: () => Get.back(),
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(color: AppColors.primaryColor1),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                  size.width * 0.015,
+
+                        SizedBox(height: size.height * 0.025),
+
+                        /// Progress mode UI
+                        if (showProgress &&
+                            savedCount != null &&
+                            totalCount != null) ...[
+                          Global_Loader(
+                            size: 55,
+                            strokeWidth: 3,
+                            color: AppColors.primaryColor,
+                          ),
+                          SizedBox(height: 15),
+
+                          Text(
+                            "${savedCount!.value}/${totalCount!.value} Saved",
+                            style: customBoldText.copyWith(
+                              fontSize: size.width * 0.045,
+                            ),
+                          ),
+
+                          SizedBox(height: 10),
+
+                          LinearProgressIndicator(
+                            value:
+                                savedCount!.value /
+                                (totalCount!.value == 0
+                                    ? 1
+                                    : totalCount!.value),
+                            color: AppColors.primaryColor,
+                            minHeight: 6,
+                            backgroundColor: Colors.black12,
+                          ),
+
+                          SizedBox(height: 10),
+                          Text(
+                            "Downloading please wait...",
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.black54,
+                            ),
+                          ),
+                          SizedBox(height: 10),
+                        ]
+                        /// Normal Popup UI
+                        else ...[
+                          messageWidget ??
+                              Text(
+                                message ?? "",
+                                textAlign: TextAlign.center,
+                                style: customBoldText.copyWith(
+                                  fontSize: size.width * 0.04,
                                 ),
                               ),
-                              padding: EdgeInsets.symmetric(
-                                vertical: size.height * 0.015,
-                                horizontal: size.width * 0.04,
-                              ),
-                            ),
-                            child: Text(
-                              cancelText!,
-                              style: customBoldText.copyWith(
-                                fontSize: size.width * 0.035,
-                                color: AppColors.primaryColor1,
-                              ),
-                            ),
-                          ),
-                        if (cancelText != null && cancelText!.isNotEmpty)
-                          SizedBox(width: size.width * 0.04),
-                        ElevatedButton(
-                          onPressed: isProcessing.value ? null : onConfirm,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryColor,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                size.width * 0.015,
-                              ),
-                            ),
-                            padding: EdgeInsets.symmetric(
-                              vertical: size.height * 0.015,
-                              horizontal: size.width * 0.04,
-                            ),
-                          ),
-                          child:
-                              isProcessing.value
-                                  ? SizedBox(
-                                    height: size.width * 0.045,
-                                    width: size.width * 0.045,
-                                    child: const Global_Loader(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
+
+                          SizedBox(height: size.height * 0.03),
+
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              /// Rectangle Cancel Button
+                              if (cancelText != null)
+                                OutlinedButton(
+                                  onPressed: () => Get.back(),
+                                  style: OutlinedButton.styleFrom(
+                                    side: BorderSide(color: AppColors.error),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 12,
                                     ),
-                                  )
-                                  : Text(
-                                    confirmText,
-                                    style: customBoldText.copyWith(
-                                      fontSize: size.width * 0.035,
-                                      color: AppColors.textColor3,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(05),
                                     ),
                                   ),
-                        ),
+                                  child: Text(
+                                    cancelText!,
+                                    style: customBoldText.copyWith(
+                                      fontSize: size.width * 0.035,
+                                      color: AppColors.error,
+                                    ),
+                                  ),
+                                ),
+
+                              if (cancelText != null) SizedBox(width: 12),
+
+                              /// Rectangle Confirm Button
+                              ElevatedButton(
+                                onPressed:
+                                    isProcessing.value ? null : onConfirm,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primaryColor,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 22,
+                                    vertical: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(05),
+                                  ),
+                                ),
+                                child:
+                                    isProcessing.value
+                                        ? Global_Loader(
+                                          size: 24,
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        )
+                                        : Text(
+                                          confirmText,
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: size.width * 0.035,
+                                          ),
+                                        ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

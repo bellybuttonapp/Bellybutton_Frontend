@@ -1,14 +1,16 @@
-// ignore_for_file: file_names
+// ignore_for_file: file_names, unnecessary_underscores
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:flutter_svg/flutter_svg.dart'; // 👈 ADD THIS
 import '../../core/constants/app_colors.dart';
-import '../../core/themes/Font_style.dart';
+import 'package:bellybutton/app/core/utils/index.dart';
 import '../Button/global_button.dart';
 
 class EmptyJobsPlaceholder extends StatelessWidget {
   final String? title;
-  final String? imagePath; // Made nullable
+  final String? imagePath;
   final String description;
   final RxBool? isLoading;
   final String? buttonText;
@@ -17,7 +19,7 @@ class EmptyJobsPlaceholder extends StatelessWidget {
   const EmptyJobsPlaceholder({
     super.key,
     this.title,
-    this.imagePath, // Now optional
+    this.imagePath,
     required this.description,
     this.isLoading,
     this.buttonText,
@@ -35,14 +37,8 @@ class EmptyJobsPlaceholder extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Only show image if imagePath is provided
             if (imagePath != null) ...[
-              Image.asset(
-                imagePath!,
-                width: size.width * 0.5,
-                height: size.height * 0.3,
-                fit: BoxFit.contain,
-              ),
+              _buildImage(size),
               SizedBox(height: size.height * 0.025),
             ],
 
@@ -89,6 +85,49 @@ class EmptyJobsPlaceholder extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildImage(Size size) {
+    // NETWORK
+    if (imagePath!.startsWith("http")) {
+      return Image.network(
+        imagePath!,
+        width: size.width * 0.5,
+        height: size.height * 0.3,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 60),
+      );
+    }
+
+    // FILE
+    if (File(imagePath!).existsSync()) {
+      return Image.file(
+        File(imagePath!),
+        width: size.width * 0.5,
+        height: size.height * 0.3,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 60),
+      );
+    }
+
+    // SVG ASSET
+    if (imagePath!.toLowerCase().endsWith(".svg")) {
+      return SvgPicture.asset(
+        imagePath!,
+        width: size.width * 0.5,
+        height: size.height * 0.3,
+        fit: BoxFit.contain,
+      );
+    }
+
+    // NORMAL IMAGE ASSET
+    return Image.asset(
+      imagePath!,
+      width: size.width * 0.5,
+      height: size.height * 0.3,
+      fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 60),
     );
   }
 }

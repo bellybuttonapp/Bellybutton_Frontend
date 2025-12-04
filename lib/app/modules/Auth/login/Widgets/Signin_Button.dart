@@ -4,7 +4,7 @@ import 'package:bellybutton/app/core/constants/app_texts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/constants/app_images.dart';
-import '../../../../core/themes/Font_style.dart';
+import 'package:bellybutton/app/core/utils/index.dart';
 import '../../../../global_widgets/loader/global_loader.dart';
 
 // ignore: camel_case_types

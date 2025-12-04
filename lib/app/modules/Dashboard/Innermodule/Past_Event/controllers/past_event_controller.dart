@@ -11,7 +11,6 @@ import '../../../../../routes/app_pages.dart';
 class PastEventController extends GetxController {
   final PublicApiService apiService = PublicApiService();
 
-  // Reactive state variables
   final isLoading = false.obs;
   final isProcessing = false.obs;
   final pastEvents = <EventModel>[].obs;
@@ -24,7 +23,7 @@ class PastEventController extends GetxController {
   }
 
   // ============================================================
-  // ✅ Fetch All Past Events
+  // ✅ FIXED: Fetch REAL Past Events (date + time)
   // ============================================================
   Future<void> fetchPastEvents() async {
     if (isLoading.value) return;
@@ -33,13 +32,18 @@ class PastEventController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
 
+      update();
+
       final events = await apiService.getAllEvents();
       print("📦 All Events Response: ${events.length} items");
 
       final now = DateTime.now();
+
+      // use fullEventDateTime instead of eventDate
       final past =
-          events.where((e) => e.eventDate.isBefore(now)).toList()
-            ..sort((a, b) => b.eventDate.compareTo(a.eventDate));
+          events.where((e) => e.fullEventDateTime.isBefore(now)).toList()..sort(
+            (a, b) => b.fullEventDateTime.compareTo(a.fullEventDateTime),
+          );
 
       if (past.isEmpty) {
         errorMessage.value = 'No past events found';
@@ -51,48 +55,69 @@ class PastEventController extends GetxController {
       print("❌ Fetch Past Events Error: $e");
     } finally {
       isLoading.value = false;
+      update();
     }
   }
 
   // ============================================================
-  // 🗑️ Delete Event by ID (API + Local)
+  // 🗑️ Delete Event
   // ============================================================
   Future<void> deleteEvent(int eventId) async {
-    if (isProcessing.value) return; // Prevent multiple deletions
+    if (isProcessing.value) return;
 
     try {
       isProcessing.value = true;
-      print("🗑️ Deleting event with ID: $eventId ...");
 
       final response = await apiService.deleteEvent(eventId);
 
-      if (response["success"] == true) {
-        // ✅ Close popup if open
-        if (Get.isDialogOpen ?? false) Get.back();
+      // Try to extract message from multiple possible shapes
+      final String respMessage =
+          (response["message"] as String?) ??
+          (response["headers"] is Map
+              ? (response["headers"]["message"] as String?)
+              : null) ??
+          "Event deleted successfully";
 
-        // ✅ Remove from local list
-        pastEvents.removeWhere((event) => event.id == eventId);
+      final bool success =
+          response["success"] == true ||
+          (response["headers"] is Map &&
+              (response["headers"]["status"] == "success"));
 
-        showCustomSnackBar(
-          response["message"] ?? "Event deleted successfully",
-          SnackbarState.success,
-        );
+      if (success) {
+        // Close any open dialog or bottom sheet safely
+        if (Get.isDialogOpen ?? false) {
+          Get.back();
+        }
+        // GetX exposes isBottomSheetOpen
+        if (Get.isBottomSheetOpen ?? false) {
+          Get.back();
+        }
+
+        // Refresh list before showing message so UI is up-to-date
+        await fetchPastEvents();
+
+        showCustomSnackBar(respMessage, SnackbarState.success);
       } else {
-        showCustomSnackBar(
-          response["message"] ?? "Failed to delete event",
-          SnackbarState.error,
-        );
+        // Extract error message if available
+        final String errorMsg =
+            (response["message"] as String?) ??
+            (response["headers"] is Map
+                ? (response["headers"]["message"] as String?)
+                : null) ??
+            "Failed to delete event";
+
+        showCustomSnackBar(errorMsg, SnackbarState.error);
       }
     } catch (e) {
-      print("❌ Delete Event Error: $e");
       showCustomSnackBar("Unexpected error: $e", SnackbarState.error);
     } finally {
       isProcessing.value = false;
+      update();
     }
   }
 
   // ============================================================
-  // 🧾 Public Wrapper for Delete Confirmation
+  // 🧾 Delete Confirmation
   // ============================================================
   void confirmDelete(EventModel event) {
     _showConfirmationDialog(
@@ -105,9 +130,6 @@ class PastEventController extends GetxController {
     );
   }
 
-  // ============================================================
-  // 💬 Private Confirmation Dialog Helper
-  // ============================================================
   void _showConfirmationDialog({
     required String title,
     required String message,
@@ -128,20 +150,24 @@ class PastEventController extends GetxController {
   }
 
   // ============================================================
-  // ✏️ Edit Event → Navigate to Create Event Page
+  // ✏️ Edit Event
   // ============================================================
   void editEvent(EventModel event) {
     print('Editing Event: ${event.title}');
-    print('Current route: ${Get.currentRoute}');
     if (Get.isDialogOpen ?? false) Get.back();
 
     Future.delayed(const Duration(milliseconds: 150), () {
       Get.toNamed(Routes.CREATE_EVENT, arguments: event);
     });
+
+    update();
   }
 
   // ============================================================
   // 🔄 Retry Fetch
   // ============================================================
-  void retryFetch() => fetchPastEvents();
+  void retryFetch() {
+    fetchPastEvents();
+    update();
+  }
 }

@@ -6,7 +6,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_texts.dart';
-import '../../../core/themes/Font_style.dart';
+import 'package:bellybutton/app/core/utils/index.dart';
 import '../../../global_widgets/Button/global_button.dart';
 import '../../../global_widgets/custom_app_bar/custom_app_bar.dart';
 import '../controllers/premium_controller.dart';

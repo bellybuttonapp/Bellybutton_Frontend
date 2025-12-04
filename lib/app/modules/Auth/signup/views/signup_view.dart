@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_images.dart';
-import '../../../../core/themes/Font_style.dart';
+import 'package:bellybutton/app/core/utils/index.dart';
 import '../../../../global_widgets/Button/global_button.dart';
 import '../../login/Widgets/Signin_Button.dart';
 import '../../login/controllers/login_controller.dart';
@@ -101,7 +101,10 @@ class SignupView extends GetView<SignupController> {
                             obscureText: false,
                             keyboardType: TextInputType.name,
                             textCapitalization: TextCapitalization.words,
-                            errorText: controller.nameError.value,
+                            errorText:
+                                (controller.nameError.value ?? '').isEmpty
+                                    ? null
+                                    : controller.nameError.value,
                             onChanged: controller.validateName,
                           ),
                         ),
@@ -116,7 +119,10 @@ class SignupView extends GetView<SignupController> {
                             obscureText: false,
                             keyboardType: TextInputType.emailAddress,
                             textCapitalization: TextCapitalization.none,
-                            errorText: controller.emailError.value,
+                            errorText:
+                                (controller.emailError.value ?? '').isEmpty
+                                    ? null
+                                    : controller.emailError.value,
                             onChanged: controller.validateEmail,
                           ),
                         ),
@@ -129,7 +135,10 @@ class SignupView extends GetView<SignupController> {
                             controller: controller.passwordController,
                             hintText: AppTexts.SIGNUP_PASSWORD,
                             obscureText: controller.isPasswordHidden.value,
-                            errorText: controller.passwordError.value,
+                            errorText:
+                                (controller.passwordError.value ?? '').isEmpty
+                                    ? null
+                                    : controller.passwordError.value,
                             textCapitalization: TextCapitalization.none,
                             keyboardType: TextInputType.visiblePassword,
                             onChanged: controller.validatePassword,
@@ -159,12 +168,10 @@ class SignupView extends GetView<SignupController> {
                                 isDarkMode
                                     ? AppTheme.darkTheme.scaffoldBackgroundColor
                                     : AppTheme.lightTheme.primaryColor,
-                            onTap: () {
-                              if (formKey.currentState!.validate() &&
-                                  !controller.isLoading.value) {
-                                controller.signup();
-                              }
-                            },
+                            onTap:
+                                controller.isLoading.value
+                                    ? null
+                                    : controller.signup,
                           ),
                         ),
 

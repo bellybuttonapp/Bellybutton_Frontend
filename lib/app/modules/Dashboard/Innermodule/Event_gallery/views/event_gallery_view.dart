@@ -1,103 +1,183 @@
-// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api
+// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api, unnecessary_underscores, curly_braces_in_flow_control_structures
 
-import 'package:bellybutton/app/global_widgets/custom_app_bar/custom_app_bar.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
+
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_images.dart';
 import '../../../../../core/constants/app_texts.dart';
-import '../../../../../global_widgets/GlobalTextField/GlobalTextField.dart';
+import '../../../../../core/utils/storage/preference.dart';
+import '../../../../../global_widgets/AppFloatingButton/AppFloatingButton.dart';
+import '../../../../../global_widgets/Button/global_button.dart';
+import '../../../../../global_widgets/EmptyJobsPlaceholder/EmptyJobsPlaceholder.dart';
+import '../../../../../global_widgets/ReusableEventGalleryLayout.dart/ReusableEventGalleryLayout.dart';
 import '../../../../../global_widgets/Shimmers/EventGalleryShimmer.dart';
+import '../../../../../global_widgets/photo_preview_widget/photo_preview_widget.dart';
 import '../controllers/event_gallery_controller.dart';
 
 class EventGalleryView extends GetView<EventGalleryController> {
+  final RefreshController _refresh = RefreshController();
+
   @override
   Widget build(BuildContext context) {
-    // ✅ Initialize controller with event data passed from previous screen
-    final controller = Get.put(EventGalleryController());
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-    final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
+    final c = Get.put(EventGalleryController());
 
-    return Scaffold(
-      backgroundColor:
-          isDarkMode
-              ? AppTheme.darkTheme.scaffoldBackgroundColor
-              : AppTheme.lightTheme.scaffoldBackgroundColor,
-      appBar: const CustomAppBar(title: AppTexts.EVENT),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            SizedBox(height: screenHeight * 0.01),
-            _buildTitleField(screenWidth, controller),
-            _buildDescriptionField(controller),
-            const SizedBox(height: 12),
-            Expanded(child: _buildSkeletonGrid(screenWidth)),
-          ],
+    // ------------------------------------------------------
+    // 🖼 MAIN LAYOUT WRAPPER
+    // ------------------------------------------------------
+    return ReusableEventGalleryLayout(
+      appBarTitle: AppTexts.EVENT_GALLERY,
+      title: c.event.title,
+      description: c.event.description,
+
+      // ------------------------------------------------------
+      // 👥 USERS COUNT BADGE (TOP RIGHT IN APPBAR)
+      // ------------------------------------------------------
+      suffixWidget: Obx(() {
+        return buildSuffixWidget(
+          count:
+              "${controller.invitedCount.value.toString().padLeft(2, '0')}/05",
+          iconPath: AppImages.USERS_COUNT,
+          onTap: controller.onInvitedUsersTap,
+          screenWidth: MediaQuery.of(context).size.width,
+        );
+      }),
+
+      // ------------------------------------------------------
+      // 📸 GALLERY GRID VIEW + SHIMMER + REFRESH
+      // ------------------------------------------------------
+      gridView: Obx(() {
+        if (c.photos.isEmpty && c.savedCount.value == 0) {
+          return const EventGalleryShimmer(itemCount: 40, crossAxisCount: 4);
+        }
+
+        return SmartRefresher(
+          controller: _refresh,
+          enablePullDown: true,
+          header: const MaterialClassicHeader(),
+          onRefresh: () async {
+            await c.fetchPhotos();
+            _refresh.refreshCompleted();
+          },
+
+          child:
+              c.photos.isEmpty
+                  // ------------------------------------------------------
+                  // 🚫 EMPTY STATE (NO IMAGES)
+                  // ------------------------------------------------------
+                  ? Center(
+                    child: EmptyJobsPlaceholder(
+                      title: AppTexts.NO_EVENT_PHOTOS_TITLE,
+                      description: AppTexts.NO_EVENT_PHOTOS_DESCRIPTION,
+                    ),
+                  )
+                  // ------------------------------------------------------
+                  // 🔥 GALLERY PHOTOS GRID
+                  // ------------------------------------------------------
+                  : GridView.builder(
+                    padding: const EdgeInsets.all(10),
+                    itemCount: c.photos.length,
+                    physics: const BouncingScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 4,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                          childAspectRatio: .7,
+                        ),
+                    itemBuilder: (_, i) {
+                      if (i == c.photos.length - 10)
+                        c.fetchPhotos(loadMore: true);
+
+                      return GestureDetector(
+                        onLongPress: () {
+                          Get.to(
+                            () => ReusablePhotoPreview(
+                              images: c.photos,
+                              isNetwork: true,
+                              initialIndex: i,
+                            ),
+                            transition: Transition.fadeIn,
+                            duration: const Duration(milliseconds: 150),
+                          );
+                        },
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: CachedNetworkImage(
+                            imageUrl: c.photos[i],
+                            fit: BoxFit.cover,
+                            memCacheWidth: 300,
+                            memCacheHeight: 300,
+                            placeholder:
+                                (_, __) => const EventGalleryShimmer(
+                                  itemCount: 1,
+                                  crossAxisCount: 1,
+                                ),
+                            errorWidget:
+                                (_, __, ___) => Container(
+                                  color: Colors.black12,
+                                  child: const Icon(
+                                    Icons.broken_image,
+                                    color: Colors.red,
+                                  ),
+                                ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+        );
+      }),
+
+      // ------------------------------------------------------
+      // 🔄 BOTTOM SYNC BUTTON (FINAL WORKING LOGIC)
+      // ------------------------------------------------------
+      bottomButton: Obx(() {
+        // 🔥 Check permanent sync completion saved in Hive
+        bool syncedOnce =
+            Preference.box.get(Preference.EVENT_SYNC_DONE) == true;
+
+        // 🔥 Also check live runtime values
+        bool fullySynced =
+            c.savedCount.value == c.totalToSave.value &&
+            c.totalToSave.value != 0;
+
+        return global_button(
+          title:
+              (syncedOnce || fullySynced)
+                  ? "Completed (${c.savedCount}/${c.totalToSave})"
+                  : "Sync Now",
+
+          backgroundColor: AppColors.primaryColor,
+          loaderWhite: true,
+
+          isLoading:
+              !c.enableOK.value &&
+              c.savedCount.value > 0 &&
+              c.savedCount.value < c.totalToSave.value,
+
+          onTap: (syncedOnce || fullySynced) ? null : c.syncNow,
+        );
+      }),
+
+      // ------------------------------------------------------
+      // ⚡ FLOATING ACTIONS
+      // ------------------------------------------------------
+      floatingButtons: [
+        AppFloatingButton(
+          backgroundColor: AppColors.primaryColor,
+          iconPath: AppImages.EXPORT_ICON,
+          onTap: c.fabOneAction,
         ),
-      ),
-    );
-  }
-
-  Widget _buildTitleField(
-    double screenWidth,
-    EventGalleryController controller,
-  ) {
-    return GlobalTextField(
-      hintText: AppTexts.EVENT_TITLE,
-      initialValue: controller.event.title ?? '',
-      obscureText: false,
-      keyboardType: TextInputType.text,
-      suffixIcon: Padding(
-        padding: const EdgeInsets.all(4.0),
-        child: Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: screenWidth * 0.04,
-            vertical: screenWidth * 0.01,
-          ),
-          decoration: BoxDecoration(
-            color: const Color.fromARGB(40, 166, 216, 233),
-            borderRadius: BorderRadius.circular(screenWidth * 0.02),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SvgPicture.asset(
-                AppImages.USERS_COUNT,
-                width: screenWidth * 0.045,
-                height: screenWidth * 0.045,
-              ),
-              SizedBox(width: screenWidth * 0.015),
-              const Text(
-                "01/05",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.black,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
+        const SizedBox(height: 20),
+        AppFloatingButton(
+          backgroundColor: AppColors.primaryColor,
+          iconPath: AppImages.INVITE_ICON,
+          onTap: c.fabTwoAction,
         ),
-      ),
+      ],
     );
-  }
-
-  Widget _buildDescriptionField(EventGalleryController controller) {
-    return GlobalTextField(
-      hintText: AppTexts.DESCRIPTION,
-      initialValue: controller.event.description ?? '',
-      obscureText: false,
-      keyboardType: TextInputType.multiline,
-      maxLines: 2,
-    );
-  }
-
-  Widget _buildSkeletonGrid(double screenWidth) {
-    return const EventGalleryShimmer(itemCount: 100, crossAxisCount: 4);
   }
 }

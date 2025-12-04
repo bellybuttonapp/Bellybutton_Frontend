@@ -2,8 +2,7 @@
 
 import 'package:get/get.dart';
 import 'package:device_info_plus/device_info_plus.dart';
-
-import '../utils/preference.dart';
+import '../core/utils/storage/preference.dart';
 
 class DeviceController extends GetxController {
   // String _deviceId = '';

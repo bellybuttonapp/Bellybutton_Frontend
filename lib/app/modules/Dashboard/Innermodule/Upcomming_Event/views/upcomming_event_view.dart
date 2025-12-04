@@ -107,6 +107,7 @@ class UpcommingEventView extends GetView<UpcommingEventController> {
               itemBuilder: (context, index) {
                 final event = controller.eventData[index];
                 return EventCard(
+                  showViewPhotosInitially: true,
                   event: event,
                   isDarkMode: isDarkMode,
                   onTap:

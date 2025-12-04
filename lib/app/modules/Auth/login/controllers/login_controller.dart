@@ -1,11 +1,14 @@
-// ignore_for_file: unrelated_type_equality_checks, curly_braces_in_flow_control_structures, avoid_print
+// ignore_for_file: unrelated_type_equality_checks, curly_braces_in_flow_control_structures, avoid_print, unnecessary_type_check
 
-import 'package:bellybutton/app/utils/preference.dart';
+import 'package:bellybutton/app/core/utils/storage/preference.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import '../../../../Controllers/oauth.dart';
+import '../../../../api/PublicApiService.dart';
 import '../../../../core/constants/app_texts.dart';
+import '../../../../core/utils/helpers/validation_utils.dart';
 import '../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../../routes/app_pages.dart';
 import '../../forgot_password/views/forgot_password_view.dart';
@@ -13,21 +16,19 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 
 class LoginController extends GetxController {
   final AuthService _authService = AuthService();
-  final storage = GetStorage(); // Local storage instance
+  final storage = GetStorage();
 
-  // Loading states
-  var isGoogleLoading = false.obs;
-  var isLoading = false.obs;
+  final isGoogleLoading = false.obs;
+  final isLoading = false.obs;
 
-  // Form controllers
+  // controllers
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
-  // Validation error messages
-  final emailError = ''.obs;
-  final passwordError = ''.obs;
+  // error fields
+  final emailError = RxnString();
+  final passwordError = RxnString();
 
-  // Misc
   final rememberMe = false.obs;
   final isPasswordHidden = true.obs;
 
@@ -37,6 +38,9 @@ class LoginController extends GetxController {
     _loadRememberedUser();
   }
 
+  //----------------------------------------------------
+  // LOAD SAVED EMAIL
+  //----------------------------------------------------
   void _loadRememberedUser() {
     final savedEmail = storage.read('email');
     final savedRemember = storage.read('rememberMe') ?? false;
@@ -47,85 +51,94 @@ class LoginController extends GetxController {
     }
   }
 
+  //----------------------------------------------------
+  // VALIDATE FIELDS
+  //----------------------------------------------------
+  void validateEmail(String value) =>
+      emailError.value = Validation.validateEmail(value);
+
+  void validatePassword(String value) =>
+      passwordError.value = Validation.validatePassword(value);
+
+  //----------------------------------------------------
+  // LOGIN FUNCTION
+  //----------------------------------------------------
   Future<void> login() async {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
-    // Reset errors
-    emailError.value = '';
-    passwordError.value = '';
+    emailError.value = Validation.validateEmail(email);
+    passwordError.value = Validation.validatePassword(password);
 
-    // Validate inputs
-    final emailValidation = _validateEmail(email);
-    final passwordValidation = _validatePassword(password);
-
-    if (emailValidation != null) emailError.value = emailValidation;
-    if (passwordValidation != null) passwordError.value = passwordValidation;
-    if (emailError.value.isNotEmpty || passwordError.value.isNotEmpty) return;
+    if (emailError.value != null || passwordError.value != null) return;
 
     isLoading.value = true;
 
     try {
-      // 1️⃣ Check if email exists
-      final emailCheck = await _authService.checkEmailAvailability(email);
-      if (emailCheck['available'] == true) {
-        showCustomSnackBar(AppTexts.EMAIL_NOT_FOUND, SnackbarState.error);
-        return;
-      }
-
-      // 2️⃣ Proceed with login
       final result = await _authService.loginWithAPI(
         email: email,
         password: password,
       );
 
-      // Handle no internet
-      if (result['message'] == "No internet connection.") {
-        showCustomSnackBar(result['message'], SnackbarState.error);
+      final headers = result['headers'] ?? {};
+      final isSuccess =
+          headers['status'] == 'success' || headers['statusCode'] == 200;
+
+      if (isSuccess) {
+        _handleRememberMe(email);
+
+        final data = result['data'];
+
+        // set values
+        final rawToken = data['accessToken']?.trim() ?? '';
+        Preference.token = rawToken;
+        Preference.userId = data['userId'];
+        Preference.email = data['email'];
+        Preference.userName = (data['message'] ?? '').split(':').last.trim();
+        Preference.profileImage = data['profilePhoto'] ?? '';
+        Preference.isLoggedIn = true;
+
+        print("🔵 LOGGED IN USER ID → ${Preference.userId}");
+        print("🔵 TOKEN STORED → $rawToken");
+
+        // ✅ Upload FCM token AFTER login
+        final fcmToken = await FirebaseMessaging.instance.getToken();
+        if (fcmToken != null) {
+          Preference.fcmToken = fcmToken;
+          await PublicApiService().updateFcmToken(fcmToken);
+        }
+
+        // ✅ Listen for token refresh
+        FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+          if (Preference.token.isNotEmpty) {
+            Preference.fcmToken = newToken;
+            await PublicApiService().updateFcmToken(newToken);
+          }
+        });
+
+        showCustomSnackBar(AppTexts.LOGIN_SUCCESS, SnackbarState.success);
+
+        Future.delayed(const Duration(milliseconds: 200), () {
+          Get.offAllNamed(Routes.DASHBOARD);
+        });
+
         return;
       }
 
-      // 3️⃣ Handle success or failure
-      if (result['result'] == true || result['status'] == 'success') {
-        _handleRememberMe(email);
-        Preference.isLoggedIn = true;
-        Preference.email = email;
-        final message = result['message'] ?? '';
-        final name =
-            message.contains(':') ? message.split(':').last.trim() : 'User';
-
-        Preference.isLoggedIn = true;
-        Preference.email = email;
-        Preference.userName = name;
-        Preference.profileImage = result['profilePhoto'];
-
-        // ✅ Debug prints
-        print("✅ Login saved to Hive:");
-        print("isLoggedIn: ${Preference.isLoggedIn}");
-        print("email: ${Preference.email}");
-        print("userName: ${Preference.userName}");
-        print("profileImage: ${Preference.profileImage}");
-
-        showCustomSnackBar(
-          result['notification'] ?? 'Login successful',
-          SnackbarState.success,
-        );
-        Get.offAllNamed(Routes.DASHBOARD);
-      } else {
-        // Handle invalid credentials or general errors
-        final errorMessage =
-            result['message'] ?? result['error'] ?? 'Invalid email or password';
-        showCustomSnackBar(errorMessage, SnackbarState.error);
-      }
-    } catch (e, stackTrace) {
-      print('Login error: $e\n$stackTrace');
+      showCustomSnackBar(
+        headers['message'] ?? AppTexts.LOGIN_INVALID_CREDENTIAL,
+        SnackbarState.error,
+      );
+    } catch (_) {
       showCustomSnackBar(AppTexts.SOMETHING_WENT_WRONG, SnackbarState.error);
     } finally {
       isLoading.value = false;
     }
   }
 
-  /// ✅ Helper to handle Remember Me
+  //----------------------------------------------------
+  // REMEMBER ME
+  //----------------------------------------------------
   void _handleRememberMe(String email) {
     if (rememberMe.value) {
       storage.write('email', email);
@@ -136,28 +149,30 @@ class LoginController extends GetxController {
     }
   }
 
-  /// =====================
-  /// SigninWithGoogle FUNCTION
-  /// =====================
+  //----------------------------------------------------
+  // GOOGLE LOGIN
+  //----------------------------------------------------
   Future<void> onSigninWithGoogle() async {
     isGoogleLoading.value = true;
 
     try {
-      final connectivityResult = await Connectivity().checkConnectivity();
-      if (connectivityResult == ConnectivityResult.none) {
+      final connectivity = await Connectivity().checkConnectivity();
+      if (connectivity == ConnectivityResult.none) {
         showCustomSnackBar(AppTexts.NO_INTERNET, SnackbarState.error);
         return;
       }
 
-      final userCredential = await _authService.signInWithGoogle();
-      if (userCredential != null) {
+      final googleUser = await _authService.signInWithGoogle();
+
+      if (googleUser != null) {
         Preference.isLoggedIn = true;
-        Preference.email = userCredential.user?.email ?? '';
+        Preference.email = googleUser.user?.email ?? '';
 
         showCustomSnackBar(
           AppTexts.GOOGLE_SIGNIN_SUCCESS,
           SnackbarState.success,
         );
+
         Get.offAllNamed(Routes.DASHBOARD);
       } else {
         showCustomSnackBar(
@@ -165,69 +180,23 @@ class LoginController extends GetxController {
           SnackbarState.error,
         );
       }
-    } catch (e) {
+    } catch (_) {
       showCustomSnackBar(AppTexts.GOOGLE_SIGNIN_FAILED, SnackbarState.error);
     } finally {
       isGoogleLoading.value = false;
     }
   }
 
+  //----------------------------------------------------
+  // NAVIGATION
+  //----------------------------------------------------
   void navigateToSignup() => Get.toNamed(Routes.SIGNUP);
 
-  /// =====================
-  /// forgetPassword FUNCTION
-  /// =====================
   void forgetPassword() => Get.to(
     () => ForgotPasswordView(),
     transition: Transition.rightToLeft,
     duration: const Duration(milliseconds: 300),
   );
-
-  void validateEmail(String value) =>
-      emailError.value = _validateEmail(value) ?? '';
-
-  void validatePassword(String value) =>
-      passwordError.value = _validatePassword(value) ?? '';
-
-  /// =====================
-  /// EMAIL VALIDATION
-  /// =====================
-  String? _validateEmail(String email, {bool userNotFound = false}) {
-    email = email.trim();
-
-    if (email.isEmpty) return 'Email cannot be empty';
-
-    // Improved email regex (supports subdomains and multiple TLDs)
-    final emailPattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$";
-
-    if (!RegExp(emailPattern).hasMatch(email)) {
-      return 'Enter a valid email address';
-    }
-
-    if (userNotFound) return 'No account found with this email';
-
-    return null;
-  }
-
-  /// =====================
-  /// PASSWORD VALIDATION
-  /// =====================
-  String? _validatePassword(String password, {bool wrongPassword = false}) {
-    password = password.trim();
-
-    if (password.isEmpty) return 'Password cannot be empty';
-
-    if (password.length < 8) return 'Password must be at least 8 characters';
-
-    // Strong password check: uppercase, lowercase, number, special char
-    final strongPasswordPattern =
-        r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$';
-    if (!RegExp(strongPasswordPattern).hasMatch(password))
-      return 'Include uppercase, lowercase, number & special character';
-
-    if (wrongPassword) return 'Incorrect password';
-    return null;
-  }
 
   @override
   void onClose() {

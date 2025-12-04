@@ -1,106 +1,135 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, deprecated_member_use
 
 import 'dart:async';
-import 'dart:ui';
-import 'package:bellybutton/app/utils/preference.dart';
-import 'package:bellybutton/app_initializer.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:bellybutton/app/core/utils/storage/preference.dart';
+import 'package:bellybutton/app/core/utils/initializer/app_initializer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'app/core/constants/app_colors.dart';
-import 'app/database/models/EventModel.dart';
-import 'app/routes/app_pages.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'app/core/constants/app_colors.dart';
+import 'app/core/services/local_notification_service.dart';
+import 'firebase_options.dart';
+import 'app/routes/app_pages.dart';
+import 'app/database/models/EventModel.dart';
+import 'app/core/services/firebase_notification_service.dart';
+
+/// ----------------------------------------------------------
+/// 1️⃣ BACKGROUND HANDLER — MUST BE TOP LEVEL
+/// ----------------------------------------------------------
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Safe: No UI work here
+  print("🌙 Background message received → ${message.messageId}");
+}
 
 Future<void> main() async {
-  runZonedGuarded(
-    () async {
-      WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized();
 
-      // Initialize GetStorage
-      await GetStorage.init();
+  /// ----------------------------------------------------------
+  /// 2️⃣ REGISTER BACKGROUND HANDLER (ONLY ONCE)
+  /// ----------------------------------------------------------
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-      // Initialize Hive
-      await Hive.initFlutter();
+  /// ----------------------------------------------------------
+  /// 3️⃣ LOCAL STORAGE (Hive + GetStorage)
+  /// ----------------------------------------------------------
+  await GetStorage.init();
 
-      // ✅ Register your custom adapter
-      Hive.registerAdapter(EventModelAdapter());
+  await Hive.initFlutter();
+  Hive.registerAdapter(EventModelAdapter());
 
-      // ✅ Open your boxes
-      var hiveBox = await Hive.openBox('appBox');
-      await Hive.openBox<EventModel>('eventsBox');
+  final hiveBox = await Hive.openBox('appBox');
+  await Hive.openBox<EventModel>('eventsBox');
 
-      // Initialize Preference with Hive box
-      Preference.init(hiveBox);
+  Preference.init(hiveBox);
+  Get.put(hiveBox);
+  print('✅ Hive Initialized');
 
-      // Register Hive box in GetX
-      Get.put<Box>(hiveBox);
+  /// ----------------------------------------------------------
+  /// 4️⃣ FIREBASE INIT
+  /// ----------------------------------------------------------
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  print('✅ Firebase Initialized');
 
-      print('✅ Hive Initialized');
+  print("📌 FCM Token: ${await FirebaseMessaging.instance.getToken()}");
 
-      // Initialize Firebase
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-      print('✅ Firebase Initialized');
-
-      await FirebaseAppCheck.instance.activate(
-        androidProvider: AndroidProvider.debug,
-        appleProvider: AppleProvider.debug,
-      );
-
-      // Crashlytics setup
-      FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;
-      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
-
-      // Determine initial route
-      String initialRoute =
-          Preference.isLoggedIn ? Routes.DASHBOARD : Routes.ONBOARDING;
-
-      // App services
-      await AppInitializer.initialize();
-
-      // Orientation Lock
-      await SystemChrome.setPreferredOrientations([
-        DeviceOrientation.portraitUp,
-        DeviceOrientation.portraitDown,
-      ]);
-
-      // System UI styling
-      SystemChrome.setSystemUIOverlayStyle(
-        SystemUiOverlayStyle(
-          statusBarColor: AppTheme.lightTheme.primaryColor,
-          statusBarIconBrightness: Brightness.light,
-        ),
-      );
-
-      // Lifecycle observer
-      WidgetsBinding.instance.addObserver(AppLifecycleHandler());
-      runApp(
-        GetMaterialApp( 
-          debugShowCheckedModeBanner: false,
-          title: "Application",
-          initialRoute: initialRoute,
-          getPages: AppPages.routes,
-          darkTheme: ThemeData.dark(),
-          themeMode: ThemeMode.light,
-          scrollBehavior: const MaterialScrollBehavior().copyWith(
-            dragDevices: {
-              PointerDeviceKind.mouse,
-              PointerDeviceKind.touch,
-              PointerDeviceKind.trackpad,
-            },
-          ),
-        ),
-      );
-    },
-    (error, stack) {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    },
+  /// ----------------------------------------------------------
+  /// 5️⃣ Firebase App Check
+  /// ----------------------------------------------------------
+  await FirebaseAppCheck.instance.activate(
+    androidProvider: AndroidProvider.debug,
+    appleProvider: AppleProvider.debug,
   );
+
+  /// ----------------------------------------------------------
+  /// 6️⃣ Crashlytics
+  /// ----------------------------------------------------------
+  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+
+  /// ----------------------------------------------------------
+  /// 7️⃣ FCM NOTIFICATION SYSTEM (Foreground / Tap / Terminated)
+  /// ----------------------------------------------------------
+  await FirebaseNotificationService.init();
+
+  /// ----------------------------------------------------------
+  /// LOCAL NOTIFICATIONS INIT + RANDOM DAILY TRIGGER
+  /// ----------------------------------------------------------
+  await LocalNotificationService.init();
+  await LocalNotificationService.scheduleRandomTwoDaily();
+
+  /// ----------------------------------------------------------
+  /// 8️⃣ App Initializer (connectivity, etc.)
+  /// ----------------------------------------------------------
+  await AppInitializer.initialize();
+
+  /// ----------------------------------------------------------
+  /// 9️⃣ Orientation + Status Bar
+  /// ----------------------------------------------------------
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
+  SystemChrome.setSystemUIOverlayStyle(
+    SystemUiOverlayStyle(
+      statusBarColor: AppTheme.lightTheme.primaryColor,
+      statusBarIconBrightness: Brightness.light,
+    ),
+  );
+
+  /// ----------------------------------------------------------
+  /// 🔟 Start Page (Dashboard or Onboarding)
+  /// ----------------------------------------------------------
+  final initialRoute =
+      Preference.isLoggedIn ? Routes.DASHBOARD : Routes.ONBOARDING;
+
+  /// ----------------------------------------------------------
+  /// 1️⃣1️⃣ RUN THE APP
+  /// ----------------------------------------------------------
+  runApp(
+    GetMaterialApp(
+      title: "Application",
+      debugShowCheckedModeBanner: false,
+      initialRoute: initialRoute,
+      getPages: AppPages.routes,
+      themeMode: ThemeMode.light,
+      darkTheme: ThemeData.dark(),
+    ),
+  );
+
+  /// ----------------------------------------------------------
+  /// 1️⃣2️⃣ Initialize Local Notifications AFTER UI builds
+  /// ----------------------------------------------------------
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    FirebaseNotificationService.initLocalNotifications();
+  });
 }

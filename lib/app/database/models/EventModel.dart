@@ -5,7 +5,7 @@ import 'package:hive/hive.dart';
 @HiveType(typeId: 0)
 class EventModel extends HiveObject {
   @HiveField(0)
-  int id;
+  int? id; // ✅ FIX: id is now nullable
 
   @HiveField(1)
   String title;
@@ -26,48 +26,53 @@ class EventModel extends HiveObject {
   List<dynamic> invitedPeople;
 
   @HiveField(7)
-  String? imagePath; // 👈 Added optional image field
+  String? imagePath;
 
   EventModel({
-    required this.id,
+    this.id, // ✅ FIXED
     required this.title,
     required this.description,
     required this.eventDate,
     required this.startTime,
     required this.endTime,
     required this.invitedPeople,
-    this.imagePath, // 👈 Added to constructor
+    this.imagePath,
   });
 
+  // ============================
+  // 🔥 FIXED: fromJson()
+  // ============================
   factory EventModel.fromJson(Map<String, dynamic> json) {
-    final dateString = json['eventDate'];
-    final localDate = DateTime.parse(dateString).toLocal();
+    final parsedDate = DateTime.parse(json['eventDate']);
 
     return EventModel(
-      id: json['id'],
+      id: json['id'], // nullable safe
       title: json['title'],
       description: json['description'],
-      eventDate: DateTime(localDate.year, localDate.month, localDate.day),
+      eventDate: DateTime(parsedDate.year, parsedDate.month, parsedDate.day),
       startTime: json['startTime'],
       endTime: json['endTime'],
       invitedPeople: json['invitedPeople'] ?? [],
-      imagePath: json['imagePath'], // 👈 Added
+      imagePath: json['imagePath'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      'id': id, // nullable OK
       'title': title,
       'description': description,
       'eventDate': eventDate.toIso8601String(),
       'startTime': startTime,
       'endTime': endTime,
       'invitedPeople': invitedPeople,
-      'imagePath': imagePath, // 👈 Added
+      'imagePath': imagePath,
     };
   }
 
+  // ============================
+  // 🔥 FIXED: fullEventDateTime()
+  // ============================
   DateTime get fullEventDateTime {
     try {
       final parts = startTime.split(':');
@@ -84,11 +89,15 @@ class EventModel extends HiveObject {
         second,
       );
     } catch (e) {
-      print('⚠️ Error parsing event time: $e');
+      print("⚠ Error computing fullEventDateTime: $e");
       return eventDate;
     }
   }
 }
+
+// ============================
+// 🔥 FULL FIXED HIVE ADAPTER
+// ============================
 
 class EventModelAdapter extends TypeAdapter<EventModel> {
   @override
@@ -102,23 +111,23 @@ class EventModelAdapter extends TypeAdapter<EventModel> {
     };
 
     return EventModel(
-      id: fields[0] as int,
+      id: fields[0] as int?, // ✅ FIX: nullable
       title: fields[1] as String,
       description: fields[2] as String,
       eventDate: fields[3] as DateTime,
       startTime: fields[4] as String,
       endTime: fields[5] as String,
       invitedPeople: (fields[6] as List).cast<dynamic>(),
-      imagePath: fields[7] as String?, // 👈 Added
+      imagePath: fields[7] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, EventModel obj) {
     writer
-      ..writeByte(8) // updated field count
+      ..writeByte(8)
       ..writeByte(0)
-      ..write(obj.id)
+      ..write(obj.id) // nullable safe
       ..writeByte(1)
       ..write(obj.title)
       ..writeByte(2)
@@ -132,6 +141,6 @@ class EventModelAdapter extends TypeAdapter<EventModel> {
       ..writeByte(6)
       ..write(obj.invitedPeople)
       ..writeByte(7)
-      ..write(obj.imagePath); // 👈 Added
+      ..write(obj.imagePath);
   }
 }

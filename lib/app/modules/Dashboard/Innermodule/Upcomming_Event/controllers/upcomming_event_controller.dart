@@ -11,7 +11,6 @@ import '../../../../../routes/app_pages.dart';
 class UpcommingEventController extends GetxController {
   final PublicApiService apiService = PublicApiService();
 
-  // Reactive state variables
   final isLoading = false.obs;
   final isProcessing = false.obs;
   final eventData = <EventModel>[].obs;
@@ -24,10 +23,10 @@ class UpcommingEventController extends GetxController {
   }
 
   // ============================================================
-  // ✅ Fetch All Upcoming Events
+  // ✅ FIXED: Fetch Upcoming Events (Sort by real date + time)
   // ============================================================
   Future<void> fetchUpcomingEvents() async {
-    if (isLoading.value) return; // Prevent duplicate calls
+    if (isLoading.value) return;
 
     try {
       isLoading.value = true;
@@ -37,9 +36,12 @@ class UpcommingEventController extends GetxController {
       print("📦 All Events Response: ${events.length} items");
 
       final now = DateTime.now();
+
+      // 🎯 Correct upcoming logic
       final upcoming =
-          events.where((e) => e.eventDate.isAfter(now)).toList()
-            ..sort((a, b) => a.eventDate.compareTo(b.eventDate));
+          events.where((e) => e.fullEventDateTime.isAfter(now)).toList()..sort(
+            (a, b) => a.fullEventDateTime.compareTo(b.fullEventDateTime),
+          );
 
       if (upcoming.isEmpty) {
         errorMessage.value = 'No upcoming events found';
@@ -55,35 +57,29 @@ class UpcommingEventController extends GetxController {
   }
 
   // ============================================================
-  // 🗑️ Delete Event by ID (API + Local)
+  // 🗑️ Delete Event
   // ============================================================
   Future<void> deleteEvent(int eventId) async {
-    if (isProcessing.value) return; // Prevent multiple deletions
+    if (isProcessing.value) return;
+
     try {
       isProcessing.value = true;
-      print("🗑️ Deleting event with ID: $eventId ...");
 
       final response = await apiService.deleteEvent(eventId);
 
-      if (response["success"] == true) {
-        // ✅ Close popup if open
+      if (response["headers"]["status"] == "success") {
         if (Get.isDialogOpen ?? false) Get.back();
 
-        // ✅ Update local list
-        eventData.removeWhere((event) => event.id == eventId);
+        await fetchUpcomingEvents();
 
         showCustomSnackBar(
-          response["message"] ?? "Event deleted successfully",
+          response["headers"]["message"],
           SnackbarState.success,
         );
       } else {
-        showCustomSnackBar(
-          response["message"] ?? "Failed to delete event",
-          SnackbarState.error,
-        );
+        showCustomSnackBar(response["headers"]["message"], SnackbarState.error);
       }
     } catch (e) {
-      print("❌ Delete Event Error: $e");
       showCustomSnackBar("Unexpected error: $e", SnackbarState.error);
     } finally {
       isProcessing.value = false;
@@ -91,7 +87,7 @@ class UpcommingEventController extends GetxController {
   }
 
   // ============================================================
-  // 🧾 Public Wrapper for Delete Confirmation
+  // 🧾 Delete Confirmation
   // ============================================================
   void confirmDelete(EventModel event) {
     _showConfirmationDialog(
@@ -104,9 +100,6 @@ class UpcommingEventController extends GetxController {
     );
   }
 
-  // ============================================================
-  // 💬 Private Confirmation Dialog Helper
-  // ============================================================
   void _showConfirmationDialog({
     required String title,
     required String message,
@@ -127,11 +120,10 @@ class UpcommingEventController extends GetxController {
   }
 
   // ============================================================
-  // ✏️ Edit Event → Navigate to Create Event Page
+  // ✏️ Edit Event
   // ============================================================
   void editEvent(EventModel event) {
     print('Editing Event: ${event.title}');
-    print('Current route: ${Get.currentRoute}');
     if (Get.isDialogOpen ?? false) Get.back();
 
     Future.delayed(const Duration(milliseconds: 150), () {

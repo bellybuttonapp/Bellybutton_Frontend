@@ -1,4 +1,4 @@
-// ignore_for_file: unused_import, deprecated_member_use, unused_field
+// ignore_for_file: unused_import, deprecated_member_use, unused_field, curly_braces_in_flow_control_structures
 
 import 'dart:io';
 import 'package:bellybutton/app/Controllers/oauth.dart';
@@ -12,43 +12,60 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import '../../../../../api/PublicApiService.dart';
+import '../../../../../core/services/local_notification_service.dart';
+import '../../../../../core/utils/helpers/validation_utils.dart';
 import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
-import '../../../../../utils/preference.dart';
+import '../../../../../core/utils/storage/preference.dart';
 import '../../../controllers/profile_controller.dart';
 
 class AccountDetailsController extends GetxController {
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final bioController = TextEditingController();
+
   final isLoading = false.obs;
   final nameError = RxnString();
 
+  final hasChanges = false.obs;
+
   final Rx<XFile?> pickedImage = Rx<XFile?>(null);
-  final ImagePicker _picker = ImagePicker();
+  final ImagePicker picker = ImagePicker();
 
   @override
   void onInit() {
     super.onInit();
+
     final user = AuthService().currentUser;
 
     nameController.text =
         Preference.userName.isNotEmpty
             ? Preference.userName
-            : (user?.displayName ?? "Example Name");
+            : (user?.displayName ?? "Example User");
+
+    bioController.text = Preference.bio.isNotEmpty ? Preference.bio : "";
 
     emailController.text =
         Preference.email.isNotEmpty
             ? Preference.email
             : (user?.email ?? "example@email.com");
+
+    nameController.addListener(checkForChanges);
+    bioController.addListener(checkForChanges);
   }
 
-  /// Pick image from gallery or camera
+  void checkForChanges() {
+    final nameChanged = nameController.text.trim() != Preference.userName;
+    final bioChanged = bioController.text.trim() != Preference.bio;
+    final imageChanged = pickedImage.value != null;
+
+    hasChanges.value = nameChanged || bioChanged || imageChanged;
+  }
+
   Future<void> pickImage() async {
     try {
-      final ImagePicker picker = ImagePicker();
-      XFile? selectedImage;
+      XFile? selected;
 
-      await Get.bottomSheet<void>(
+      await Get.bottomSheet(
         CustomBottomSheet(
           title: AppTexts.SELECT_IMAGE,
           actions: [
@@ -56,44 +73,30 @@ class AccountDetailsController extends GetxController {
               icon: SvgPicture.asset(
                 AppImages.GALLERY,
                 width: 20,
-                height: 20,
                 color: AppColors.primaryColor,
               ),
               label: AppTexts.CHOOSE_PHOTO_FROM_GALLERY,
               onTap: () async {
-                await Future.delayed(const Duration(milliseconds: 200));
-                selectedImage = await picker.pickImage(
-                  source: ImageSource.gallery,
-                );
-                await _handleCropAndUpload(selectedImage);
+                selected = await picker.pickImage(source: ImageSource.gallery);
+                await _handleCrop(selected);
               },
             ),
             SheetAction(
               icon: SvgPicture.asset(
                 AppImages.CAMERA,
                 width: 20,
-                height: 20,
                 color: AppColors.success,
               ),
               label: AppTexts.TAKE_PHOTO,
               onTap: () async {
-                await Future.delayed(const Duration(milliseconds: 200));
-                selectedImage = await picker.pickImage(
-                  source: ImageSource.camera,
-                );
-                await _handleCropAndUpload(selectedImage);
+                selected = await picker.pickImage(source: ImageSource.camera);
+                await _handleCrop(selected);
               },
             ),
           ],
         ),
-        backgroundColor: Colors.transparent,
-        isScrollControlled: true,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
       );
     } catch (e) {
-      debugPrint("Image picker error: $e");
       showCustomSnackBar(
         AppTexts.FAILED_TO_UPDATE_PROFILE_PHOTO,
         SnackbarState.error,
@@ -101,52 +104,36 @@ class AccountDetailsController extends GetxController {
     }
   }
 
-  /// Crop + Update local & remote
-  Future<void> _handleCropAndUpload(XFile? selectedImage) async {
-    if (selectedImage == null) {
-      showCustomSnackBar(AppTexts.NO_IMAGE_SELECTED, SnackbarState.warning);
+  Future<void> _handleCrop(XFile? image) async {
+    if (image == null) {
+      showCustomSnackBar(AppTexts.NO_IMAGE_SELECTED, SnackbarState.error);
       return;
     }
 
-    final croppedFile = await ImageCropper().cropImage(
-      sourcePath: selectedImage.path,
+    final crop = await ImageCropper().cropImage(
+      sourcePath: image.path,
       aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
       compressQuality: 90,
-      uiSettings: [
-        AndroidUiSettings(
-          toolbarTitle: AppTexts.EDIT_PROFILE_PHOTO,
-          toolbarColor: AppColors.primaryColor,
-          toolbarWidgetColor: Colors.white,
-          backgroundColor: Colors.black,
-          activeControlsWidgetColor: AppColors.primaryColor,
-        ),
-        IOSUiSettings(
-          title: AppTexts.EDIT_PROFILE_PHOTO,
-          aspectRatioLockEnabled: true,
-          doneButtonTitle: AppTexts.DONE,
-          cancelButtonTitle: AppTexts.CANCEL,
-        ),
-      ],
     );
 
-    if (croppedFile == null) {
+    if (crop == null) {
       showCustomSnackBar(
         AppTexts.IMAGE_CROPPING_CANCELLED,
-        SnackbarState.warning,
+        SnackbarState.error,
       );
       return;
     }
 
-    final croppedXFile = XFile(croppedFile.path);
-    pickedImage.value = croppedXFile;
+    final cropped = XFile(crop.path);
+    pickedImage.value = cropped;
 
-    // ✅ Update Firebase photo
-    await AuthService().updatePhoto(croppedXFile.path);
-    Preference.profileImage = croppedXFile.path;
+    Preference.profileImage = cropped.path;
 
     if (Get.isRegistered<ProfileController>()) {
-      Get.find<ProfileController>().updatePickedImage(File(croppedXFile.path));
+      Get.find<ProfileController>().updatePickedImage(File(cropped.path));
     }
+
+    checkForChanges();
 
     showCustomSnackBar(
       AppTexts.PROFILE_PHOTO_UPDATED_SUCCESSFULLY,
@@ -154,83 +141,86 @@ class AccountDetailsController extends GetxController {
     );
   }
 
-  /// Validate name
-  void validateName(String value) {
-    final trimmed = value.trim();
-    if (trimmed.isEmpty) {
-      nameError.value = 'Name cannot be empty';
-    } else if (!RegExp(r"^[a-zA-Z\s]+$").hasMatch(trimmed)) {
-      nameError.value = 'Only letters allowed';
-    } else if (trimmed.length < 3) {
-      nameError.value = 'At least 3 characters required';
-    } else {
-      nameError.value = null;
-    }
+  void validateName(String v) {
+    nameError.value = Validation.validateName(v.trim());
+    checkForChanges();
   }
 
-  /// Save changes with API integration
   Future<void> saveChanges() async {
-    if (nameError.value != null) return;
+    nameError.value = Validation.validateName(nameController.text.trim());
+    final emailErr = Validation.validateEmail(emailController.text.trim());
 
-    final newName = nameController.text.trim();
-    final newBio = bioController.text.trim();
-    final email = emailController.text.trim();
-    final imagePath = Preference.profileImage ?? '';
-    final phone = Preference.phone ?? "";
-    final address = Preference.address ?? "";
-
-    if (newName.isEmpty) {
-      showCustomSnackBar("Name cannot be empty", SnackbarState.warning);
+    if (nameError.value != null) {
+      showCustomSnackBar(nameError.value!, SnackbarState.error);
       return;
     }
 
-    try {
-      isLoading.value = true;
+    if (emailErr != null) {
+      showCustomSnackBar(emailErr, SnackbarState.error);
+      return;
+    }
 
-      // ✅ API call
-      final apiResponse = await PublicApiService().updateProfile(
+    isLoading.value = true;
+
+    final name = nameController.text.trim();
+    final bio = bioController.text.trim();
+    final email = emailController.text.trim();
+
+    File? imageFile;
+    if (pickedImage.value != null) {
+      imageFile = File(pickedImage.value!.path);
+    }
+
+    try {
+      final resp = await PublicApiService().updateProfile(
+        userId: Preference.userId,
         email: email,
-        fullName: newName,
-        phone: phone,
-        address: address,
-        bio: newBio,
-        profileImageUrl: imagePath,
+        fullName: name,
+        bio: bio,
+        phone: Preference.phone,
+        address: Preference.address,
+        imageFile: imageFile,
       );
 
-      if (apiResponse["status"] == true ||
-          apiResponse["success"] == true ||
-          apiResponse["message"] == "Profile updated successfully") {
-        // ✅ Firebase
-        await AuthService().updateDisplayName(newName);
+      final msg = (resp["message"] ?? "").toString().toLowerCase();
 
-        // ✅ Local update
-        Preference.userName = newName;
-        Preference.email = email;
-        Preference.bio = newBio;
+      if (msg.contains("profile updated successfully")) {
+        Preference.userName = resp["data"]["fullName"];
+        Preference.email = resp["data"]["email"];
+        Preference.bio = resp["data"]["bio"];
+
+        if (resp["data"]["profileImageUrl"] != null) {
+          Preference.profileImage = resp["data"]["profileImageUrl"];
+        }
+
+        hasChanges.value = false;
 
         showCustomSnackBar(
           AppTexts.PROFILE_UPDATED_SUCCESSFULLY,
           SnackbarState.success,
         );
+
+        LocalNotificationService.show(
+          title: AppTexts.NOTIFY_PROFILE_UPDATED_TITLE,
+          body: AppTexts.NOTIFY_PROFILE_UPDATED_BODY,
+        );
+
+        Future.delayed(const Duration(milliseconds: 600), () {
+          Get.back();
+        });
       } else {
         showCustomSnackBar(
-          apiResponse["message"] ?? "Failed to update profile",
+          AppTexts.FAILED_TO_UPDATE_PROFILE,
           SnackbarState.error,
         );
       }
     } catch (e) {
-      debugPrint("❌ Profile update failed: $e");
-      showCustomSnackBar(AppTexts.NO_INTERNET, SnackbarState.error);
+      showCustomSnackBar(
+        AppTexts.FAILED_TO_UPDATE_PROFILE,
+        SnackbarState.error,
+      );
     } finally {
       isLoading.value = false;
     }
-  }
-
-  @override
-  void onClose() {
-    nameController.dispose();
-    emailController.dispose();
-    bioController.dispose();
-    super.onClose();
   }
 }

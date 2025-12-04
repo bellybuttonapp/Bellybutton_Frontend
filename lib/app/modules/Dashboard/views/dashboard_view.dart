@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, annotate_overrides
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -8,7 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:bellybutton/app/core/constants/app_colors.dart';
 import 'package:bellybutton/app/core/constants/app_images.dart';
 import 'package:bellybutton/app/core/constants/app_texts.dart';
-import 'package:bellybutton/app/core/themes/Font_style.dart';
+import 'package:bellybutton/app/core/utils/index.dart';
 import 'package:bellybutton/app/global_widgets/custom_app_bar/custom_app_bar.dart';
 import 'package:bellybutton/app/global_widgets/Button/global_button.dart';
 import 'package:bellybutton/app/modules/Dashboard/Innermodule/Past_Event/views/past_event_view.dart';
@@ -17,7 +17,8 @@ import '../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../controllers/dashboard_controller.dart';
 
 class DashboardView extends GetView<DashboardController> {
-  const DashboardView({super.key});
+  final DashboardController controller = Get.put(DashboardController());
+  DashboardView({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +66,19 @@ class DashboardView extends GetView<DashboardController> {
             actions: [
               IconButton(
                 icon: SvgPicture.asset(
+                  AppImages.INVITATIONS_ICON,
+                  height: width * 0.065,
+                  width: width * 0.065,
+                  color: theme.iconTheme.color,
+                ),
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  controller.goToEventInvitationsView();
+                },
+                tooltip: "EventInvitations",
+              ),
+              IconButton(
+                icon: SvgPicture.asset(
                   AppImages.NOTIFICATION,
                   height: width * 0.065,
                   width: width * 0.065,
@@ -103,28 +117,37 @@ class DashboardView extends GetView<DashboardController> {
               ),
             ),
           ),
-          body: Column(
-            children: [
-              Expanded(
-                child: TabBarView(
-                  physics: const BouncingScrollPhysics(),
-                  children: [UpcommingEventView(), PastEventView()],
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.all(width * 0.04),
-                child: Obx(
-                  () => global_button(
-                    loaderWhite: true,
-                    isLoading: controller.isLoading.value,
-                    title: AppTexts.CREATE_EVENT,
-                    backgroundColor: AppColors.primaryColor,
-                    textColor: AppColors.textColor3,
-                    onTap: controller.CreateEvent,
+          body: GetBuilder<DashboardController>(
+            builder: (_) {
+              return Column(
+                children: [
+                  Expanded(
+                    child: TabBarView(
+                      physics: const BouncingScrollPhysics(),
+                      children: [UpcommingEventView(), PastEventView()],
+                    ),
                   ),
-                ),
-              ),
-            ],
+                  Padding(
+                    padding: EdgeInsets.all(width * 0.04),
+                    child: Column(
+                      children: [
+                        // ✅ Existing global_button
+                        Obx(
+                          () => global_button(
+                            loaderWhite: true,
+                            isLoading: controller.isLoading.value,
+                            title: AppTexts.CREATE_EVENT,
+                            backgroundColor: AppColors.primaryColor,
+                            textColor: AppColors.textColor3,
+                            onTap: controller.CreateEvent,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),

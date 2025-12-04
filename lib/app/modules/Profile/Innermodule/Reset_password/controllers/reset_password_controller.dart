@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../../Controllers/oauth.dart';
 import '../../../../../core/constants/app_texts.dart';
+import '../../../../../core/utils/helpers/validation_utils.dart';
 import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../../Auth/forgot_password/views/otp_view.dart';
 
@@ -17,63 +18,8 @@ class ResetPasswordController extends GetxController {
 
   /// ---------------- VALIDATION ---------------- ///
   void validateEmail(String? value) {
-    final error = validateEmailProduction(
-      value,
-    ); // Use production-ready validator
-    emailError.value = error ?? ''; // Empty string if valid
+    emailError.value = Validation.validateEmail(value) ?? ''; // ⭐ replaced here
   }
-
-  /// ---------------- PRODUCTION-READY EMAIL VALIDATOR ---------------- ///
-  String? validateEmailProduction(String? value) {
-    if (value == null || value.trim().isEmpty) return AppTexts.EMAIL_REQUIRED;
-
-    final email = value.trim();
-
-    final emailRegex = RegExp(
-      r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+"
-      r"@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?"
-      r"(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$",
-    );
-
-    if (!emailRegex.hasMatch(email)) return AppTexts.EMAIL_INVALID;
-    if (email.contains("..")) return AppTexts.EMAIL_CONSECUTIVE_DOTS;
-    if (email.endsWith(".")) return AppTexts.EMAIL_ENDS_WITH_DOT;
-
-    final parts = email.split('@');
-    if (parts.length != 2) return AppTexts.EMAIL_INVALID;
-
-    final local = parts[0];
-    final domain = parts[1];
-
-    if (local.isEmpty) return AppTexts.EMAIL_INVALID;
-    if (domain.isEmpty) return AppTexts.EMAIL_INVALID;
-
-    final domainParts = domain.split('.');
-    if (domainParts.length < 2 || domainParts.any((part) => part.isEmpty)) {
-      return AppTexts.EMAIL_DOMAIN_INVALID;
-    }
-
-    if (local.length > 64) return AppTexts.EMAIL_LOCAL_TOO_LONG;
-    if (email.length > 254) return AppTexts.EMAIL_TOO_LONG;
-
-    return null; // ✅ Valid email
-  }
-
-  // /// ---------------- TIMER HANDLER ---------------- ///
-  // void startResendTimer() {
-  //   resendSeconds.value = 30;
-  //   isResendEnabled.value = false;
-
-  //   _timer?.cancel();
-  //   _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-  //     if (resendSeconds.value == 0) {
-  //       isResendEnabled.value = true;
-  //       _timer?.cancel();
-  //     } else {
-  //       resendSeconds.value--;
-  //     }
-  //   });
-  // }
 
   // ==========================
   // AUTH - SEND RESET OTP
@@ -103,6 +49,7 @@ class ResetPasswordController extends GetxController {
           result['message']?.toString() ?? AppTexts.OTP_SENT,
           SnackbarState.success,
         );
+
         // 4️⃣ Navigate to OTP Verification Screen
         if (Get.currentRoute != '/otp') {
           Get.to(
@@ -112,9 +59,6 @@ class ResetPasswordController extends GetxController {
             arguments: {"email": email, "otp": result['otp']?.toString() ?? ""},
           );
         }
-
-        // // 5️⃣ Start resend timer
-        // startResendTimer();
       } else {
         showCustomSnackBar(
           result['message']?.toString() ?? AppTexts.OTP_FAILED,

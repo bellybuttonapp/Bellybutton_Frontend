@@ -6,8 +6,7 @@ class AppImages {
   // ---------------- Authentication & Onboarding ----------------
   static const GOOGLE_ICON = 'assets/images/google_svg.svg';
   static const BACK_ARROW = 'assets/images/Backarrow.svg';
-  static const ON = 'assets/images/onboard.png';
-  static const ONBOARDING_PNG = 'assets/images/sps.png';
+  static const ONBOARDING_PNG1 = 'assets/images/Home_Onboarding.png';
   static const LOGIN_PNG = 'assets/images/log_bg.png';
   static const FORGET_PSWRD = 'assets/images/forget_pswrd.png';
   static const NEW_PSWRD = 'assets/images/newpswrd.svg';
@@ -32,6 +31,8 @@ class AppImages {
   static const CAMERA_ADD_ICON = 'assets/images/Camera_Add_icon.svg';
   static const CHECK_ICON = 'assets/images/check_icon.svg';
   static const CLOSE = 'assets/images/close.svg';
+  static const EXPORT_ICON = 'assets/images/Export_icon.svg';
+  static const INVITE_ICON = 'assets/images/Invite_icon.svg';
 
   // ---------------- Alerts ----------------
   static const SUCCESS = 'assets/images/Success_check.svg';
@@ -60,4 +61,8 @@ class AppImages {
 
   // ---------------- Upcomming Events ----------------
   static const EVENTPOPUP_DP = 'assets/images/Homecard.png';
+  // ----------------Invitations----------------
+  static const INVITATIONS_ICON = 'assets/images/invitation.svg';
+  // ----------------PhotoPreView----------------
+  static const PHOTO_INFO_ICON = 'assets/images/Info_icon.svg';
 }

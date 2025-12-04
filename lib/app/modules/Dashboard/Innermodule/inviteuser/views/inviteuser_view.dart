@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use, unnecessary_null_comparison, avoid_function_literals_in_foreach_calls
+// ignore_for_file: deprecated_member_use, unnecessary_null_comparison, avoid_function_literals_in_foreach_calls, unnecessary_underscores
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
@@ -6,8 +6,7 @@ import 'package:get/get.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_images.dart';
 import '../../../../../core/constants/app_texts.dart';
-import '../../../../../core/themes/Font_style.dart';
-import '../../../../../core/themes/dimensions.dart';
+import 'package:bellybutton/app/core/utils/index.dart';
 import '../../../../../global_widgets/Button/global_button.dart';
 import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../../../global_widgets/EmptyJobsPlaceholder/EmptyJobsPlaceholder.dart';
@@ -20,26 +19,25 @@ class InviteuserView extends GetView<InviteuserController> {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final controller = Get.put(InviteuserController());
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor:
-          isDarkMode
+          isDark
               ? AppTheme.darkTheme.scaffoldBackgroundColor
               : AppTheme.lightTheme.scaffoldBackgroundColor,
-      appBar: CustomAppBar(title: AppTexts.INVITE),
+      appBar: const CustomAppBar(title: AppTexts.INVITE),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            _buildSearchField(controller),
+            _searchField(),
             const SizedBox(height: 12),
-            _buildSelectedUsers(controller),
+            _selectedUsers(),
             const SizedBox(height: 16),
-            Expanded(child: _buildSearchResults(controller)),
+            Expanded(child: _searchResults()),
             const SizedBox(height: 12),
-            _inviteButton(isDarkMode, controller),
+            _inviteButton(isDark),
             const SizedBox(height: 12),
           ],
         ),
@@ -47,15 +45,17 @@ class InviteuserView extends GetView<InviteuserController> {
     );
   }
 
-  Widget _buildSearchField(InviteuserController controller) {
+  // -------------------------------
+  // Search
+  // -------------------------------
+  Widget _searchField() {
     return Obx(
       () => GlobalTextField(
         controller: controller.searchController,
         hintText: AppTexts.SEARCH,
-        obscureText: false,
         prefixIcon: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: SvgPicture.asset(AppImages.SEARCH, width: 24, height: 24),
+          padding: const EdgeInsets.all(12),
+          child: SvgPicture.asset(AppImages.SEARCH, width: 22),
         ),
         errorText:
             controller.searchError.value.isEmpty
@@ -66,20 +66,21 @@ class InviteuserView extends GetView<InviteuserController> {
     );
   }
 
-  Widget _buildSelectedUsers(InviteuserController controller) {
+  // -------------------------------
+  // Selected Chips
+  // -------------------------------
+  Widget _selectedUsers() {
     return Obx(() {
       if (controller.selectedUsers.isEmpty) return const SizedBox.shrink();
-
       return Wrap(
         spacing: 8,
         runSpacing: 8,
         children:
             controller.selectedUsers.map((contact) {
               return Chip(
-                backgroundColor: AppColors.primaryColor.withOpacity(0.1),
+                backgroundColor: AppColors.primaryColor.withOpacity(0.12),
                 avatar: CircleAvatar(
-                  backgroundColor: AppColors.primaryColor.withOpacity(0.1),
-                  radius: 12,
+                  backgroundColor: Colors.transparent,
                   backgroundImage:
                       (contact.photo != null && contact.photo!.isNotEmpty)
                           ? MemoryImage(contact.photo!)
@@ -87,48 +88,32 @@ class InviteuserView extends GetView<InviteuserController> {
                   child:
                       (contact.photo == null || contact.photo!.isEmpty)
                           ? Text(
-                            contact.displayName != null &&
-                                    contact.displayName.isNotEmpty
+                            contact.displayName.isNotEmpty
                                 ? contact.displayName[0].toUpperCase()
-                                : '?',
-                            style: customBoldText.copyWith(
-                              color: AppColors.textColor,
-                              fontSize: 12,
-                            ),
+                                : "?",
+                            style: customBoldText,
                           )
                           : null,
                 ),
-                label: Text(
-                  contact.displayName ?? 'Unnamed',
-                  style: customBoldText.copyWith(
-                    color: AppColors.textColor,
-                    fontSize: Dimensions.fontSizeLarge,
-                  ),
-                ),
-                deleteIcon: SvgPicture.asset(
-                  AppImages.CLOSE,
-                  color: AppColors.textColor,
-                ),
-                onDeleted:
-                    () => controller.selectedUsers.removeWhere(
-                      (c) => c.id == contact.id,
-                    ),
+                label: Text(contact.displayName, style: customBoldText),
+                deleteIcon: SvgPicture.asset(AppImages.CLOSE),
+                onDeleted: () => controller.toggleUserSelection(contact),
               );
             }).toList(),
       );
     });
   }
 
-  Widget _buildSearchResults(InviteuserController controller) {
+  // -------------------------------
+  // Search Results
+  // -------------------------------
+  Widget _searchResults() {
     return Obx(() {
       if (controller.searchQuery.value.isEmpty) {
         return Center(
           child: Text(
-            "Search users from your contacts..",
-            style: customBoldText.copyWith(
-              color: AppColors.textColor,
-              fontSize: Dimensions.fontSizeLarge,
-            ),
+            AppTexts.SEARCH_CONTACTS,
+            style: customBoldText.copyWith(fontSize: Dimensions.fontSizeLarge),
           ),
         );
       }
@@ -137,10 +122,7 @@ class InviteuserView extends GetView<InviteuserController> {
         return Center(
           child: Text(
             controller.searchError.value,
-            style: customBoldText.copyWith(
-              color: AppColors.textColor,
-              fontSize: Dimensions.fontSizeLarge,
-            ),
+            style: customBoldText.copyWith(fontSize: Dimensions.fontSizeLarge),
           ),
         );
       }
@@ -151,22 +133,16 @@ class InviteuserView extends GetView<InviteuserController> {
         );
       }
 
-      // Lazy load photos for visible contacts
-      controller.filteredContacts.forEach((contact) {
-        if (contact.photo == null || contact.photo!.isEmpty) {
-          controller.fetchPhoto(contact);
-        }
-      });
-
       return ListView.builder(
         itemCount: controller.filteredContacts.length,
-        itemBuilder: (context, index) {
-          final contact = controller.filteredContacts[index];
+        itemBuilder: (c, i) {
+          final x = controller.filteredContacts[i];
 
           return Obx(() {
             final isSelected = controller.selectedUsers.any(
-              (c) => c.id == contact.id,
+              (u) => u.id == x.id,
             );
+
             return ListTile(
               onTap: () {
                 if (!isSelected && controller.selectedUsers.length >= 5) {
@@ -176,54 +152,29 @@ class InviteuserView extends GetView<InviteuserController> {
                   );
                   return;
                 }
-                controller.toggleUserSelection(contact);
+                controller.toggleUserSelection(x);
               },
-              leading: CircleAvatar(
-                backgroundColor: AppColors.primaryColor.withOpacity(0.1),
-                backgroundImage:
-                    (contact.photo != null && contact.photo!.isNotEmpty)
-                        ? MemoryImage(contact.photo!)
-                        : null,
-                child:
-                    (contact.photo == null || contact.photo!.isEmpty)
-                        ? Text(
-                          contact.displayName != null &&
-                                  contact.displayName.isNotEmpty
-                              ? contact.displayName[0].toUpperCase()
-                              : '?',
-                          style: customBoldText.copyWith(
-                            color: AppColors.textColor,
-                            fontSize: Dimensions.fontSizeLarge,
-                          ),
-                        )
-                        : null,
+              leading: FutureBuilder(
+                future: controller.fetchPhoto(x),
+                builder: (_, __) {
+                  return CircleAvatar(
+                    backgroundColor: AppColors.primaryColor.withOpacity(0.12),
+                    backgroundImage:
+                        x.photo != null ? MemoryImage(x.photo!) : null,
+                    child:
+                        x.photo == null
+                            ? Text(
+                              x.displayName[0].toUpperCase(),
+                              style: customBoldText,
+                            )
+                            : null,
+                  );
+                },
               ),
-              title: Text(
-                contact.displayName ?? 'Unnamed',
-                style: customBoldText.copyWith(
-                  color: AppColors.textColor,
-                  fontSize: Dimensions.fontSizeLarge,
-                ),
-              ),
-              trailing: Transform.scale(
-                scale: 1.2,
-                child: Checkbox(
-                  value: isSelected,
-                  onChanged: (_) {
-                    if (!isSelected && controller.selectedUsers.length >= 5) {
-                      showCustomSnackBar(
-                        AppTexts.LIMIT_REACHED,
-                        SnackbarState.error,
-                      );
-                      return;
-                    }
-                    controller.toggleUserSelection(contact);
-                  },
-                  activeColor: AppColors.primaryColor,
-                  checkColor: Colors.white,
-                  visualDensity: VisualDensity.compact,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
+              title: Text(x.displayName, style: customBoldText),
+              trailing: Checkbox(
+                value: isSelected,
+                onChanged: (_) => controller.toggleUserSelection(x),
               ),
             );
           });
@@ -232,17 +183,17 @@ class InviteuserView extends GetView<InviteuserController> {
     });
   }
 
-  Widget _inviteButton(bool isDarkMode, InviteuserController controller) {
+  // -------------------------------
+  // Button
+  // -------------------------------
+  Widget _inviteButton(bool isDark) {
     return Obx(
       () => global_button(
+        title: AppTexts.INVITE,
         loaderWhite: true,
         isLoading: controller.isLoading.value,
-        title: AppTexts.INVITE,
-        backgroundColor:
-            isDarkMode
-                ? AppTheme.darkTheme.scaffoldBackgroundColor
-                : AppTheme.lightTheme.primaryColor,
-        onTap: controller.inviteSelectedUsers, // ✅ simplified
+        backgroundColor: AppColors.primaryColor,
+        onTap: controller.inviteSelectedUsers,
       ),
     );
   }

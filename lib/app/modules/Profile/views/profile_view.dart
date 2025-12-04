@@ -9,10 +9,9 @@ import 'package:get/get.dart';
 import '../../../Controllers/oauth.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_texts.dart';
-import '../../../core/themes/Font_style.dart';
+import 'package:bellybutton/app/core/utils/index.dart';
 import '../../../global_widgets/Button/global_button.dart';
 import '../../../global_widgets/custom_app_bar/custom_app_bar.dart';
-import '../../../utils/preference.dart';
 import '../controllers/profile_controller.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 
@@ -175,15 +174,14 @@ class ProfileView extends GetView<ProfileController> {
                 ),
                 const _SectionDivider(),
 
-                _ProfileMenuTile(
-                  svgPath:
-                      AppImages.NEW_PSWRD, // change if you have a password icon
-                  title: AppTexts.PREMIUM,
-                  onTap: controller.PremiumScreen,
-                ),
+                // _ProfileMenuTile(
+                //   svgPath:
+                //       AppImages.NEW_PSWRD, // change if you have a password icon
+                //   title: AppTexts.PREMIUM,
+                //   onTap: controller.PremiumScreen,
+                // ),
 
-                const _SectionDivider(),
-
+                // const _SectionDivider(),
                 _ProfileMenuTile(
                   svgPath: AppImages.FAQ_ICON,
                   title: AppTexts.FAQS,

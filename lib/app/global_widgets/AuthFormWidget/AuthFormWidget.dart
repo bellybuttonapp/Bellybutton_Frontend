@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/themes/Font_style.dart';
+import 'package:bellybutton/app/core/utils/index.dart';
 import '../Button/global_button.dart';
 import '../GlobalTextField/GlobalTextField.dart';
 

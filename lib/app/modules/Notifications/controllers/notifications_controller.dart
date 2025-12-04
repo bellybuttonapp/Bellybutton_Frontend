@@ -5,7 +5,6 @@ import 'package:get/get.dart';
 class NotificationsController extends GetxController {
   var isLoading = false.obs;
 
-
   final count = 0.obs;
   @override
   void onInit() {
@@ -23,9 +22,9 @@ class NotificationsController extends GetxController {
       isLoading.value = true;
 
       // Simulate some async operation, e.g., API call or navigation delay
-      await Future.delayed(const Duration(seconds: 2));
+      await Future.delayed(const Duration(milliseconds: 200));
       Get.back();
-    
+
       print('Button tapped, proceed to next step');
     } finally {
       isLoading.value = false;

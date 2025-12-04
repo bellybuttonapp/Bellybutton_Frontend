@@ -1,54 +1,58 @@
 // ignore_for_file: unnecessary_overrides, avoid_print, non_constant_identifier_names
 
-import 'package:bellybutton/app/modules/Notifications/views/notifications_view.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-
+import '../../Notifications/views/notifications_view.dart';
+import '../Innermodule/EventInvitations/views/event_invitations_view.dart';
 import '../Innermodule/create_event/views/create_event_view.dart';
 
 class DashboardController extends GetxController {
   final isLoading = false.obs;
 
-  void onButtonTap() {
-    isLoading.value = true;
-    print("Bottom button tapped");
-
-    Future.delayed(const Duration(seconds: 2), () {
-      isLoading.value = false;
-      print("Action Completed");
-    });
-  }
-
   void goToNotificationView() {
-    print("Notification button tapped");
+    HapticFeedback.mediumImpact();
+
     Get.to(
       () => NotificationsView(),
       transition: Transition.fade,
       duration: const Duration(milliseconds: 300),
     );
+
+    // 🔥 Notify GetBuilder widgets (if any part depends on this)
+    update();
   }
 
-  void CreateEvent() async {
-    try {
-      isLoading.value = true;
-      await Future.delayed(
-        const Duration(milliseconds: 200),
-      ); // Let UI show loader
+  void goToEventInvitationsView() {
+    HapticFeedback.mediumImpact();
 
-      // Simulate some operation
-      await Future.delayed(const Duration(seconds: 2));
+    Get.to(
+      () => EventInvitationsView(),
+      transition: Transition.fade,
+      duration: const Duration(milliseconds: 300),
+    );
 
-      // Navigate with custom transition animation
-      Get.to(
-        () => CreateEventView(),
-        transition: Transition.rightToLeft, // Slide from right
-        duration: const Duration(
-          milliseconds: 500,
-        ), // Smooth animation duration
-      );
+    // 🔥 Notify GetBuilder widgets (if any part depends on this)
+    update();
+  }
 
-      print('Button tapped, proceed to next step');
-    } finally {
-      isLoading.value = false;
-    }
+  Future<void> CreateEvent() async {
+    isLoading.value = true;
+    print("➡ Navigating to Create Event");
+
+    // 🔥 optional update for GetBuilder UI (not required for Obx)
+    update();
+
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    Get.to(
+      () => CreateEventView(),
+      transition: Transition.rightToLeft,
+      duration: const Duration(milliseconds: 450),
+    );
+
+    isLoading.value = false;
+
+    // 🔥 Refresh GetBuilder after turning off loader (again optional)
+    update();
   }
 }

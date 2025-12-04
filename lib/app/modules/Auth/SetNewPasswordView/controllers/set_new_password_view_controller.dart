@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../Controllers/oauth.dart';
 import '../../../../core/constants/app_texts.dart';
+import '../../../../core/services/local_notification_service.dart';
 import '../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../../routes/app_pages.dart';
-import '../../../../utils/preference.dart';
+import '../../../../core/utils/storage/preference.dart';
 
 class SetNewPasswordViewController extends GetxController {
   final TextEditingController newPasswordController = TextEditingController();
@@ -72,6 +73,12 @@ class SetNewPasswordViewController extends GetxController {
 
         Preference.isLoggedIn = false;
         Preference.email = '';
+
+        // 🔥 Local Notification Trigger
+        LocalNotificationService.show(
+          title: AppTexts.NOTIFY_PASSWORD_RESET_TITLE,
+          body: AppTexts.NOTIFY_PASSWORD_RESET_BODY,
+        );
 
         showCustomSnackBar(message, SnackbarState.success);
         await Future.delayed(const Duration(milliseconds: 500));

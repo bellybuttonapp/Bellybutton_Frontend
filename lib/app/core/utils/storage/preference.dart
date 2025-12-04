@@ -9,6 +9,8 @@ class Preference {
   /// Call this once Hive is initialized
   static void init(Box hiveBox) {
     box = hiveBox;
+
+    userIdRx.value = box.get(USER_ID, defaultValue: 0) ?? 0;
     userNameRx.value = box.get(USER_NAME, defaultValue: '') ?? '';
     userEmailRx.value = box.get(USER_EMAIL, defaultValue: '') ?? '';
     profileImageRx.value = box.get(PROFILE_IMAGE);
@@ -18,6 +20,7 @@ class Preference {
   }
 
   // Reactive variables
+  static RxInt userIdRx = 0.obs;
   static RxString userNameRx = ''.obs;
   static RxString userEmailRx = ''.obs;
   static RxnString profileImageRx = RxnString();
@@ -27,6 +30,7 @@ class Preference {
 
   // Keys
   static const String TOKEN = 'token';
+  static const String USER_ID = 'user_id';
   static const String USER_NAME = 'user_name';
   static const String USER_EMAIL = 'email';
   static const String IS_LOGGED_IN = 'is_logged_in';
@@ -39,10 +43,23 @@ class Preference {
   static const String BIO = 'bio';
   static const String PHONE = 'phone';
   static const String ADDRESS = 'address';
+  // ⭐ ADDED (For preventing Duplicates)
+  static const String EVENT_GALLERY_CACHE = "event_gallery_cache";
+  static const String EVENT_SYNC_DONE = "event_sync_done";
+  static const String EVENT_UPLOADED_HASHES = "uploaded_hashes";
+  // ⭐ ADDED (For push Notifications)
+  static const String FCM_TOKEN = 'fcm_token';
 
   // Token
   static String get token => box.get(TOKEN, defaultValue: '') ?? '';
   static set token(String value) => box.put(TOKEN, value);
+
+  // User ID  🔥 (ADDED)
+  static int get userId => userIdRx.value;
+  static set userId(int value) {
+    userIdRx.value = value;
+    box.put(USER_ID, value);
+  }
 
   // User name
   static String get userName => userNameRx.value;
@@ -119,9 +136,24 @@ class Preference {
     }
   }
 
+  //FCM Token
+  static String get fcmToken => box.get(FCM_TOKEN, defaultValue: '');
+  static set fcmToken(String value) => box.put(FCM_TOKEN, value);
+
   // Clear all preferences
   static void clearAll() {
-    box.clear();
+    /// Backup uploaded history before clearing
+    var uploadedHashes = box.get(Preference.EVENT_UPLOADED_HASHES);
+
+    box.clear(); // clear everything
+
+    /// Restore uploaded list so images never come again
+    if (uploadedHashes != null) {
+      box.put(Preference.EVENT_UPLOADED_HASHES, uploadedHashes);
+    }
+
+    // Reset variables
+    userIdRx.value = 0;
     userNameRx.value = '';
     userEmailRx.value = '';
     profileImageRx.value = null;

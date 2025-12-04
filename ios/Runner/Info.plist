@@ -8,8 +8,37 @@
 		<string>Bellybutton</string>
 		<key>CFBundleExecutable</key>
 		<string>$(EXECUTABLE_NAME)</string>
+		<!-- ===== Start App Permissions Section (iOS) ===== -->
+		<key>NSCameraUsageDescription</key>
+		<string>This app needs camera access to take pictures and scan content.</string>
+
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>This app needs access to your photo library to select and upload pictures.</string>
+
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>This app needs permission to save photos to your library.</string>
+
 		<key>NSContactsUsageDescription</key>
-		<string>This app requires contacts access to function properly.</string>
+		<string>This app needs access to your contacts to connect you with friends.</string>
+
+		<key>NSMicrophoneUsageDescription</key>
+		<string>This app needs microphone access for recording.</string>
+
+		<key>NSSpeechRecognitionUsageDescription</key>
+		<string>This app uses speech recognition for voice input.</string>
+
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>This app needs location access while using the app.</string>
+
+		<key>NSLocationAlwaysUsageDescription</key>
+		<string>This app needs background location access for continuous tracking.</string>
+
+		<key>NSBluetoothAlwaysUsageDescription</key>
+		<string>This app needs Bluetooth access to connect to devices.</string>
+
+		<key>NSFaceIDUsageDescription</key>
+		<string>This app uses Face ID for authentication.</string>
+		<!-- ===== End App Permissions Section (iOS) ===== -->
 		<!-- Google Sign-in Section -->
 		<key>CFBundleURLTypes</key>
 		<array>

@@ -10,5 +10,6 @@ class OnboardingController extends GetxController {
     await Future.delayed(Duration(seconds: 2));
     isLoading.value = false;
     Get.offNamed(Routes.LOGIN); // ✅ Cannot go back to onboarding
+    update();
   }
 }

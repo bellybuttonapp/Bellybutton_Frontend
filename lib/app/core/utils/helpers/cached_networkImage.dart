@@ -4,8 +4,8 @@ import 'package:bellybutton/app/core/constants/app_images.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:bellybutton/app/core/utils/index.dart';
 
-import '../core/themes/dimensions.dart';
 
 class ImageLoader extends StatelessWidget {
   const ImageLoader({

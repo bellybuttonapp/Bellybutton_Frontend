@@ -1,4 +1,4 @@
-// ignore_for_file: annotate_overrides, deprecated_member_use
+// ignore_for_file: annotate_overrides, deprecated_member_use, curly_braces_in_flow_control_structures
 
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -10,7 +10,7 @@ import '../../../../../core/constants/app_images.dart';
 import '../../../../../core/constants/app_texts.dart';
 import '../../../../../global_widgets/Button/global_button.dart';
 import '../../../../../global_widgets/GlobalTextField/GlobalTextField.dart';
-import '../../../../../utils/preference.dart';
+import '../../../../../core/utils/storage/preference.dart';
 import '../controllers/account_details_controller.dart';
 import '../../../../../global_widgets/custom_app_bar/custom_app_bar.dart';
 
@@ -19,6 +19,7 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
     AccountDetailsController(),
     permanent: true,
   );
+
   final _formKey = GlobalKey<FormState>();
 
   AccountDetailsView({super.key});
@@ -31,30 +32,22 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
 
     final user = AuthService().currentUser;
 
-    final initialName =
-        user?.displayName?.isNotEmpty == true
-            ? user!.displayName!
-            : (Preference.userName.isNotEmpty
-                ? Preference.userName
-                : "example User");
-
-    controller.nameController.text = initialName;
-    controller.bioController.text =
-        Preference.bio.isNotEmpty ? Preference.bio : "";
-
     ImageProvider<Object>? profileImage() {
       final picked = controller.pickedImage.value;
       final savedImage = Preference.profileImage ?? '';
       final photoUrl = user?.photoURL;
 
       if (picked != null) return FileImage(File(picked.path));
+
       if (savedImage.isNotEmpty) {
         return savedImage.startsWith('http')
             ? NetworkImage(savedImage)
             : FileImage(File(savedImage));
       }
+
       if (photoUrl != null && photoUrl.isNotEmpty)
         return NetworkImage(photoUrl);
+
       return null;
     }
 
@@ -77,7 +70,7 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    // Profile Image
+                    /// PROFILE IMAGE
                     Center(
                       child: Stack(
                         clipBehavior: Clip.none,
@@ -133,7 +126,7 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
 
                     SizedBox(height: screenHeight * 0.04),
 
-                    // Name Field
+                    /// NAME FIELD
                     Obx(
                       () => GlobalTextField(
                         controller: controller.nameController,
@@ -147,7 +140,7 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
 
                     SizedBox(height: screenHeight * 0.025),
 
-                    // Bio Field
+                    /// BIO FIELD
                     GlobalTextField(
                       controller: controller.bioController,
                       hintText: AppTexts.BIO,
@@ -158,7 +151,7 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
 
                     SizedBox(height: screenHeight * 0.025),
 
-                    // Email Field (Read-only)
+                    /// EMAIL FIELD (READ ONLY)
                     GlobalTextField(
                       enabled: false,
                       controller: TextEditingController(
@@ -181,18 +174,27 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
 
                     SizedBox(height: screenHeight * 0.25),
 
-                    // Save Button
+                    /// SAVE BUTTON
                     Obx(
                       () => global_button(
                         loaderWhite: true,
                         isLoading: controller.isLoading.value,
-                        onTap: () {
-                          if (_formKey.currentState?.validate() ?? false) {
-                            controller.saveChanges();
-                          }
-                        },
+                        onTap:
+                            controller.hasChanges.value
+                                ? () {
+                                  if (_formKey.currentState?.validate() ??
+                                      false) {
+                                    controller.saveChanges();
+                                  }
+                                }
+                                : null, // ⭐ disable when no changes
                         title: AppTexts.SAVE_CHANGES,
-                        backgroundColor: AppColors.primaryColor,
+                        backgroundColor:
+                            controller.hasChanges.value
+                                ? AppColors.primaryColor
+                                : AppColors.primaryColor.withOpacity(
+                                  0.4,
+                                ), // ⭐ faded
                       ),
                     ),
                   ],

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_images.dart';
-import '../../../../core/themes/Font_style.dart';
+import 'package:bellybutton/app/core/utils/index.dart';
 import '../../../../core/constants/app_texts.dart';
 import '../../../../global_widgets/Button/global_button.dart';
 import '../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
@@ -96,7 +96,7 @@ class LoginView extends GetView<LoginController> {
                             obscureText: false,
                             keyboardType: TextInputType.emailAddress,
                             errorText:
-                                controller.emailError.value.isEmpty
+                                (controller.emailError.value ?? '').isEmpty
                                     ? null
                                     : controller.emailError.value,
                             onChanged: controller.validateEmail,
@@ -111,9 +111,10 @@ class LoginView extends GetView<LoginController> {
                             hintText: AppTexts.LOGIN_PASSWORD,
                             obscureText: controller.isPasswordHidden.value,
                             errorText:
-                                controller.passwordError.value.isEmpty
+                                (controller.passwordError.value ?? '').isEmpty
                                     ? null
                                     : controller.passwordError.value,
+
                             onChanged: controller.validatePassword,
                             suffixIcon: IconButton(
                               icon: Icon(

@@ -10,8 +10,16 @@ import '../modules/Auth/login/bindings/login_binding.dart';
 import '../modules/Auth/login/views/login_view.dart';
 import '../modules/Auth/signup/bindings/signup_binding.dart';
 import '../modules/Auth/signup/views/signup_view.dart';
+import '../modules/Dashboard/Innermodule/EventInvitations/bindings/event_invitations_binding.dart';
+import '../modules/Dashboard/Innermodule/EventInvitations/views/event_invitations_view.dart';
 import '../modules/Dashboard/Innermodule/Event_gallery/bindings/event_gallery_binding.dart';
 import '../modules/Dashboard/Innermodule/Event_gallery/views/event_gallery_view.dart';
+import '../modules/Dashboard/Innermodule/InvitedAdminsList/bindings/invited_admins_list_binding.dart';
+import '../modules/Dashboard/Innermodule/InvitedAdminsList/views/invited_admins_list_view.dart';
+import '../modules/Dashboard/Innermodule/InvitedEventGallery/bindings/invited_event_gallery_binding.dart';
+import '../modules/Dashboard/Innermodule/InvitedEventGallery/views/invited_event_gallery_view.dart';
+import '../modules/Dashboard/Innermodule/InvitedUsersList/bindings/invited_users_list_binding.dart';
+import '../modules/Dashboard/Innermodule/InvitedUsersList/views/invited_users_list_view.dart';
 import '../modules/Dashboard/Innermodule/Past_Event/bindings/past_event_binding.dart';
 import '../modules/Dashboard/Innermodule/Past_Event/views/past_event_view.dart';
 import '../modules/Dashboard/Innermodule/Upcomming_Event/bindings/upcomming_event_binding.dart';
@@ -24,6 +32,8 @@ import '../modules/Dashboard/bindings/dashboard_binding.dart';
 import '../modules/Dashboard/views/dashboard_view.dart';
 import '../modules/Notifications/bindings/notifications_binding.dart';
 import '../modules/Notifications/views/notifications_view.dart';
+import '../modules/PhotoPre/bindings/photo_pre_binding.dart';
+import '../modules/PhotoPre/views/photo_pre_view.dart';
 import '../modules/Premium/bindings/premium_binding.dart';
 import '../modules/Premium/views/premium_view.dart';
 import '../modules/Profile/Innermodule/Account_Details/bindings/account_details_binding.dart';
@@ -90,7 +100,7 @@ class AppPages {
     ),
     GetPage(
       name: _Paths.DASHBOARD,
-      page: () => const DashboardView(),
+      page: () => DashboardView(),
       binding: DashboardBinding(),
       transition: Transition.fade,
       curve: Curves.easeInOut,
@@ -127,6 +137,29 @@ class AppPages {
           transition: Transition.fade,
           curve: Curves.easeInOut,
           transitionDuration: Duration(milliseconds: 400),
+        ),
+        GetPage(
+          name: _Paths.INVITED_USERS_LIST,
+          page: () => const InvitedUsersListView(),
+          binding: InvitedUsersListBinding(),
+          transition: Transition.fade,
+          curve: Curves.easeInOut,
+          transitionDuration: Duration(milliseconds: 400),
+        ),
+        GetPage(
+          name: _Paths.EVENT_INVITATIONS,
+          page: () => EventInvitationsView(),
+          binding: EventInvitationsBinding(),
+        ),
+        GetPage(
+          name: _Paths.INVITED_EVENT_GALLERY,
+          page: () => InvitedEventGalleryView(),
+          binding: InvitedEventGalleryBinding(),
+        ),
+        GetPage(
+          name: _Paths.INVITED_ADMINS_LIST,
+          page: () => const InvitedAdminsListView(),
+          binding: InvitedAdminsListBinding(),
         ),
       ],
     ),
@@ -188,7 +221,16 @@ class AppPages {
       curve: Curves.easeInOut,
       transitionDuration: Duration(milliseconds: 400),
     ),
+    GetPage(
+      name: _Paths.PHOTO_PRE,
+      page: () => PhotoPreView(),
+      binding: PhotoPreBinding(),
+      transition: Transition.fade,
+      curve: Curves.easeInOut,
+      transitionDuration: Duration(milliseconds: 400),
+    ),
   ];
 }
+
 // End of file
 // lib/app/routes/app_pages.dart

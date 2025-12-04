@@ -7,9 +7,10 @@ import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 import 'package:bellybutton/app/core/constants/app_images.dart';
 import 'package:bellybutton/app/core/constants/app_colors.dart';
-import '../../core/themes/Font_style.dart';
-import '../../core/themes/dimensions.dart';
+import 'package:bellybutton/app/core/utils/index.dart';
+import 'package:get/get.dart';
 import '../../database/models/EventModel.dart';
+import '../Button/global_button.dart';
 import '../CustomBottomSheet/CustomBottomsheet.dart';
 
 class EventCard extends StatelessWidget {
@@ -18,14 +19,29 @@ class EventCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onEditTap;
   final VoidCallback? onDeleteTap;
+  final bool hideMoreIcon;
+  final VoidCallback? onAcceptTap;
+  final VoidCallback? onDenyTap;
+  final bool showInvitationButtons;
 
-  const EventCard({
+  // NEW → Always show View Photos initially
+  final bool showViewPhotosInitially;
+
+  // internal reactive flag
+  final RxBool isAccepted = false.obs;
+
+  EventCard({
     super.key,
     required this.event,
     required this.isDarkMode,
     this.onTap,
     this.onEditTap,
     this.onDeleteTap,
+    this.onAcceptTap,
+    this.onDenyTap,
+    this.showInvitationButtons = false,
+    this.hideMoreIcon = false,
+    this.showViewPhotosInitially = false, // DEFAULT false
   });
 
   String _formatEventDateTime(DateTime eventDate, String? rawTime) {
@@ -57,7 +73,6 @@ class EventCard extends StatelessWidget {
 
     final cardColor =
         isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF4FBFF);
-
     final borderColor =
         isDarkMode
             ? Colors.white.withOpacity(0.08)
@@ -71,74 +86,144 @@ class EventCard extends StatelessWidget {
     final imageSize = width * 0.18;
     final spacing = width * 0.03;
 
-    return Padding(
-      padding: EdgeInsets.only(bottom: height * 0.012),
-      child: Material(
-        color: cardColor,
-        elevation: isDarkMode ? 0 : 1,
-        shadowColor: shadowColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(width * 0.025),
-          side: BorderSide(color: borderColor, width: 0.6),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(width * 0.025),
-          splashColor: AppColors.primaryColor.withOpacity(0.15),
-          onTap: () {}, // tap to open details if needed
-          onLongPress: () {
-            // 👇 Long press anywhere on the card
-            HapticFeedback.selectionClick();
-            _showBottomSheet(context, width);
-          },
-          child: Padding(
-            padding: EdgeInsets.all(width * 0.04),
-            child: Column(
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildEventImage(imageSize),
-                    SizedBox(width: spacing),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildTitle(width, textScale, textColor),
-                          SizedBox(height: height * 0.005),
-                          _buildDateTime(width, textScale),
-                          SizedBox(height: height * 0.005),
-                          _buildDescription(textScale, secondaryTextColor),
-                        ],
-                      ),
-                    ),
-                    // Replace it with this:
-                    InkWell(
-                      borderRadius: BorderRadius.circular(width * 0.06),
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        _showBottomSheet(context, width);
-                      },
-                      child: Padding(
-                        padding: EdgeInsets.all(width * 0.01),
-                        child: Icon(
-                          Icons.more_vert,
-                          size: width * 0.06,
-                          color:
-                              isDarkMode
-                                  ? Colors.white70
-                                  : AppColors.textColor2,
+    return Obx(
+      () => Padding(
+        padding: EdgeInsets.only(bottom: height * 0.012),
+        child: Material(
+          color: cardColor,
+          elevation: isDarkMode ? 0 : 1,
+          shadowColor: shadowColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(width * 0.025),
+            side: BorderSide(color: borderColor, width: 0.6),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(width * 0.025),
+            splashColor: AppColors.primaryColor.withOpacity(0.15),
+            onTap: () {},
+            onLongPress:
+                hideMoreIcon
+                    ? null
+                    : () {
+                      HapticFeedback.selectionClick();
+                      _showBottomSheet(context, width);
+                    },
+            child: Padding(
+              padding: EdgeInsets.all(width * 0.04),
+              child: Column(
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildEventImage(imageSize),
+                      SizedBox(width: spacing),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildTitle(width, textScale, textColor),
+                            SizedBox(height: height * 0.005),
+                            _buildDateTime(width, textScale),
+                            SizedBox(height: height * 0.005),
+                            _buildDescription(textScale, secondaryTextColor),
+                          ],
                         ),
                       ),
+
+                      if (!hideMoreIcon)
+                        InkWell(
+                          borderRadius: BorderRadius.circular(width * 0.06),
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            _showBottomSheet(context, width);
+                          },
+                          child: Padding(
+                            padding: EdgeInsets.all(width * 0.01),
+                            child: Icon(
+                              Icons.more_vert,
+                              size: width * 0.06,
+                              color:
+                                  isDarkMode
+                                      ? Colors.white70
+                                      : AppColors.textColor2,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+
+                  SizedBox(height: height * 0.01),
+
+                  // ----------------------------------------
+                  // View Photos → Show always if flagged
+                  // ----------------------------------------
+                  if (isAccepted.value || showViewPhotosInitially)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        _buildViewPhotosButton(width, height, textScale),
+                      ],
+                    ),
+
+                  // ----------------------------------------
+                  // Accept / Deny Buttons
+                  // ----------------------------------------
+                  if (showInvitationButtons && !isAccepted.value) ...[
+                    SizedBox(height: height * 0.015),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.red.withOpacity(0.4),
+                                width: 1.2,
+                              ),
+                            ),
+                            child: global_button(
+                              title: "Deny",
+                              onTap: onDenyTap,
+                              backgroundColor: AppColors.disabledColor
+                                  .withOpacity(0.10),
+                              textColor: Colors.red,
+                              removeMargin: true,
+                            ),
+                          ),
+                        ),
+
+                        SizedBox(width: width * 0.03),
+
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: AppColors.success.withOpacity(0.4),
+                                width: 1.2,
+                              ),
+                            ),
+                            child: global_button(
+                              title: "Accept",
+                              onTap: () {
+                                isAccepted.value = true;
+                                if (onAcceptTap != null) onAcceptTap!();
+                              },
+                              backgroundColor: AppColors.success.withOpacity(
+                                0.12,
+                              ),
+                              textColor: AppColors.success,
+                              removeMargin: true,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
-                ),
-                SizedBox(height: height * 0.01),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [_buildViewPhotosButton(width, height, textScale)],
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -146,7 +231,7 @@ class EventCard extends StatelessWidget {
     );
   }
 
-  // ---------------------------- Components ----------------------------
+  // -------------------------------------------------------
 
   void _showBottomSheet(BuildContext context, double width) {
     CustomBottomSheet.show(
@@ -172,8 +257,6 @@ class EventCard extends StatelessWidget {
                       width: width * 0.2,
                       height: width * 0.2,
                       fit: BoxFit.cover,
-                      color: isDarkMode ? Colors.white24 : null,
-                      colorBlendMode: isDarkMode ? BlendMode.softLight : null,
                     ),
           ),
         ],
@@ -210,6 +293,8 @@ class EventCard extends StatelessWidget {
     );
   }
 
+  // -------------------------------------------------------
+
   Widget _buildEventImage(double imageSize) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(imageSize * 0.25),
@@ -226,8 +311,6 @@ class EventCard extends StatelessWidget {
                 width: imageSize,
                 height: imageSize,
                 fit: BoxFit.cover,
-                color: isDarkMode ? Colors.white10 : null,
-                colorBlendMode: isDarkMode ? BlendMode.softLight : null,
               ),
     );
   }

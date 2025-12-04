@@ -1,11 +1,10 @@
-// ignore_for_file: file_names
+// ignore_for_file: file_names, deprecated_member_use
 
 import 'package:bellybutton/app/core/constants/app_images.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
-
-import '../../core/themes/Font_style.dart';
+import 'package:bellybutton/app/core/utils/index.dart';
 
 enum SnackbarState { error, warning, success, pending, other }
 
@@ -24,6 +23,7 @@ class SnackbarConfig {
 void showCustomSnackBar(
   String message,
   SnackbarState state, {
+  String? subTitle, // <-- ADDED
   int durationSeconds = 4,
 }) {
   final context = Get.context!;
@@ -69,7 +69,7 @@ void showCustomSnackBar(
       behavior: SnackBarBehavior.floating,
       content: Container(
         margin: EdgeInsets.symmetric(
-          horizontal: screenWidth * 0.03, // responsive margin
+          horizontal: screenWidth * 0.03,
           vertical: screenHeight * 0.008,
         ),
         padding: EdgeInsets.symmetric(
@@ -84,21 +84,38 @@ void showCustomSnackBar(
           children: [
             SvgPicture.asset(
               config.iconPath,
-              width: screenWidth * 0.05, // responsive size
+              width: screenWidth * 0.05,
               height: screenWidth * 0.05,
               colorFilter: ColorFilter.mode(config.textColor, BlendMode.srcIn),
             ),
             SizedBox(width: screenWidth * 0.02),
+
+            // ========== MAIN MESSAGE + Optional Subtitle ==========
             Expanded(
-              child: Text(
-                message,
-                style: customBoldText.copyWith(
-                  color: config.textColor,
-                  fontSize: screenWidth * 0.035, // responsive font
-                  fontWeight: FontWeight.w600,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    message,
+                    style: customBoldText.copyWith(
+                      color: config.textColor,
+                      fontSize: screenWidth * 0.035,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (subTitle != null) // <-- Subtitle Shows ONLY when given
+                    Text(
+                      subTitle,
+                      style: customBoldText.copyWith(
+                        color: config.textColor.withOpacity(0.8),
+                        fontSize: screenWidth * 0.03,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                ],
               ),
             ),
+
             GestureDetector(
               onTap: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
               child: SvgPicture.asset(

@@ -2,17 +2,16 @@
 
 import 'dart:io';
 import 'package:bellybutton/app/Controllers/oauth.dart';
-import 'package:bellybutton/app/modules/Premium/views/premium_view.dart';
 import 'package:bellybutton/app/modules/Profile/Innermodule/Reset_password/views/reset_password_view.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import '../../../api/DioClient.dart';
+import '../../../core/network/dio_client.dart';
 import '../../../api/end_points.dart';
 import '../../../core/constants/app_texts.dart';
 import '../../../global_widgets/CustomPopup/CustomPopup.dart';
 import '../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../routes/app_pages.dart';
-import '../../../utils/preference.dart';
+import '../../../core/utils/storage/preference.dart';
 import '../../Auth/login/controllers/login_controller.dart';
 import '../Innermodule/Account_Details/views/account_details_view.dart';
 
@@ -54,13 +53,13 @@ class ProfileController extends GetxController {
     );
   }
 
-  void PremiumScreen() {
-    Get.to(
-      () => PremiumView(),
-      transition: Transition.rightToLeft,
-      duration: const Duration(milliseconds: 300),
-    );
-  }
+  // void PremiumScreen() {
+  //   Get.to(
+  //     () => PremiumView(),
+  //     transition: Transition.rightToLeft,
+  //     duration: const Duration(milliseconds: 300),
+  //   );
+  // }
 
   void ResetPassword() {
     Get.to(
@@ -138,9 +137,6 @@ class ProfileController extends GetxController {
     );
   }
 
-  /// =====================
-  /// SIGN OUT
-  /// =====================
   void onSignOut() {
     _showConfirmationDialog(
       title: AppTexts.SIGNOUT_POPUP_TITLE,
@@ -149,16 +145,32 @@ class ProfileController extends GetxController {
       onConfirm: () async {
         isSigningOut.value = true;
         try {
-          await AuthService().signOut();
-          Preference.isLoggedIn = false;
-          Preference.email = '';
+          await AuthService().signOutUser();
 
+          // 🔥 Remove only user session values – NOT uploaded list!
+          Preference.box.delete(Preference.USER_ID);
+          Preference.box.delete(Preference.USER_EMAIL);
+          Preference.box.delete(Preference.TOKEN);
+          Preference.isLoggedIn = false;
+
+          // 🔐 Preserve uploaded photo history forever
+          Preference.box.put(
+            Preference.EVENT_UPLOADED_HASHES,
+            Preference.box.get(
+              Preference.EVENT_UPLOADED_HASHES,
+              defaultValue: <String>[],
+            ),
+          );
+
+          // Remove old login controller instance
           if (Get.isRegistered<LoginController>()) {
             Get.delete<LoginController>(force: true);
           }
 
+          // 🚀 Reset Navigation
           Get.back();
           Get.offAllNamed(Routes.LOGIN);
+
           showCustomSnackBar(AppTexts.LOGOUT_SUCCESS, SnackbarState.success);
         } catch (e) {
           showCustomSnackBar(AppTexts.LOGOUT_ERROR, SnackbarState.error);

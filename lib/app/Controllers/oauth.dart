@@ -7,9 +7,9 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:dio/dio.dart';
-import '../api/DioClient.dart';
+import '../core/network/dio_client.dart';
 import '../api/end_points.dart';
-import '../utils/preference.dart';
+import '../core/utils/storage/preference.dart';
 
 class AuthService {
   // ---------- Firebase ----------
@@ -135,8 +135,14 @@ class AuthService {
   // ==========================
   Future<Map<String, dynamic>> checkEmailAvailability(String email) async {
     try {
-      final response = await _dio.post(
+      // 🚀 Use DioClient but OVERRIDE headers for this one request
+      final response = await DioClient().dio.post(
         "${Endpoints.CHECK_EMAIL_AVAILABILITY}/$email",
+        options: Options(
+          headers: {
+            "Authorization": "", // 🚀 Force remove token for THIS request only
+          },
+        ),
       );
 
       if (response.statusCode == 200) {
@@ -464,18 +470,39 @@ class AuthService {
   }
 
   // ==========================
-  // Firebase / Google Sign Out
+  // signOut (Firebase + API)
   // ==========================
-  Future<void> signOut() async {
+  Future<Map<String, dynamic>> signOutUser() async {
     try {
-      await _auth.signOut();
-      await _googleSignIn.signOut();
-      Preference.isLoggedIn = false;
-      Preference.email = '';
-      print("Signed out successfully");
+      // 1️⃣ LOGOUT FROM API (FORCE TOKEN)
+      try {
+        final response = await DioClient().dio.post(
+          Endpoints.LOGOUT, // "/userresource/logout-post"
+          options: Options(
+            headers: {"Authorization": "Bearer ${Preference.token}"},
+          ),
+        );
+
+        print("🚪 Logout API → ${response.data}");
+      } catch (e) {
+        print("API logout error → $e");
+      }
+
+      // 2️⃣ SIGN OUT FROM FIREBASE
+      try {
+        await _auth.signOut();
+        await _googleSignIn.signOut();
+      } catch (e) {
+        print("Firebase signOut error → $e");
+      }
+
+      // 3️⃣ CLEAR STORAGE
+      Preference.clearAll();
+
+      return {"success": true, "message": "Logged out successfully"};
     } catch (e) {
-      print("Sign out error: $e");
-      rethrow;
+      print("Logout error → $e");
+      return {"success": false, "message": "Logout failed"};
     }
   }
 
@@ -522,38 +549,46 @@ class AuthService {
   }
 
   // ==========================
-  // Delete Account (Firebase + API)
+  // DeleteAccount (Firebase + API)
   // ==========================
-  Future<void> deleteAccount() async {
+  Future<Map<String, dynamic>> deleteAccount() async {
     try {
       final user = _auth.currentUser;
 
-      // 1️⃣ Call API delete endpoint if user is logged in via API
+      // 1️⃣ DELETE FROM API (FORCING TOKEN)
       try {
-        if (Preference.email.isNotEmpty) {
-          await DioClient().postRequest(
-            Endpoints
-                .DELETE_ACCOUNT, // Make sure you have this endpoint in your API
-            data: {"email": Preference.email},
-          );
-          print("API account deleted successfully");
+        final response = await DioClient().dio.delete(
+          Endpoints.DELETE_ACCOUNT,
+          data: {"email": Preference.email},
+          options: Options(
+            headers: {"Authorization": "Bearer ${Preference.token}"},
+          ),
+        );
+
+        print("API account deleted → ${response.data}");
+      } catch (e) {
+        print("API delete error: $e");
+      }
+
+      // 2️⃣ DELETE FROM FIREBASE
+      try {
+        if (user != null) {
+          await _firestore.collection('users').doc(user.uid).delete();
+          await user.delete();
+          print("Firebase account deleted");
         }
-      } catch (apiError) {
-        print("API account deletion error: $apiError");
+      } catch (e) {
+        print("Firebase delete error: $e");
       }
 
-      // 2️⃣ Delete Firebase account if user exists
-      if (user != null) {
-        await _firestore.collection('users').doc(user.uid).delete();
-        await user.delete();
-        print("Firebase account deleted successfully");
-      }
-
-      // 3️⃣ Clear preferences
+      // 3️⃣ CLEAR ALL DATA
       Preference.clearAll();
+
+      return {"success": true, "message": "Account deleted successfully"};
     } catch (e) {
-      print("Account deletion error: $e");
-      rethrow;
+      print("deleteAccount() error: $e");
+      return {"success": false, "message": "Failed to delete account"};
     }
   }
 }
+

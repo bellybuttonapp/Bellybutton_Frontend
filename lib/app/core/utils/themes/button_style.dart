@@ -1,9 +1,9 @@
 // ignore_for_file: non_constant_identifier_names
 
-import 'package:bellybutton/app/core/utils/appColors/custom_color.g.dart';
+import 'package:bellybutton/app/core/utils/themes/custom_color.g.dart';
 import 'package:flutter/material.dart';
 
-import '../../themes/dimensions.dart';
+import 'dimensions.dart';
 
 final enabled_confirm_btn = ElevatedButton.styleFrom(
   backgroundColor: confirm_btn, // Set the background color

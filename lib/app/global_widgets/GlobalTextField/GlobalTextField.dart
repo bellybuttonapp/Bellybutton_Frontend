@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
-import '../../core/themes/Font_style.dart';
+import 'package:bellybutton/app/core/utils/index.dart';
 
 class GlobalTextField extends StatelessWidget {
   final TextEditingController? controller;
@@ -20,6 +20,7 @@ class GlobalTextField extends StatelessWidget {
   final void Function(String)? onChanged;
   final VoidCallback? onTap;
   final int? maxLines;
+  final String? tooltip;
   final int? maxLength; // add this in the class properties
 
   const GlobalTextField({
@@ -40,6 +41,7 @@ class GlobalTextField extends StatelessWidget {
     this.maxLines,
     // Inside constructor
     this.maxLength,
+    this.tooltip,
   });
 
   @override
@@ -92,6 +94,7 @@ class GlobalTextField extends StatelessWidget {
                 color: AppColors.tertiaryColor,
               ),
               decoration: InputDecoration(
+                helperText: tooltip,
                 hintText: hintText,
                 hintStyle: customBoldText.copyWith(
                   color: AppColors.tertiaryColor,

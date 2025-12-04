@@ -5,8 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../../core/constants/app_colors.dart';
-import '../../../core/themes/Font_style.dart';
-import '../../../core/themes/dimensions.dart';
+import 'package:bellybutton/app/core/utils/index.dart';
 import '../../../global_widgets/Button/global_button.dart';
 import '../controllers/onboarding_controller.dart';
 
@@ -24,57 +23,64 @@ class OnboardingView extends GetView<OnboardingController> {
         statusBarIconBrightness: Brightness.dark,
       ),
     );
-    return Scaffold(
-      body: Stack(
-        children: [
-          /// Background
-          Positioned.fill(
-            child: Image.asset(AppImages.ONBOARDING_PNG, fit: BoxFit.cover),
-          ),
-
-          /// Content
-          SafeArea(
-            child: Column(
-              children: [
-                const Expanded(flex: 60, child: SizedBox()),
-
-                /// Title & Subtitle
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: Dimensions.PADDING_SIZE_LARGE,
-                  ),
-                  child: Column(
-                    children: [
-                      _buildTitle(size),
-                      const SizedBox(height: 12),
-                      _buildSubtitle(size),
-                    ],
-                  ),
+    return GetBuilder<OnboardingController>(
+      builder: (controller) {
+        return Scaffold(
+          body: Stack(
+            children: [
+              /// Background
+              Positioned.fill(
+                child: Image.asset(
+                  AppImages.ONBOARDING_PNG1,
+                  fit: BoxFit.cover,
                 ),
+              ),
 
-                const Expanded(flex: 3, child: SizedBox()),
+              /// Content
+              SafeArea(
+                child: Column(
+                  children: [
+                    const Expanded(flex: 60, child: SizedBox()),
 
-                /// Bottom Button
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: Dimensions.PADDING_SIZE_LARGE,
-                    vertical: Dimensions.PADDING_SIZE_LARGE,
-                  ),
-                  child: Obx(
-                    () => global_button(
-                      isLoading: controller.isLoading.value, // ✅ Reactive
-                      title: AppTexts.ONBOARDING_BUTTON,
-                      backgroundColor: AppColors.textColor3,
-                      textColor: AppColors.primaryColor,
-                      onTap: controller.goToNext,
+                    /// Title & Subtitle
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: Dimensions.PADDING_SIZE_LARGE,
+                      ),
+                      child: Column(
+                        children: [
+                          _buildTitle(size),
+                          const SizedBox(height: 12),
+                          _buildSubtitle(size),
+                        ],
+                      ),
                     ),
-                  ),
+
+                    const Expanded(flex: 3, child: SizedBox()),
+
+                    /// Bottom Button
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: Dimensions.PADDING_SIZE_LARGE,
+                        vertical: Dimensions.PADDING_SIZE_LARGE,
+                      ),
+                      child: Obx(
+                        () => global_button(
+                          isLoading: controller.isLoading.value, // ✅ Reactive
+                          title: AppTexts.ONBOARDING_BUTTON,
+                          backgroundColor: AppColors.textColor3,
+                          textColor: AppColors.primaryColor,
+                          onTap: controller.goToNext,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

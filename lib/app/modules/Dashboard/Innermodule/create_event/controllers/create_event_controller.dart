@@ -6,10 +6,13 @@ import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../../../../api/PublicApiService.dart';
 import '../../../../../core/constants/app_texts.dart';
+import '../../../../../core/services/local_notification_service.dart';
+import '../../../../../core/utils/helpers/validation_utils.dart';
 import '../../../../../database/models/EventModel.dart';
 import '../../../../../global_widgets/CustomPopup/CustomPopup.dart';
 import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
-import '../../../../../utils/coadingRequirement/date_converter.dart';
+import '../../../../../core/utils/helpers/date_converter.dart';
+import '../../inviteuser/controllers/inviteuser_controller.dart';
 import '../../inviteuser/views/inviteuser_view.dart';
 
 class CreateEventController extends GetxController {
@@ -64,11 +67,10 @@ class CreateEventController extends GetxController {
     _loadEventData();
   }
 
-  /// ✅ Load data safely when editing
+  /// Load data safely when editing
   void _loadEventData() {
     _isInitializing = true;
     final args = Get.arguments;
-    print("🟢 Received Arguments: $args");
 
     if (args is EventModel) {
       isEditMode.value = true;
@@ -104,62 +106,58 @@ class CreateEventController extends GetxController {
   }
 
   void validateTitle(String value) {
-    titleError.value =
-        value.trim().length < 3 ? "Title must be at least 3 characters" : '';
+    titleError.value = Validation.validateEventTitle(value) ?? '';
   }
 
   void validateDescription(String value) {
-    descriptionError.value =
-        value.trim().length < 5
-            ? "Description must be at least 5 characters"
-            : '';
+    descriptionError.value = Validation.validateEventDescription(value) ?? '';
   }
 
   void validateDate(String value) {
-    dateError.value = value.trim().isEmpty ? "Please select date" : '';
+    dateError.value = Validation.validateEventDate(value) ?? '';
   }
 
   void validateStartTime(String value) {
-    startTimeError.value =
-        value.trim().isEmpty ? "Please select start time" : '';
+    startTimeError.value = Validation.validateEventStart(value) ?? '';
   }
 
   void validateEndTime(String value) {
-    if (value.trim().isEmpty) {
-      endTimeError.value = "Please select end time";
-      return;
-    }
+    // basic check moved to Validation
+    endTimeError.value = Validation.validateEventEnd(value) ?? '';
+
+    // *** keep your existing advanced logic ***
+    if (endTimeError.value.isNotEmpty) return;
 
     if (startTimeController.text.isNotEmpty && dateController.text.isNotEmpty) {
       try {
         final start = _parseTime(startTimeController.text, dateController.text);
         final end = _parseTime(value, dateController.text);
 
-        // Prevent past event time
         final now = DateTime.now();
+
         if (start.isBefore(now)) {
-          endTimeError.value = "Event time cannot be in the past";
+          endTimeError.value = AppTexts.EVENT_TIME_IN_PAST;
           return;
         }
 
         final diff = end.difference(start).inMinutes;
+
         if (diff <= 0) {
-          endTimeError.value = "End time must be after start time";
+          endTimeError.value = AppTexts.END_AFTER_START;
         } else if (diff > 120) {
-          endTimeError.value = "Event duration cannot exceed 2 hours";
+          endTimeError.value = AppTexts.EVENT_DURATION_LIMIT;
         } else {
           endTimeError.value = '';
         }
       } catch (_) {
-        endTimeError.value = "Invalid time format";
+        endTimeError.value = AppTexts.INVALID_TIME;
       }
     }
   }
 
-  // Helper to convert time string to DateTime
   DateTime _parseTime(String time, String date) {
     final datePart = DateFormat('dd MMM yyyy').parse(date);
-    final timeParts = time.split(RegExp(r'[:\s]')); // Handles 12-hour format
+    final timeParts = time.split(RegExp(r'[:\s]'));
     int hour = int.parse(timeParts[0]);
     final minute = int.parse(timeParts[1]);
     final isPM = time.toLowerCase().contains('pm');
@@ -170,73 +168,54 @@ class CreateEventController extends GetxController {
     return DateTime(datePart.year, datePart.month, datePart.day, hour, minute);
   }
 
-  // ---------------- DATE & TIME ----------------
   void selectDay(DateTime selected, DateTime focused) {
     selectedDay.value = selected;
     focusedDay.value = focused;
     dateController.text = DateFormat('dd MMM yyyy').format(selected);
   }
 
-  // ---------------- CREATE EVENT ----------------
   Future<void> createEvent() async {
     isLoading.value = true;
+
     try {
       final start = DateConverter.convertTo24Hour(startTimeController.text);
       final end = DateConverter.convertTo24Hour(endTimeController.text);
+      final eventDate = DateFormat('dd MMM yyyy').parse(dateController.text);
 
-      // Print converted times
-      print("Selected Start Time (24h): $start");
-      print("Selected End Time (24h): $end");
-
-      final response = await _apiService.createEvent(
+      final newEvent = EventModel(
+        id: null,
         title: titleController.text.trim(),
         description: descriptionController.text.trim(),
-        eventDate: DateFormat(
-          'yyyy-MM-dd',
-        ).format(DateFormat('dd MMM yyyy').parse(dateController.text)),
+        eventDate: eventDate,
         startTime: start,
         endTime: end,
+        invitedPeople: [],
       );
 
-      // ✅ Fixed condition: check if ID exists instead of response["id"] == true
-      if (response != null && response["id"] != null) {
-        showCustomSnackBar(
-          AppTexts.EVENT_SAVED_SUCCESSFULLY,
-          SnackbarState.success,
-        );
+      await LocalNotificationService.show(
+        title: AppTexts.NOTIFY_EVENT_CREATED_TITLE,
+        body:
+            "Your event '${titleController.text}' has been scheduled successfully.",
+      );
 
-        final eventId = response['id'];
-
-        final newEvent = EventModel(
-          id: eventId,
-          title: titleController.text.trim(),
-          description: descriptionController.text.trim(),
-          eventDate: DateFormat(
-            'dd MMM yyyy',
-          ).parse(dateController.text.trim()),
-          startTime: start,
-          endTime: end,
-          invitedPeople: [],
-        );
-
-        clearForm();
-        Get.off(() => InviteuserView(), arguments: newEvent);
-      } else {
-        showCustomSnackBar(
-          response?["message"] ?? "Failed to create event",
-          SnackbarState.error,
-        );
-      }
+      Get.off(() {
+        Get.delete<InviteuserController>();
+        Get.put(InviteuserController());
+        return const InviteuserView();
+      }, arguments: newEvent);
     } catch (e) {
-      showCustomSnackBar("Error: $e", SnackbarState.error);
+      showCustomSnackBar(
+        "${AppTexts.ERROR_PREPARING_EVENT} $e",
+        SnackbarState.error,
+      );
     } finally {
       isLoading.value = false;
     }
   }
 
-  // ---------------- UPDATE EVENT ----------------
   Future<void> updateEvent() async {
     if (editingEvent == null) return;
+
     isLoading.value = true;
 
     try {
@@ -254,43 +233,54 @@ class CreateEventController extends GetxController {
         endTime: end,
       );
 
-      print("🔍 API Response: $response");
+      final headers = response["headers"];
+      final data = response["data"];
+      final success = headers?["status"] == "success";
 
-      final bool isSuccess =
-          response["success"] == true || response["id"] != null;
-
-      if (isSuccess) {
-        showCustomSnackBar("Event updated successfully", SnackbarState.success);
-        await Future.delayed(const Duration(milliseconds: 700));
+      if (success && data != null) {
+        showCustomSnackBar(
+          headers?["message"] ?? AppTexts.EVENT_UPDATED,
+          SnackbarState.success,
+        );
+        await LocalNotificationService.show(
+          title: AppTexts.NOTIFY_EVENT_UPDATED_TITLE,
+          body:
+              "Your event '${titleController.text}' has been updated successfully.",
+        );
 
         final updatedEvent = EventModel(
-          id: response["id"] ?? editingEvent!.id,
-          title: titleController.text.trim(),
-          description: descriptionController.text.trim(),
-          eventDate: DateFormat(
-            'dd MMM yyyy',
-          ).parse(dateController.text.trim()),
-          startTime: start,
-          endTime: end,
-          invitedPeople: [],
+          id: data["id"],
+          title: data["title"],
+          description: data["description"],
+          eventDate: DateTime.parse(data["eventDate"]),
+          startTime: data["startTime"],
+          endTime: data["endTime"],
+          invitedPeople: data["invitedPeople"] ?? [],
         );
 
         clearForm();
-        Get.off(() => InviteuserView(), arguments: updatedEvent);
+
+        Get.off(() {
+          Get.delete<InviteuserController>();
+          Get.put(InviteuserController());
+          return const InviteuserView();
+        }, arguments: updatedEvent);
       } else {
         showCustomSnackBar(
-          response["message"] ?? "Failed to update event",
+          AppTexts.FAILED_TO_UPDATE_EVENT,
           SnackbarState.error,
         );
       }
     } catch (e) {
-      showCustomSnackBar("Error updating event: $e", SnackbarState.error);
+      showCustomSnackBar(
+        "${AppTexts.ERROR_UPDATING_EVENT} $e",
+        SnackbarState.error,
+      );
     } finally {
       isLoading.value = false;
     }
   }
 
-  // ---------------- CLEAR FORM ----------------
   void clearForm() {
     titleController.clear();
     descriptionController.clear();
@@ -301,7 +291,6 @@ class CreateEventController extends GetxController {
     isEditMode.value = false;
   }
 
-  // ---------------- CONFIRMATION POPUP ----------------
   void showEventConfirmationDialog() {
     _showConfirmationDialog(
       title:
@@ -350,7 +339,6 @@ class CreateEventController extends GetxController {
     );
   }
 
-  // ---------------- TIME PICKER ----------------
   Future<void> selectTime(
     BuildContext context,
     TextEditingController timeController,
@@ -359,7 +347,7 @@ class CreateEventController extends GetxController {
   }) async {
     if (dateController.text.isEmpty) {
       showCustomSnackBar(
-        "Please select the event date first",
+        AppTexts.PLEASE_SELECT_DATE_FIRST,
         SnackbarState.error,
       );
       return;
@@ -371,7 +359,7 @@ class CreateEventController extends GetxController {
     try {
       selectedDate = DateFormat('dd MMM yyyy').parse(dateController.text);
     } catch (e) {
-      showCustomSnackBar("Invalid date format", SnackbarState.error);
+      showCustomSnackBar(AppTexts.INVALID_DATE_FORMAT, SnackbarState.error);
       return;
     }
 
@@ -393,16 +381,14 @@ class CreateEventController extends GetxController {
         selectedDate.day,
         picked.hour,
         picked.minute,
-        0,
       );
 
-      // Prevent past start times
       if (!isEndTime && selectedDateTime.isBefore(DateTime.now())) {
         await Get.dialog(
           CustomPopup(
-            title: "Invalid Time..! ",
-            message: "You cannot select a past time.",
-            confirmText: "OK",
+            title: AppTexts.INVALID_TIME_POPUP_TITLE,
+            message: AppTexts.INVALID_TIME_POPUP_MESSAGE,
+            confirmText: AppTexts.OK,
             cancelText: null,
             isProcessing: false.obs,
             onConfirm: () => Get.back(),
@@ -411,19 +397,10 @@ class CreateEventController extends GetxController {
         return;
       }
 
-      // Directly format in 24-hour for API
       final formatted24 = DateFormat('HH:mm:ss').format(selectedDateTime);
 
-      // Set controller and clear error
       timeController.text = formatted24;
       errorObservable.value = '';
-
-      print("Selected ${isEndTime ? "End" : "Start"} Time (24h): $formatted24");
-
-      // // ✅ Show confirmation dialog immediately after selecting end time
-      // if (isEndTime) {
-      //   showEventConfirmationDialog();
-      // }
     }
   }
 
@@ -438,7 +415,6 @@ class CreateEventController extends GetxController {
   }
 }
 
-/// ---------------- HELPER POPUP ----------------
 void _showConfirmationDialog({
   required String title,
   String? message,
@@ -447,11 +423,6 @@ void _showConfirmationDialog({
   required Future<void> Function() onConfirm,
   required RxBool isProcessing,
 }) {
-  assert(
-    message != null || messageWidget != null,
-    'Either message or messageWidget must be provided',
-  );
-
   Get.dialog(
     CustomPopup(
       title: title,

@@ -30,6 +30,14 @@ abstract class Routes {
   // 💎 Premium & Auth
   static const PREMIUM = _Paths.PREMIUM;
   static const SET_NEW_PASSWORD_VIEW = _Paths.SET_NEW_PASSWORD_VIEW;
+  static const INVITED_USERS_LIST =
+      _Paths.DASHBOARD + _Paths.INVITED_USERS_LIST;
+  static const EVENT_INVITATIONS = _Paths.DASHBOARD + _Paths.EVENT_INVITATIONS;
+  static const INVITED_EVENT_GALLERY =
+      _Paths.DASHBOARD + _Paths.INVITED_EVENT_GALLERY;
+  static const PHOTO_PRE = _Paths.PHOTO_PRE;
+  static const INVITED_ADMINS_LIST =
+      _Paths.DASHBOARD + _Paths.INVITED_ADMINS_LIST;
 }
 
 // 🌐 PATHS
@@ -59,4 +67,9 @@ abstract class _Paths {
   // Auth / Premium
   static const PREMIUM = '/premium';
   static const SET_NEW_PASSWORD_VIEW = '/set-new-password-view';
+  static const INVITED_USERS_LIST = '/invited-users-list';
+  static const EVENT_INVITATIONS = '/event-invitations';
+  static const INVITED_EVENT_GALLERY = '/invited-event-gallery';
+  static const PHOTO_PRE = '/photo-pre';
+  static const INVITED_ADMINS_LIST = '/invited-admins-list';
 }
