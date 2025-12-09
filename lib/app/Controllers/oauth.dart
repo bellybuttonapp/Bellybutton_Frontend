@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -115,6 +116,7 @@ class AuthService {
     required String name,
     required String email,
     required String password,
+    required String phone, // <-- added
     String? profilePhoto,
   }) async {
     return await _handleApiCall(
@@ -124,10 +126,110 @@ class AuthService {
           "name": name,
           "email": email,
           "password": password,
+          "phone": phone,
           "profilePhoto": profilePhoto,
         },
       ),
     );
+  }
+
+  // ==========================
+  // Verify OTP API (Signup) - Production Ready
+  // ==========================
+  Future<Map<String, dynamic>> verifySignupOtp({
+    required String email,
+    required String otp,
+  }) async {
+    try {
+      final response = await DioClient().postRequest(
+        Endpoints.REGISTER_VERIFY_OTP,
+        data: {"email": email.trim(), "otp": otp.trim()},
+      );
+
+      if (response?.data == null) {
+        return _errorResponse("Something went wrong. Please try again.");
+      }
+
+      final data = response?.data;
+      final headers = data["headers"] ?? {};
+      bool success = headers["status"]?.toLowerCase() == "success";
+
+      return {
+        "status": success,
+        "message":
+            data["message"] ??
+            (success
+                ? "OTP verified successfully."
+                : "Invalid OTP. Please try again."),
+      };
+    } on DioException catch (e) {
+      // Log internally for debugging, do not expose to user
+      debugPrint("DIO ERROR → ${e.message} | ${e.response?.statusCode}");
+
+      return _errorResponse(
+        e.type == DioExceptionType.connectionTimeout ||
+                e.type == DioExceptionType.receiveTimeout
+            ? "Network timeout. Please check your connection."
+            : "Unable to verify OTP right now. Please try again.",
+      );
+    } catch (e) {
+      // Catch any other error safely
+      debugPrint("UNKNOWN ERROR: $e");
+      return _errorResponse("Something went wrong. Please try again later.");
+    }
+  }
+
+  // Reusable error response
+  Map<String, dynamic> _errorResponse(String message) {
+    return {"status": false, "message": message};
+  }
+
+  // ==========================
+  // Resend OTP API
+  // ==========================
+  Future<Map<String, dynamic>> resendOtp({required String email}) async {
+    try {
+      final response = await DioClient().postRequest(
+        Endpoints.REQUEST_OTP, // "/userresource/resend-otp"
+        data: {"email": email.trim()},
+      );
+
+      if (response == null || response.data == null) {
+        return {
+          "headers": {
+            "statusCode": 500,
+            "status": "failed",
+            "message": "No response from server.",
+          },
+        };
+      }
+
+      final data = response.data;
+
+      return {
+        "headers": {
+          "statusCode": response.statusCode ?? 200,
+          "status": (data["status"] ?? "failed").toString(),
+          "message": data["message"] ?? "No message from server",
+        },
+      };
+    } on DioException catch (e) {
+      return {
+        "headers": {
+          "statusCode": e.response?.statusCode ?? 500,
+          "status": "failed",
+          "message": e.response?.statusMessage ?? "Network or server error",
+        },
+      };
+    } catch (e) {
+      return {
+        "headers": {
+          "statusCode": 500,
+          "status": "failed",
+          "message": "Unexpected error: $e",
+        },
+      };
+    }
   }
 
   // ==========================
@@ -591,4 +693,3 @@ class AuthService {
     }
   }
 }
-

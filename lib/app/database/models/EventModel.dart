@@ -71,7 +71,7 @@ class EventModel extends HiveObject {
   }
 
   // ============================
-  // 🔥 FIXED: fullEventDateTime()
+  // 🔥 FIXED: fullEventDateTime() - Start Time
   // ============================
   DateTime get fullEventDateTime {
     try {
@@ -79,7 +79,6 @@ class EventModel extends HiveObject {
       final hour = int.parse(parts[0]);
       final minute = int.parse(parts[1]);
       final second = parts.length > 2 ? int.parse(parts[2]) : 0;
-
       return DateTime(
         eventDate.year,
         eventDate.month,
@@ -90,6 +89,29 @@ class EventModel extends HiveObject {
       );
     } catch (e) {
       print("⚠ Error computing fullEventDateTime: $e");
+      return eventDate;
+    }
+  }
+
+  // ============================
+  // 🔥 NEW: fullEventEndDateTime() - End Time
+  // ============================
+  DateTime get fullEventEndDateTime {
+    try {
+      final parts = endTime.split(':');
+      final hour = int.parse(parts[0]);
+      final minute = int.parse(parts[1]);
+      final second = parts.length > 2 ? int.parse(parts[2]) : 0;
+      return DateTime(
+        eventDate.year,
+        eventDate.month,
+        eventDate.day,
+        hour,
+        minute,
+        second,
+      );
+    } catch (e) {
+      print("⚠ Error computing fullEventEndDateTime: $e");
       return eventDate;
     }
   }

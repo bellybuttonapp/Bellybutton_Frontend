@@ -1,4 +1,4 @@
-// ignore_for_file: unused_import, deprecated_member_use, unused_field, curly_braces_in_flow_control_structures
+// ignore_for_file: unused_import, deprecated_member_use, unused_field, curly_braces_in_flow_control_structures, avoid_print
 
 import 'dart:io';
 import 'package:bellybutton/app/Controllers/oauth.dart';
@@ -37,28 +37,62 @@ class AccountDetailsController extends GetxController {
 
     final user = AuthService().currentUser;
 
-    nameController.text =
-        Preference.userName.isNotEmpty
+    // Get data from ProfileController if available (most recent from API)
+    Map<String, dynamic> profile = {};
+    if (Get.isRegistered<ProfileController>()) {
+      profile = Get.find<ProfileController>().userProfile;
+    }
+
+    // Debug: Print all data sources
+    print("🔍 AccountDetails - Profile data: $profile");
+    print("🔍 AccountDetails - Preference.userName: '${Preference.userName}'");
+    print("🔍 AccountDetails - Preference.bio: '${Preference.bio}'");
+    print("🔍 AccountDetails - Preference.profileImage: '${Preference.profileImage}'");
+    print("🔍 AccountDetails - Firebase user: ${user?.displayName}");
+
+    // Priority: ProfileController data > Preference > Firebase user > default
+    final profileName = profile['fullName']?.toString().trim() ?? '';
+    final profileBio = profile['bio']?.toString().trim() ?? '';
+    final profileEmail = profile['email']?.toString().trim() ?? '';
+
+    nameController.text = profileName.isNotEmpty
+        ? profileName
+        : Preference.userName.isNotEmpty
             ? Preference.userName
-            : (user?.displayName ?? "Example User");
+            : (user?.displayName ?? "");
 
-    bioController.text = Preference.bio.isNotEmpty ? Preference.bio : "";
+    bioController.text = profileBio.isNotEmpty
+        ? profileBio
+        : Preference.bio.isNotEmpty
+            ? Preference.bio
+            : "";
 
-    emailController.text =
-        Preference.email.isNotEmpty
+    emailController.text = profileEmail.isNotEmpty
+        ? profileEmail
+        : Preference.email.isNotEmpty
             ? Preference.email
-            : (user?.email ?? "example@email.com");
+            : (user?.email ?? "");
+
+    print("🔍 AccountDetails - Final name: '${nameController.text}'");
+    print("🔍 AccountDetails - Final bio: '${bioController.text}'");
 
     nameController.addListener(checkForChanges);
     bioController.addListener(checkForChanges);
   }
 
   void checkForChanges() {
-    final nameChanged = nameController.text.trim() != Preference.userName;
-    final bioChanged = bioController.text.trim() != Preference.bio;
+    final profile = Get.find<ProfileController>().userProfile;
+
+    final nameChanged =
+        nameController.text.trim() != (profile['fullName'] ?? '');
+    final bioChanged = bioController.text.trim() != (profile['bio'] ?? '');
     final imageChanged = pickedImage.value != null;
 
     hasChanges.value = nameChanged || bioChanged || imageChanged;
+  }
+
+  void hideKeyboard() {
+    FocusManager.instance.primaryFocus?.unfocus();
   }
 
   Future<void> pickImage() async {
@@ -183,18 +217,39 @@ class AccountDetailsController extends GetxController {
       );
 
       final msg = (resp["message"] ?? "").toString().toLowerCase();
-
       if (msg.contains("profile updated successfully")) {
-        Preference.userName = resp["data"]["fullName"];
-        Preference.email = resp["data"]["email"];
-        Preference.bio = resp["data"]["bio"];
+        final data = resp["data"];
 
-        if (resp["data"]["profileImageUrl"] != null) {
-          Preference.profileImage = resp["data"]["profileImageUrl"];
+        // Update local storage
+        Preference.userName = data["fullName"] ?? Preference.userName;
+        Preference.email = data["email"] ?? Preference.email;
+        Preference.bio = data["bio"] ?? Preference.bio;
+
+        if (data["profileImageUrl"] != null) {
+          Preference.profileImage = data["profileImageUrl"];
+          pickedImage.value = null; // Clear local file reference
+        }
+
+        // 🔥 Directly update ProfileController userProfile for immediate UI refresh
+        if (Get.isRegistered<ProfileController>()) {
+          final profileController = Get.find<ProfileController>();
+          // Update the userProfile map directly for immediate reactivity
+          profileController.userProfile.value = {
+            ...profileController.userProfile,
+            'fullName': data["fullName"] ?? Preference.userName,
+            'email': data["email"] ?? Preference.email,
+            'bio': data["bio"] ?? Preference.bio,
+            'profileImageUrl': data["profileImageUrl"] ?? Preference.profileImage,
+            'phone': data["phone"] ?? Preference.phone,
+            'address': data["address"] ?? Preference.address,
+          };
+          // Clear picked image in ProfileController since we have URL now
+          if (data["profileImageUrl"] != null) {
+            profileController.pickedImage.value = null;
+          }
         }
 
         hasChanges.value = false;
-
         showCustomSnackBar(
           AppTexts.PROFILE_UPDATED_SUCCESSFULLY,
           SnackbarState.success,
@@ -206,6 +261,7 @@ class AccountDetailsController extends GetxController {
         );
 
         Future.delayed(const Duration(milliseconds: 600), () {
+          hideKeyboard();
           Get.back();
         });
       } else {

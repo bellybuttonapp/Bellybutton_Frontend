@@ -38,7 +38,7 @@ class EventGalleryView extends GetView<EventGalleryController> {
       suffixWidget: Obx(() {
         return buildSuffixWidget(
           count:
-              "${controller.invitedCount.value.toString().padLeft(2, '0')}/05",
+              "${controller.invitedCount.value.toString().padLeft(2, '0')}/01",
           iconPath: AppImages.USERS_COUNT,
           onTap: controller.onInvitedUsersTap,
           screenWidth: MediaQuery.of(context).size.width,
@@ -49,10 +49,6 @@ class EventGalleryView extends GetView<EventGalleryController> {
       // 📸 GALLERY GRID VIEW + SHIMMER + REFRESH
       // ------------------------------------------------------
       gridView: Obx(() {
-        if (c.photos.isEmpty && c.savedCount.value == 0) {
-          return const EventGalleryShimmer(itemCount: 40, crossAxisCount: 4);
-        }
-
         return SmartRefresher(
           controller: _refresh,
           enablePullDown: true,
@@ -63,10 +59,55 @@ class EventGalleryView extends GetView<EventGalleryController> {
           },
 
           child:
-              c.photos.isEmpty
+              // ------------------------------------------------------
+              // ⏳ LOADING STATE
+              // ------------------------------------------------------
+              c.isLoading.value
+                  ? const EventGalleryShimmer(itemCount: 40, crossAxisCount: 4)
                   // ------------------------------------------------------
-                  // 🚫 EMPTY STATE (NO IMAGES)
+                  // 1️⃣ EVENT NOT STARTED YET
                   // ------------------------------------------------------
+                  : c.eventNotStarted
+                  ? Center(
+                    child: EmptyJobsPlaceholder(
+                      title: AppTexts.EVENT_GALLERY_NOT_STARTED_TITLE,
+                      description: AppTexts.EVENT_GALLERY_NOT_STARTED_DESC,
+                    ),
+                  )
+                  // ------------------------------------------------------
+                  // 2️⃣ EVENT ENDED & NO PHOTOS WERE SHARED
+                  // ------------------------------------------------------
+                  : c.eventEnded && c.photos.isEmpty
+                  ? Center(
+                    child: EmptyJobsPlaceholder(
+                      title: AppTexts.EVENT_GALLERY_ENDED_EMPTY_TITLE,
+                      description: AppTexts.EVENT_GALLERY_ENDED_EMPTY_DESC,
+                    ),
+                  )
+                  // ------------------------------------------------------
+                  // 3️⃣ ALL PHOTOS ALREADY SYNCED
+                  // ------------------------------------------------------
+                  : c.allSynced && c.photos.isNotEmpty
+                  ? Center(
+                    child: EmptyJobsPlaceholder(
+                      title: AppTexts.EVENT_GALLERY_ALL_SYNCED_TITLE,
+                      description: AppTexts.EVENT_GALLERY_ALL_SYNCED_DESC,
+                    ),
+                  )
+                  // ------------------------------------------------------
+                  // 4️⃣ EVENT LIVE BUT NO PHOTOS YET
+                  // ------------------------------------------------------
+                  : c.eventLiveButEmpty
+                  ? Center(
+                    child: EmptyJobsPlaceholder(
+                      title: AppTexts.EVENT_GALLERY_LIVE_EMPTY_TITLE,
+                      description: AppTexts.EVENT_GALLERY_LIVE_EMPTY_DESC,
+                    ),
+                  )
+                  // ------------------------------------------------------
+                  // 5️⃣ FALLBACK: NO PHOTOS FOUND (GENERIC)
+                  // ------------------------------------------------------
+                  : c.photos.isEmpty
                   ? Center(
                     child: EmptyJobsPlaceholder(
                       title: AppTexts.NO_EVENT_PHOTOS_TITLE,

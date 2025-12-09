@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:bellybutton/app/core/constants/app_colors.dart';
 import 'package:bellybutton/app/core/constants/app_images.dart';
 import 'package:bellybutton/app/core/constants/app_texts.dart';
@@ -24,9 +23,6 @@ class DashboardView extends GetView<DashboardController> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final user = FirebaseAuth.instance.currentUser;
-    final displayName = user?.displayName ?? 'User';
-    final photoURL = user?.photoURL;
 
     // ✅ MediaQuery for responsive sizing
     final height = MediaQuery.of(context).size.height;
@@ -61,8 +57,8 @@ class DashboardView extends GetView<DashboardController> {
           appBar: CustomAppBar(
             showBackButton: false,
             showProfileSection: true,
-            profileName: displayName,
-            profileImageNetwork: photoURL ?? '',
+            profileName: Preference.userName.isNotEmpty ? Preference.userName : 'User',
+            profileImageNetwork: Preference.profileImage ?? '',
             actions: [
               IconButton(
                 icon: SvgPicture.asset(

@@ -1,9 +1,6 @@
-// ignore_for_file: unnecessary_string_interpolations
-
 import 'package:get/get.dart';
 import '../../../../../api/PublicApiService.dart';
 import '../../../../../core/constants/app_texts.dart';
-import '../../../../../core/services/local_notification_service.dart';
 import '../../../../../database/models/InvitedEventModel.dart';
 import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../../../routes/app_pages.dart';
@@ -21,15 +18,38 @@ class EventInvitationsController extends GetxController {
     loadInvitedEvents();
   }
 
-  // 📅 TIME + DATE SORT FUNCTION
+  // 📅 SORT: PENDING first, then by date+time (upcoming first)
   void _sortByDateTime() {
-    invitedEvents.sort((a, b) {
-      DateTime dateA = DateTime.parse(
-        a.eventDate,
-      ); // ← Replace if field differs
-      DateTime dateB = DateTime.parse(b.eventDate);
+    final now = DateTime.now();
 
-      return dateA.compareTo(dateB); // oldest → latest
+    invitedEvents.sort((a, b) {
+      // 1️⃣ PENDING events always come first
+      if (a.isPending && !b.isPending) return -1;
+      if (!a.isPending && b.isPending) return 1;
+
+      // 2️⃣ Parse date+time safely
+      DateTime dateA;
+      DateTime dateB;
+      try {
+        dateA = a.eventStartDateTime;
+      } catch (_) {
+        dateA = DateTime(2099); // fallback to far future
+      }
+      try {
+        dateB = b.eventStartDateTime;
+      } catch (_) {
+        dateB = DateTime(2099);
+      }
+
+      // 3️⃣ Upcoming events (future) come before past events
+      final aIsUpcoming = dateA.isAfter(now);
+      final bIsUpcoming = dateB.isAfter(now);
+
+      if (aIsUpcoming && !bIsUpcoming) return -1;
+      if (!aIsUpcoming && bIsUpcoming) return 1;
+
+      // 4️⃣ Within same category: nearest date first (ascending)
+      return dateA.compareTo(dateB);
     });
 
     invitedEvents.refresh();
@@ -39,23 +59,13 @@ class EventInvitationsController extends GetxController {
   Future<void> loadInvitedEvents() async {
     try {
       isLoading(true);
-
-      int oldCount = invitedEvents.length; // 🔥 store before fetching
       invitedEvents.clear();
 
       final events = await PublicApiService().getInvitedEvents();
       invitedEvents.assignAll(events);
-      _sortByDateTime(); // 🔥 Sort after load
-
-      // 📩 New Invitation Notification Logic
-      if (events.length > oldCount) {
-        LocalNotificationService.show(
-          title: AppTexts.NOTIFY_NEW_INVITE_TITLE,
-          body: "${AppTexts.NOTIFY_NEW_INVITE_BODY}",
-        );
-      }
+      _sortByDateTime();
     } catch (e) {
-      showCustomSnackBar("Unable to fetch invited events", SnackbarState.error);
+      showCustomSnackBar(AppTexts.UNABLE_TO_FETCH_INVITED_EVENTS, SnackbarState.error);
     } finally {
       isLoading(false);
     }
@@ -71,14 +81,14 @@ class EventInvitationsController extends GetxController {
         invitedEvents.refresh(); // Notify GetX UI
 
         showCustomSnackBar(
-          "You accepted ${event.title}",
+          "${AppTexts.EVENT_ACCEPTED} ${event.title}",
           SnackbarState.success,
         );
       } else {
-        showCustomSnackBar("Failed to accept event", SnackbarState.error);
+        showCustomSnackBar(AppTexts.FAILED_TO_ACCEPT_EVENT, SnackbarState.error);
       }
     } catch (e) {
-      showCustomSnackBar("Something went wrong", SnackbarState.error);
+      showCustomSnackBar(AppTexts.SOMETHING_WENT_WRONG, SnackbarState.error);
     }
   }
 
@@ -90,12 +100,12 @@ class EventInvitationsController extends GetxController {
       if (res['message'] == "Event Denied") {
         invitedEvents.remove(event); // Instant removal
 
-        showCustomSnackBar("You denied ${event.title}", SnackbarState.error);
+        showCustomSnackBar("${AppTexts.EVENT_DENIED} ${event.title}", SnackbarState.error);
       } else {
-        showCustomSnackBar("Failed to deny event", SnackbarState.error);
+        showCustomSnackBar(AppTexts.FAILED_TO_DENY_EVENT, SnackbarState.error);
       }
     } catch (e) {
-      showCustomSnackBar("Unable to process request", SnackbarState.error);
+      showCustomSnackBar(AppTexts.UNABLE_TO_PROCESS_REQUEST, SnackbarState.error);
     }
   }
 

@@ -145,7 +145,7 @@ class InviteuserView extends GetView<InviteuserController> {
 
             return ListTile(
               onTap: () {
-                if (!isSelected && controller.selectedUsers.length >= 5) {
+                if (!isSelected && controller.selectedUsers.length >= 4) {
                   showCustomSnackBar(
                     AppTexts.LIMIT_REACHED,
                     SnackbarState.error,

@@ -21,11 +21,15 @@ class InvitedEventGalleryView extends GetView<InvitedEventGalleryController> {
   Widget build(BuildContext context) {
     final c = controller;
 
+    // Safe access to event data
+    final eventTitle = c.event?.title ?? "";
+    final eventDescription = c.event?.description ?? "";
+
     return Scaffold(
       body: ReusableEventGalleryLayout(
         appBarTitle: AppTexts.INVITED_EVENT_GALLERY,
-        title: c.event.title,
-        description: c.event.description,
+        title: eventTitle,
+        description: eventDescription,
 
         suffixWidget: buildSuffixWidget(
           count: "01/01",
@@ -41,7 +45,7 @@ class InvitedEventGalleryView extends GetView<InvitedEventGalleryController> {
           if (c.selectedAssets.isEmpty) {
             return global_button(
               loaderWhite: true,
-              title: "Upload Photos",
+              title: AppTexts.BTN_UPLOAD_PHOTOS,
               isLoading: c.isUploading.value,
               backgroundColor: AppColors.primaryColor,
               onTap: c.onUploadTap,
@@ -52,7 +56,7 @@ class InvitedEventGalleryView extends GetView<InvitedEventGalleryController> {
             children: [
               Expanded(
                 child: global_button(
-                  title: "Remove (${c.selectedAssets.length})",
+                  title: "${AppTexts.BTN_REMOVE} (${c.selectedAssets.length})",
                   backgroundColor: Colors.red,
                   onTap: c.removeSelected,
                 ),
@@ -60,7 +64,7 @@ class InvitedEventGalleryView extends GetView<InvitedEventGalleryController> {
               const SizedBox(width: 10),
               Expanded(
                 child: global_button(
-                  title: "Upload",
+                  title: AppTexts.BTN_UPLOAD,
                   backgroundColor: AppColors.primaryColor,
                   isLoading: c.isUploading.value,
                   onTap: c.onUploadTap,
@@ -89,11 +93,39 @@ class InvitedEventGalleryView extends GetView<InvitedEventGalleryController> {
                       itemCount: 40,
                       crossAxisCount: 4,
                     )
-                    : c.galleryAssets.isEmpty
+                    : c.eventNotStarted
                     ? Center(
                       child: EmptyJobsPlaceholder(
-                        title: AppTexts.NO_EVENT_PHOTOS_TITLE,
-                        description: AppTexts.NO_EVENT_PHOTOS_DESCRIPTION,
+                        title: AppTexts.EVENT_NOT_STARTED_TITLE,
+                        description: AppTexts.EVENT_NOT_STARTED_DESC,
+                      ),
+                    )
+                    : c.eventEnded && c.galleryAssets.isEmpty
+                    ? Center(
+                      child: EmptyJobsPlaceholder(
+                        title: AppTexts.EVENT_ENDED_TITLE,
+                        description: AppTexts.EVENT_ENDED_DESC,
+                      ),
+                    )
+                    : c.allUploaded
+                    ? Center(
+                      child: EmptyJobsPlaceholder(
+                        title: AppTexts.ALL_PHOTOS_SYNCED_TITLE,
+                        description: AppTexts.ALL_PHOTOS_SYNCED_DESC,
+                      ),
+                    )
+                    : c.eventLiveButEmpty
+                    ? Center(
+                      child: EmptyJobsPlaceholder(
+                        title: AppTexts.EVENT_LIVE_EMPTY_TITLE,
+                        description: AppTexts.EVENT_LIVE_EMPTY_DESC,
+                      ),
+                    )
+                    : c.noPhotosFound
+                    ? Center(
+                      child: EmptyJobsPlaceholder(
+                        title: AppTexts.NO_PHOTOS_FOUND_TITLE,
+                        description: AppTexts.NO_PHOTOS_FOUND_DESC,
                       ),
                     )
                     : GridView.builder(
@@ -108,74 +140,55 @@ class InvitedEventGalleryView extends GetView<InvitedEventGalleryController> {
                       itemBuilder: (_, index) {
                         final asset = c.galleryAssets[index];
 
-                        return FutureBuilder(
-                          future: asset.thumbnailDataWithSize(
-                            const ThumbnailSize(300, 300),
-                          ),
-                          builder: (_, snapshot) {
-                            if (!snapshot.hasData) {
-                              return Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(6),
-                                  color: Colors.black.withOpacity(.1),
-                                ),
-                              );
-                            }
+                        return GestureDetector(
+                          onTap: () => c.toggleSelection(asset),
 
-                            return GestureDetector(
-                              onTap: () => c.toggleSelection(asset),
-
-                              onLongPress: () {
-                                Get.to(
-                                  () => ReusablePhotoPreview(
-                                    images: c.galleryAssets.toList(),
-                                    isAsset: true,
-                                    initialIndex: index,
-                                    enableInfoButton: true,
-                                    onInfoTap:
-                                        () => c.showImageInfoFromIndex(index),
-                                  ),
-                                );
-                              },
-
-                              child: Stack(
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(6),
-                                    child: AssetEntityImage(
-                                      asset,
-                                      isOriginal: false,
-                                      thumbnailSize: const ThumbnailSize(
-                                        400,
-                                        400,
-                                      ),
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-
-                                  Obx(() {
-                                    final selected = c.isSelected(asset);
-
-                                    if (!selected) return const SizedBox();
-
-                                    return Container(
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(6),
-                                        color: Colors.black.withOpacity(.5),
-                                      ),
-                                      child: const Center(
-                                        child: Icon(
-                                          Icons.cancel,
-                                          color: Colors.white,
-                                          size: 36,
-                                        ),
-                                      ),
-                                    );
-                                  }),
-                                ],
+                          onLongPress: () {
+                            Get.to(
+                              () => ReusablePhotoPreview(
+                                images: c.galleryAssets.toList(),
+                                isAsset: true,
+                                initialIndex: index,
+                                enableInfoButton: true,
+                                onInfoTap:
+                                    () => c.showImageInfoFromIndex(index),
                               ),
                             );
                           },
+
+                          child: Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: AssetEntityImage(
+                                  asset,
+                                  thumbnailSize: const ThumbnailSize(400, 400),
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+
+                              Obx(() {
+                                final selected = c.isSelected(asset);
+                                return AnimatedOpacity(
+                                  opacity: selected ? 1 : 0,
+                                  duration: const Duration(milliseconds: 180),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(6),
+                                      color: Colors.black.withOpacity(.5),
+                                    ),
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.check_circle,
+                                        color: Colors.white,
+                                        size: 34,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ],
+                          ),
                         );
                       },
                     ),

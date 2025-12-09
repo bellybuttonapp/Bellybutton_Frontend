@@ -1,27 +1,26 @@
-// ignore_for_file: deprecated_member_use, duplicate_ignore
+// ignore_for_file: deprecated_member_use, prefer_const_constructors_in_immutables
 
 import 'dart:io';
-
 import 'package:bellybutton/app/core/constants/app_images.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
-import '../../../Controllers/oauth.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_texts.dart';
-import 'package:bellybutton/app/core/utils/index.dart';
+import '../../../core/utils/themes/font_style.dart';
+import '../../../core/utils/storage/preference.dart';
 import '../../../global_widgets/Button/global_button.dart';
+import '../../../global_widgets/Shimmers/ProfileHeaderShimmer.dart';
 import '../../../global_widgets/custom_app_bar/custom_app_bar.dart';
 import '../controllers/profile_controller.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 
 class ProfileView extends GetView<ProfileController> {
-  // ignore: annotate_overrides
-  final ProfileController controller = Get.put(ProfileController());
   ProfileView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final controller = Get.find<ProfileController>();
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -32,211 +31,248 @@ class ProfileView extends GetView<ProfileController> {
               ? AppTheme.darkTheme.scaffoldBackgroundColor
               : AppTheme.lightTheme.scaffoldBackgroundColor,
       appBar: CustomAppBar(title: AppTexts.PROFILE),
-      body: Column(
-        children: [
-          Expanded(
-            child: Column(
-              children: [
-                // Profile header
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    vertical: screenHeight * 0.015,
-                    horizontal: screenWidth * 0.04,
-                  ),
-                  child: Obx(() {
-                    final user = AuthService().currentUser;
-                    final displayName =
-                        user?.displayName?.isNotEmpty == true
-                            ? user!.displayName!
-                            : (Preference.userName.isNotEmpty
-                                ? Preference.userName
-                                : "Example User");
-                    final email =
-                        Preference.email.isNotEmpty
-                            ? Preference.email
-                            : user?.email ?? "example@email.com";
-
-                    final localImage = controller.pickedImage.value?.path;
-                    final networkImage = user?.photoURL;
-
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Hero(
-                        tag: 'profile-photo',
-                        child: CircleAvatar(
-                          radius: screenWidth * 0.075,
-                          backgroundColor: AppColors.other,
-                          backgroundImage:
-                              localImage != null
-                                  ? FileImage(File(localImage))
-                                  : (networkImage != null
-                                          ? NetworkImage(networkImage)
-                                          : null)
-                                      as ImageProvider?,
-                          child:
-                              localImage == null && networkImage == null
-                                  ? SvgPicture.asset(
-                                    AppImages.PERSON,
-                                    height: screenWidth * 0.055,
-                                    width: screenWidth * 0.055,
-                                    color: AppColors.textColor,
-                                  )
-                                  : null,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Top section with all menu items
+                  Column(
+                    children: [
+                      // Profile Header
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          vertical: screenHeight * 0.015,
+                          horizontal: screenWidth * 0.04,
                         ),
-                      ),
-                      title: Hero(
-                        tag:
-                            'profile-name-$displayName', // must match tag in CustomAppBar
-                        child: Material(
-                          color: Colors.transparent,
-                          child: AutoSizeText(
-                            displayName,
-                            style: customBoldText.copyWith(
-                              fontSize: screenWidth * 0.045,
+                        child: Obx(() {
+                          if (controller.isLoading.value) {
+                            return const Center(child: ProfileHeaderShimmer());
+                          }
+
+                          final profile = controller.userProfile;
+
+                          // Get name with proper fallback (handle empty strings)
+                          final profileName =
+                              profile['fullName']?.toString().trim();
+                          final prefName = Preference.userName;
+                          final displayName =
+                              (profileName?.isNotEmpty == true)
+                                  ? profileName!
+                                  : (prefName.isNotEmpty ? prefName : "-");
+
+                          // Get email with proper fallback (handle empty strings)
+                          final profileEmail =
+                              profile['email']?.toString().trim();
+                          final prefEmail = Preference.email;
+                          final email =
+                              (profileEmail?.isNotEmpty == true)
+                                  ? profileEmail!
+                                  : (prefEmail.isNotEmpty ? prefEmail : "-");
+
+                          final networkImage =
+                              profile['profileImageUrl']
+                                  ?.toString()
+                                  .replaceAll('\n', '')
+                                  .trim();
+
+                          final localImage = controller.pickedImage.value?.path;
+                          final preferenceImage = Preference.profileImage;
+
+                          ImageProvider? profileImageProvider;
+
+                          // Priority order: Network image > Preference stored image > Local picked image
+                          if (networkImage != null && networkImage.isNotEmpty) {
+                            profileImageProvider = NetworkImage(networkImage);
+                          } else if (preferenceImage != null &&
+                              preferenceImage.isNotEmpty) {
+                            // Check if preference image is a URL or local path
+                            if (preferenceImage.startsWith('http')) {
+                              profileImageProvider = NetworkImage(
+                                preferenceImage,
+                              );
+                            } else {
+                              final file = File(preferenceImage);
+                              if (file.existsSync()) {
+                                profileImageProvider = FileImage(file);
+                              }
+                            }
+                          } else if (localImage != null &&
+                              localImage.isNotEmpty) {
+                            final file = File(localImage);
+                            if (file.existsSync()) {
+                              profileImageProvider = FileImage(file);
+                            }
+                          }
+
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Hero(
+                              tag: 'profile-photo',
+                              child: CircleAvatar(
+                                radius: screenWidth * 0.075,
+                                backgroundColor: const Color.fromARGB(
+                                  255,
+                                  166,
+                                  216,
+                                  233,
+                                ).withOpacity(0.15),
+                                backgroundImage: profileImageProvider,
+                                child:
+                                    profileImageProvider == null
+                                        ? SvgPicture.asset(
+                                          AppImages.PERSON,
+                                          height: screenWidth * 0.055,
+                                          width: screenWidth * 0.055,
+                                          color: AppColors.textColor,
+                                        )
+                                        : null,
+                              ),
                             ),
-                            maxLines: 1,
-                            minFontSize: 12,
-                            overflow: TextOverflow.ellipsis,
+                            title: Hero(
+                              tag: 'profile-name-$displayName',
+                              child: Material(
+                                color: Colors.transparent,
+                                child: AutoSizeText(
+                                  displayName.isNotEmpty ? displayName : "-",
+                                  maxLines: 1,
+                                  minFontSize: 12,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: customBoldText.copyWith(
+                                    fontSize: screenWidth * 0.045,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            subtitle: Text(
+                              email.isNotEmpty ? email : "-",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: customBoldText.copyWith(
+                                fontSize: screenWidth * 0.035,
+                                color: AppColors.tertiaryColor,
+                              ),
+                            ),
+                            trailing: IconButton(
+                              icon: SvgPicture.asset(
+                                AppImages.EDIT_PENCIL,
+                                width: screenWidth * 0.05,
+                                height: screenWidth * 0.05,
+                              ),
+                              onPressed: controller.onEditProfile,
+                            ),
+                          );
+                        }),
+                      ),
+
+                      const _SectionDivider(),
+
+                      // Auto Sync Switch
+                      Obx(
+                        () => Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: screenWidth * 0.02,
+                          ),
+                          child: SwitchListTile(
+                            activeColor: AppColors.success,
+                            inactiveThumbColor: AppColors.primaryColor
+                                .withOpacity(0.5),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: screenWidth * 0.02,
+                            ),
+                            secondary: SvgPicture.asset(
+                              AppImages.AUTO_SYNC_ICON,
+                              width: screenWidth * 0.055,
+                              height: screenWidth * 0.055,
+                            ),
+                            title: Text(
+                              AppTexts.AUTO_SYNC_SETTINGS,
+                              style: customBoldText.copyWith(
+                                fontSize: screenWidth * 0.035,
+                                color: isDark ? Colors.white : Colors.black,
+                              ),
+                            ),
+                            value: controller.autoSync.value,
+                            onChanged: controller.onAutoSyncChanged,
                           ),
                         ),
                       ),
-                      subtitle: Text(
-                        email,
-                        style: customBoldText.copyWith(
-                          fontSize: screenWidth * 0.035,
-                          color: AppColors.tertiaryColor,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      trailing: IconButton(
-                        icon: SvgPicture.asset(
-                          AppImages.EDIT_PENCIL,
-                          width: screenWidth * 0.05,
-                          height: screenWidth * 0.05,
-                        ),
-                        onPressed: controller.onEditProfile,
-                      ),
-                    );
-                  }),
-                ),
 
-                const _SectionDivider(),
+                      const _SectionDivider(),
 
-                Obx(
-                  () => Padding(
+                      _ProfileMenuTile(
+                        svgPath: AppImages.PERMISSIONS_ICON,
+                        title: AppTexts.PRIVACY_PERMISSIONS,
+                        onTap: controller.onPrivacyTap,
+                      ),
+
+                      const _SectionDivider(),
+
+                      _ProfileMenuTile(
+                        svgPath: AppImages.NEW_PSWRD,
+                        title: AppTexts.NEW_PSWD,
+                        onTap: controller.ResetPassword,
+                      ),
+
+                      const _SectionDivider(),
+
+                      _ProfileMenuTile(
+                        svgPath: AppImages.FAQ_ICON,
+                        title: AppTexts.FAQS,
+                        onTap: controller.onFaqsTap,
+                      ),
+
+                      const _SectionDivider(),
+
+                      _ProfileMenuTile(
+                        svgPath: AppImages.DELETE_ACCOUNT_ICON,
+                        title: AppTexts.DELETE_ACCOUNT,
+                        titleColor: Colors.red,
+                        svgColor: Colors.red,
+                        onTap: controller.onDeleteAccountTap,
+                      ),
+                    ],
+                  ),
+
+                  // Bottom section with logout button
+                  Padding(
                     padding: EdgeInsets.symmetric(
-                      horizontal: screenWidth * 0.02,
+                      horizontal: screenWidth * 0.05,
+                      vertical: screenHeight * 0.025,
                     ),
-                    child: SwitchListTile(
-                      // ignore: deprecated_member_use
-                      activeColor: AppColors.success,
-                      // ignore: deprecated_member_use
-                      inactiveThumbColor: AppColors.primaryColor.withOpacity(
-                        0.5,
+                    child: Obx(
+                      () => global_button(
+                        loaderWhite: true,
+                        isLoading: controller.isSigningOut.value,
+                        title: AppTexts.SIGNOUT,
+                        backgroundColor: AppColors.primaryColor,
+                        textColor: AppColors.textColor3,
+                        onTap: controller.onSignOut,
                       ),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: screenWidth * 0.02,
-                      ),
-                      secondary: SvgPicture.asset(
-                        AppImages.AUTO_SYNC_ICON,
-                        width: screenWidth * 0.055,
-                        height: screenWidth * 0.055,
-                      ),
-                      title: Text(
-                        AppTexts.AUTO_SYNC_SETTINGS,
-                        style: customBoldText.copyWith(
-                          fontSize: screenWidth * 0.035,
-                          color: isDark ? Colors.white : Colors.black,
-                        ),
-                      ),
-                      value: controller.autoSync.value,
-                      onChanged: controller.onAutoSyncChanged,
                     ),
                   ),
-                ),
-
-                const _SectionDivider(),
-
-                _ProfileMenuTile(
-                  svgPath: AppImages.PERMISSIONS_ICON,
-                  title: AppTexts.PRIVACY_PERMISSIONS,
-                  onTap: controller.onPrivacyTap,
-                ),
-
-                const _SectionDivider(),
-
-                // Menu items
-                _ProfileMenuTile(
-                  svgPath:
-                      AppImages.NEW_PSWRD, // change if you have a password icon
-                  title: AppTexts.NEW_PSWD,
-                  onTap: controller.ResetPassword,
-                ),
-                const _SectionDivider(),
-
-                // _ProfileMenuTile(
-                //   svgPath:
-                //       AppImages.NEW_PSWRD, // change if you have a password icon
-                //   title: AppTexts.PREMIUM,
-                //   onTap: controller.PremiumScreen,
-                // ),
-
-                // const _SectionDivider(),
-                _ProfileMenuTile(
-                  svgPath: AppImages.FAQ_ICON,
-                  title: AppTexts.FAQS,
-                  onTap: controller.onFaqsTap,
-                ),
-                const _SectionDivider(),
-
-                _ProfileMenuTile(
-                  svgPath: AppImages.DELETE_ACCOUNT_ICON,
-                  title: AppTexts.DELETE_ACCOUNT,
-                  titleColor: Colors.red,
-                  svgColor: Colors.red,
-                  onTap: controller.onDeleteAccountTap,
-                ),
-
-                const Spacer(),
-
-                // Sign out button
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: screenWidth * 0.05,
-                    vertical: screenHeight * 0.025,
-                  ),
-                  child: Obx(
-                    () => global_button(
-                      loaderWhite: true,
-                      isLoading: controller.isLoading.value,
-                      title: AppTexts.SIGNOUT,
-                      backgroundColor: AppColors.primaryColor,
-                      textColor: AppColors.textColor3,
-                      onTap: controller.onSignOut,
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
 }
 
-// Divider widget
+// Divider
 class _SectionDivider extends StatelessWidget {
   const _SectionDivider();
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
+    final width = MediaQuery.of(context).size.width;
     return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: screenWidth * 0.04,
-        vertical: 4,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: width * 0.04, vertical: 4),
       child: const Divider(height: 1, thickness: 0.5),
     );
   }
@@ -260,31 +296,27 @@ class _ProfileMenuTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
+    final width = MediaQuery.of(context).size.width;
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+      padding: EdgeInsets.symmetric(horizontal: width * 0.02),
       child: ListTile(
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: screenWidth * 0.02,
-          vertical: 4,
-        ),
         leading: SvgPicture.asset(
           svgPath,
-          width: screenWidth * 0.06,
-          height: screenWidth * 0.06,
+          width: width * 0.06,
+          height: width * 0.06,
           color: svgColor ?? Colors.black87,
         ),
         title: Text(
           title,
           style: customBoldText.copyWith(
-            fontSize: screenWidth * 0.035,
+            fontSize: width * 0.035,
             color: titleColor ?? Colors.black,
           ),
         ),
         trailing: Icon(
           Icons.arrow_forward_ios,
-          size: screenWidth * 0.04,
+          size: width * 0.04,
           color: titleColor ?? Colors.black54,
         ),
         onTap: onTap,

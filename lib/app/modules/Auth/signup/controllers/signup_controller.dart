@@ -1,17 +1,21 @@
-// ignore_for_file: curly_braces_in_flow_control_structures, unrelated_type_equality_checks, avoid_print, prefer_interpolation_to_compose_strings
+// ignore_for_file: curly_braces_in_flow_control_structures, unrelated_type_equality_checks, avoid_print, prefer_interpolation_to_compose_strings, unused_local_variable
 
 import 'dart:io';
 import 'package:bellybutton/app/Controllers/oauth.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../../api/PublicApiService.dart';
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/helpers/validation_utils.dart';
 import '../../../../core/utils/storage/preference.dart';
 import '../../../../core/constants/app_texts.dart';
+import '../../../../core/utils/themes/font_style.dart';
+import '../../../../global_widgets/CustomBottomSheet/CustomBottomsheet.dart';
 import '../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
+import '../../../../global_widgets/GlobalTextField/GlobalTextField.dart';
 import '../../../../routes/app_pages.dart';
 import '../../forgot_password/views/forgot_password_view.dart';
+import '../../signup_otp/views/signup_otp_view.dart';
 
 class SignupController extends GetxController {
   final AuthService _authService = AuthService();
@@ -23,15 +27,21 @@ class SignupController extends GetxController {
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final mobileController = TextEditingController();
+  final searchController = TextEditingController();
 
   // Error fields
   final nameError = RxnString();
   final emailError = RxnString();
   final passwordError = RxnString();
+  final mobileError = RxnString();
+  final searchError = ''.obs;
 
   // UI
   final isPasswordHidden = true.obs;
   final rememberMe = false.obs;
+  var selectedCountry = Country.parse('IN').obs; // default India
+  final filteredCountries = <Country>[].obs;
 
   @override
   void onInit() {
@@ -50,6 +60,9 @@ class SignupController extends GetxController {
 
   void validatePassword(String value) =>
       passwordError.value = Validation.validatePassword(value);
+
+  void validateMobile(String value) =>
+      mobileError.value = Validation.validatePhone(value);
 
   //----------------------------------------------------
   // REMEMBER ME
@@ -90,19 +103,24 @@ class SignupController extends GetxController {
   // SIGNUP
   //----------------------------------------------------
   Future<void> signup({bool rememberMe = false}) async {
+    hideKeyboard(); // << add this at START
     this.rememberMe.value = rememberMe;
 
     final name = nameController.text.trim();
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
+    final mobile =
+        "+${selectedCountry.value.phoneCode}${mobileController.text.trim()}";
 
     nameError.value = Validation.validateName(name);
     emailError.value = Validation.validateEmail(email);
     passwordError.value = Validation.validatePassword(password);
+    mobileError.value = Validation.validatePhone(mobileController.text.trim());
 
     if (nameError.value != null ||
         emailError.value != null ||
-        passwordError.value != null)
+        passwordError.value != null ||
+        mobileError.value != null)
       return;
 
     isLoading.value = true;
@@ -110,7 +128,6 @@ class SignupController extends GetxController {
     try {
       final emailCheck = await _authService.checkEmailAvailability(email);
 
-      // ignore unauthorized email check
       if (emailCheck['headers']?['statusCode'] != 401) {
         if (!(emailCheck['data']?['available'] ?? true)) {
           showCustomSnackBar(
@@ -125,6 +142,7 @@ class SignupController extends GetxController {
         name: name,
         email: email,
         password: password,
+        phone: mobile, // <-- passing mobile number
         profilePhoto: null,
       );
 
@@ -134,31 +152,22 @@ class SignupController extends GetxController {
       }
 
       final success = result['headers']?['status'] == 'success';
-      final userId = result['data']?['id'];
+      final requiresVerification =
+          result['data']?['requiresVerification'] ?? false;
 
-      if (success && userId != null) {
+      if (success && requiresVerification) {
         if (rememberMe) await saveUserData(name: name, email: email);
 
         _saveUserPreferences(name: name, email: email, photo: null);
+        hideKeyboard(); // ← closes keyboard before processing
 
-        // ✅ Upload FCM token AFTER signup
-        final fcmToken = await FirebaseMessaging.instance.getToken();
-        if (fcmToken != null) {
-          Preference.fcmToken = fcmToken;
-          await PublicApiService().updateFcmToken(fcmToken);
-        }
-
-        // ✅ Listen for token refresh
-        FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
-          if (Preference.token.isNotEmpty) {
-            Preference.fcmToken = newToken;
-            await PublicApiService().updateFcmToken(newToken);
-          }
-        });
-
-        showCustomSnackBar(AppTexts.SIGNUP_SUCCESS, SnackbarState.success);
-
-        Get.offAllNamed(Routes.DASHBOARD);
+        /// ⬇ Navigate to OTP screen instead of Dashboard
+        Get.offAll(
+          () => SignupOtpView(),
+          arguments: email, // Pass email to OTP screen
+          transition: Transition.rightToLeft,
+          duration: const Duration(milliseconds: 300),
+        );
       } else {
         showCustomSnackBar(AppTexts.SIGNUP_FAILED, SnackbarState.error);
       }
@@ -171,6 +180,114 @@ class SignupController extends GetxController {
   }
 
   //----------------------------------------------------
+  // HIDE KEYBOARD WHILE NAVIGATING 1 SCREEN TO ANOTHER
+  //----------------------------------------------------
+  void hideKeyboard() {
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+  //----------------------------------------------------
+  // SEARCH & COUNTRY PICKER
+  //----------------------------------------------------
+  void validateSearch(String value) {
+    if (value.isEmpty) {
+      filteredCountries.value = CountryService().getAll();
+    } else {
+      final query = value.toLowerCase();
+      filteredCountries.value =
+          CountryService()
+              .getAll()
+              .where((c) => c.name.toLowerCase().contains(query))
+              .toList();
+    }
+  }
+
+  void showCountrySheet(BuildContext context) {
+    filteredCountries.value = CountryService().getAll();
+    searchController.clear();
+
+    CustomBottomSheet.show(
+      title: "Select Country",
+      subtitle: "Choose your country code",
+      showCloseButton: true,
+      header: _searchField(),
+      footer: Obx(() {
+        if (filteredCountries.isEmpty) {
+          return Padding(
+            padding: EdgeInsets.all(16),
+            child: Text(
+              "No countries found",
+              style: customBoldText.copyWith(
+                // fontSize: 14 * textScale,
+                fontWeight: FontWeight.w500,
+                color: AppColors.primaryColor,
+              ),
+            ),
+          );
+        }
+
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.5,
+          ),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              children:
+                  filteredCountries
+                      .map(
+                        (c) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Material(
+                            color: Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(12),
+                            child: ListTile(
+                              leading: Text(
+                                c.flagEmoji,
+                                style: const TextStyle(fontSize: 20),
+                              ),
+                              title: Text(
+                                "${c.name} (+${c.phoneCode})",
+                                style: customBoldText.copyWith(
+                                  // fontSize: 14 * textScale,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.textColor,
+                                ),
+                              ),
+                              onTap: () {
+                                selectedCountry.value = c;
+                                Get.back();
+                              },
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+            ),
+          ),
+        );
+      }),
+      isScrollControlled: true,
+      actions: [],
+    );
+  }
+
+  Widget _searchField() {
+    return Obx(
+      () => GlobalTextField(
+        controller: searchController,
+        hintText: AppTexts.SEARCH,
+        prefixIcon: const Padding(
+          padding: EdgeInsets.all(12),
+          child: Icon(Icons.search, size: 22),
+        ),
+        errorText: searchError.value.isEmpty ? null : searchError.value,
+        onChanged: validateSearch,
+      ),
+    );
+  }
+
+  //----------------------------------------------------
   // GOOGLE SIGN-IN
   //----------------------------------------------------
   Future<void> signInWithGoogle() async {
@@ -178,7 +295,6 @@ class SignupController extends GetxController {
 
     try {
       final user = await _authService.signInWithGoogle();
-
       if (user == null) {
         showCustomSnackBar(
           AppTexts.GOOGLE_SIGNIN_CANCELED,
@@ -194,7 +310,6 @@ class SignupController extends GetxController {
       _saveUserPreferences(name: name, email: email);
 
       showCustomSnackBar(AppTexts.GOOGLE_SIGNIN_SUCCESS, SnackbarState.success);
-
       Get.offAllNamed(Routes.DASHBOARD);
     } on SocketException {
       showCustomSnackBar(AppTexts.NO_INTERNET, SnackbarState.error);
@@ -208,19 +323,27 @@ class SignupController extends GetxController {
   //----------------------------------------------------
   // NAVIGATION
   //----------------------------------------------------
-  void navigateToLogin() => Get.toNamed(Routes.LOGIN);
+  void navigateToLogin() {
+    hideKeyboard();
+    Get.toNamed(Routes.LOGIN);
+  }
 
-  void forgetPassword() => Get.to(
-    () => ForgotPasswordView(),
-    transition: Transition.rightToLeft,
-    duration: const Duration(milliseconds: 300),
-  );
+  void forgetPassword() {
+    hideKeyboard();
+    Get.to(
+      () => ForgotPasswordView(),
+      transition: Transition.rightToLeft,
+      duration: const Duration(milliseconds: 300),
+    );
+  }
 
   @override
   void onClose() {
     nameController.dispose();
     emailController.dispose();
     passwordController.dispose();
+    mobileController.dispose();
+    searchController.dispose();
     super.onClose();
   }
 }

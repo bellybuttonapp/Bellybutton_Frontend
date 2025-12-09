@@ -102,7 +102,7 @@ class LoginView extends GetView<LoginController> {
                             onChanged: controller.validateEmail,
                           ),
                         ),
-                        SizedBox(height: screenHeight * 0.015),
+                        // SizedBox(height: screenHeight * 0.010),
 
                         // Password
                         Obx(
@@ -129,7 +129,7 @@ class LoginView extends GetView<LoginController> {
                             ),
                           ),
                         ),
-                        SizedBox(height: screenHeight * 0.03),
+                        SizedBox(height: screenHeight * 0.02),
 
                         // Login Button
                         Obx(
@@ -148,7 +148,7 @@ class LoginView extends GetView<LoginController> {
                             },
                           ),
                         ),
-                        SizedBox(height: screenHeight * 0.015),
+                        SizedBox(height: screenHeight * 0.02),
 
                         // Remember Me & Forgot Password
                         Row(
@@ -191,7 +191,7 @@ class LoginView extends GetView<LoginController> {
                             ),
                           ],
                         ),
-                        SizedBox(height: screenHeight * 0.04),
+                        SizedBox(height: screenHeight * 0.03),
 
                         // OR Divider
                         Row(

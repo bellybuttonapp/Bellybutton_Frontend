@@ -1,10 +1,11 @@
-// ignore_for_file: non_constant_identifier_names, avoid_print
+// ignore_for_file: non_constant_identifier_names, avoid_print, unused_local_variable, unnecessary_null_comparison
 
 import 'dart:io';
 import 'package:bellybutton/app/Controllers/oauth.dart';
 import 'package:bellybutton/app/modules/Profile/Innermodule/Reset_password/views/reset_password_view.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import '../../../api/PublicApiService.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../api/end_points.dart';
 import '../../../core/constants/app_texts.dart';
@@ -12,16 +13,15 @@ import '../../../global_widgets/CustomPopup/CustomPopup.dart';
 import '../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../routes/app_pages.dart';
 import '../../../core/utils/storage/preference.dart';
-import '../../Auth/login/controllers/login_controller.dart';
 import '../Innermodule/Account_Details/views/account_details_view.dart';
 
 class ProfileController extends GetxController {
-  RxBool isLoading = false.obs;
-  RxBool isProcessing = false.obs;
-  RxBool autoSync = false.obs;
-  RxBool isSigningOut = false.obs;
+  RxBool isLoading = false.obs; //--for shimmer / profile fetch
+  RxBool isProcessing = false.obs; //--for delete account
+  RxBool autoSync = false.obs; //--For auto sync
+  RxBool isSigningOut = false.obs; //--for sign out button loader
   Rx<User?> currentUser = AuthService().currentUser.obs;
-
+  RxMap<String, dynamic> userProfile = <String, dynamic>{}.obs;
   Rx<File?> pickedImage = Rx<File?>(null);
 
   void updatePickedImage(File? image) => pickedImage.value = image;
@@ -30,36 +30,77 @@ class ProfileController extends GetxController {
   void onInit() {
     super.onInit();
 
-    // ✅ Load saved profile image if it’s a local file
-    if (Preference.profileImage != null &&
-        Preference.profileImage!.isNotEmpty &&
-        !Preference.profileImage!.startsWith('http')) {
-      pickedImage.value = File(Preference.profileImage!);
+    if (Preference.userId != null) {
+      fetchProfileById(Preference.userId!);
     }
 
-    // ✅ Listen for Firebase Auth changes
+    // Listen for Firebase Auth changes
     AuthService().authStateChanges.listen((user) {
       currentUser.value = user;
     });
   }
 
+  Future<void> fetchProfileById(int userId) async {
+    isLoading.value = true;
+
+    try {
+      final result = await PublicApiService().getProfileById(userId);
+
+      // Check if data exists (API returns {data: {...}, message: "..."})
+      if (result["data"] != null) {
+        final data = result["data"];
+        userProfile.value = data;
+
+        // Sync to Preference for persistence across logout/login
+        if (data["fullName"] != null) {
+          Preference.userName = data["fullName"];
+        }
+        if (data["email"] != null) {
+          Preference.email = data["email"];
+        }
+        if (data["bio"] != null) {
+          Preference.bio = data["bio"];
+        }
+        if (data["profileImageUrl"] != null) {
+          Preference.profileImage = data["profileImageUrl"];
+        }
+        if (data["phone"] != null) {
+          Preference.phone = data["phone"];
+        }
+        if (data["address"] != null) {
+          Preference.address = data["address"];
+        }
+        print("✅ Profile synced to Preference - userName: ${Preference.userName}, bio: ${Preference.bio}");
+      } else {
+        final msg = result["message"] ?? "Failed to fetch profile";
+        print("⚠️ Profile fetch failed: $msg");
+      }
+    } catch (e) {
+      print("❌ Error fetching profile: $e");
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   void onAutoSyncChanged(bool value) => autoSync.value = value;
 
-  void onEditProfile() {
-    Get.to(
+  void onEditProfile() async {
+    // Wait for profile data to be loaded before opening AccountDetails
+    if (userProfile.isEmpty && Preference.userId > 0) {
+      await fetchProfileById(Preference.userId);
+    }
+
+    await Get.to(
       () => AccountDetailsView(),
       transition: Transition.fade,
       duration: const Duration(milliseconds: 300),
     );
-  }
 
-  // void PremiumScreen() {
-  //   Get.to(
-  //     () => PremiumView(),
-  //     transition: Transition.rightToLeft,
-  //     duration: const Duration(milliseconds: 300),
-  //   );
-  // }
+    // Refresh profile data when returning from AccountDetails
+    if (Preference.userId > 0) {
+      fetchProfileById(Preference.userId);
+    }
+  }
 
   void ResetPassword() {
     Get.to(
@@ -77,6 +118,7 @@ class ProfileController extends GetxController {
     required String message,
     required String confirmText,
     required Future<void> Function() onConfirm,
+    RxBool? processingState,
   }) {
     Get.dialog(
       CustomPopup(
@@ -84,7 +126,7 @@ class ProfileController extends GetxController {
         message: message,
         confirmText: confirmText,
         cancelText: AppTexts.CANCEL,
-        isProcessing: isProcessing,
+        isProcessing: processingState ?? isProcessing,
         onConfirm: onConfirm,
       ),
     );
@@ -101,7 +143,6 @@ class ProfileController extends GetxController {
       onConfirm: () async {
         isProcessing.value = true;
         try {
-          // 1️⃣ API account deletion
           try {
             await DioClient().postRequest(
               Endpoints.DELETE_ACCOUNT,
@@ -111,10 +152,7 @@ class ProfileController extends GetxController {
             print("API account deletion error: $apiError");
           }
 
-          // 2️⃣ Delete Firebase account
           await AuthService().deleteAccount();
-
-          // ✅ Clear data and navigate to login
           Preference.clearAll();
           Get.deleteAll(force: true);
           Get.back();
@@ -142,33 +180,26 @@ class ProfileController extends GetxController {
       title: AppTexts.SIGNOUT_POPUP_TITLE,
       message: AppTexts.SIGNOUT_POPUP_SUBTITLE,
       confirmText: AppTexts.LOGOUT,
+      processingState: isSigningOut,
       onConfirm: () async {
         isSigningOut.value = true;
         try {
           await AuthService().signOutUser();
 
-          // 🔥 Remove only user session values – NOT uploaded list!
-          Preference.box.delete(Preference.USER_ID);
-          Preference.box.delete(Preference.USER_EMAIL);
-          Preference.box.delete(Preference.TOKEN);
+          // Clear all user data from Preference (preserves EVENT_UPLOADED_HASHES)
+          Preference.clearAll();
           Preference.isLoggedIn = false;
 
-          // 🔐 Preserve uploaded photo history forever
-          Preference.box.put(
-            Preference.EVENT_UPLOADED_HASHES,
-            Preference.box.get(
-              Preference.EVENT_UPLOADED_HASHES,
-              defaultValue: <String>[],
-            ),
-          );
+          // Clear local controller state
+          userProfile.value = {};
+          pickedImage.value = null;
 
-          // Remove old login controller instance
-          if (Get.isRegistered<LoginController>()) {
-            Get.delete<LoginController>(force: true);
-          }
-
-          // 🚀 Reset Navigation
+          // Close the dialog first
           Get.back();
+
+          // Delete all controllers to clear cached data
+          Get.deleteAll(force: true);
+
           Get.offAllNamed(Routes.LOGIN);
 
           showCustomSnackBar(AppTexts.LOGOUT_SUCCESS, SnackbarState.success);

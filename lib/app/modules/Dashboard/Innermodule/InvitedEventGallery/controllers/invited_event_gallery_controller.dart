@@ -1,7 +1,6 @@
-// ignore_for_file: curly_braces_in_flow_control_structures, avoid_print
+// ignore_for_file: curly_braces_in_flow_control_structures, avoid_print, constant_identifier_names
 
 import 'dart:io';
-import 'dart:ui' as ui;
 import 'package:bellybutton/app/database/models/InvitedEventModel.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -15,10 +14,9 @@ import '../../../../../global_widgets/CustomBottomSheet/CustomBottomsheet.dart';
 import '../../../../../global_widgets/CustomPopup/CustomPopup.dart';
 import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../../../routes/app_pages.dart';
-import 'package:crypto/crypto.dart';
 
 class InvitedEventGalleryController extends GetxController {
-  late InvitedEventModel event;
+  InvitedEventModel? event;
 
   //----------------------------------------------------
   // OBSERVABLES / STATES
@@ -35,6 +33,29 @@ class InvitedEventGalleryController extends GetxController {
   RxInt uploadedCount = 0.obs;
   RxInt totalToUpload = 0.obs;
   RxBool uploadDone = false.obs;
+
+  // ======================================================
+  //  ⭐ ADD THIS BLOCK HERE ⭐
+  // ======================================================
+
+  /// 1️⃣ Event NOT started yet
+  bool get eventNotStarted =>
+      event != null && DateTime.now().isBefore(event!.eventStartDateTime);
+
+  /// 2️⃣ Event already finished
+  bool get eventEnded =>
+      event != null && DateTime.now().isAfter(event!.eventEndDateTime);
+
+  /// 3️⃣ All uploaded on this device — nothing left
+  bool get allUploaded => galleryAssets.isEmpty && uploadedCount.value > 0;
+
+  /// 4️⃣ No images found inside event time range
+  bool get noPhotosFound =>
+      galleryAssets.isEmpty && !eventNotStarted && !eventEnded;
+
+  /// 5️⃣ Event ongoing but empty gallery
+  bool get eventLiveButEmpty =>
+      !eventEnded && !eventNotStarted && galleryAssets.isEmpty;
 
   //----------------------------------------------------
   // SELECTION LOGIC
@@ -81,7 +102,8 @@ class InvitedEventGalleryController extends GetxController {
       }
     }
 
-    loadGalleryImages();
+    // Delay gallery load to avoid blocking UI during navigation
+    Future.microtask(() => loadGalleryImages());
   }
 
   // ⬇ ADD THIS INSIDE InvitedEventGalleryController
@@ -137,67 +159,68 @@ class InvitedEventGalleryController extends GetxController {
   /// Loads all device gallery images within event date range.
   /// Filters by event start->end date.
   Future<void> loadGalleryImages() async {
-    isLoading.value = true;
+    try {
+      isLoading.value = true;
 
-    final permission = await PhotoManager.requestPermissionExtend();
-    if (!permission.isAuth) {
-      isLoading.value = false;
-      PhotoManager.openSetting();
-      return;
-    }
-
-    /// Load previously uploaded hashes (permanent)
-    List storedList = Preference.box.get(
-      Preference.EVENT_UPLOADED_HASHES,
-      defaultValue: <String>[],
-    );
-    Set<String> savedHashes = storedList.map((e) => e.toString()).toSet();
-
-    final filter = FilterOptionGroup(
-      createTimeCond: DateTimeCond(
-        min: event.eventStartDateTime,
-        max: event.eventEndDateTime,
-      ),
-      orders: [const OrderOption(type: OrderOptionType.createDate, asc: false)],
-    );
-
-    final albums = await PhotoManager.getAssetPathList(
-      type: RequestType.image,
-      hasAll: false,
-      filterOption: filter,
-    );
-
-    final cameraAlbums =
-        albums.where((a) {
-          final n = a.name.toLowerCase();
-          return n.contains("camera") ||
-              n.contains("dcim") ||
-              n.contains("100media") ||
-              n.contains("100andro");
-        }).toList();
-
-    List<AssetEntity> temp = [];
-    for (final a in cameraAlbums) {
-      temp.addAll(await a.getAssetListPaged(page: 0, size: 800));
-    }
-    
-    /// 🔥 FILTER — remove previously uploaded permanently
-    List<AssetEntity> freshItems = [];
-    for (final asset in temp) {
-      final file = await asset.file;
-      if (file == null) continue;
-
-      final hash = md5.convert(await file.readAsBytes()).toString();
-      if (!savedHashes.contains(hash)) {
-        freshItems.add(asset);
+      final permission = await PhotoManager.requestPermissionExtend();
+      if (!permission.isAuth) {
+        isLoading.value = false;
+        PhotoManager.openSetting();
+        return;
       }
+
+      /// Load previously uploaded hashes (permanent)
+      List storedList = Preference.box.get(
+        Preference.EVENT_UPLOADED_HASHES,
+        defaultValue: <String>[],
+      );
+      Set<String> savedHashes = storedList.map((e) => e.toString()).toSet();
+
+      if (event == null) {
+        isLoading.value = false;
+        return;
+      }
+
+      final filter = FilterOptionGroup(
+        createTimeCond: DateTimeCond(
+          min: event!.eventStartDateTime,
+          max: event!.eventEndDateTime,
+        ),
+        orders: [const OrderOption(type: OrderOptionType.createDate, asc: false)],
+      );
+
+      final albums = await PhotoManager.getAssetPathList(
+        type: RequestType.image,
+        hasAll: false,
+        filterOption: filter,
+      );
+
+      final cameraAlbums =
+          albums.where((a) {
+            final n = a.name.toLowerCase();
+            return n.contains("camera") ||
+                n.contains("dcim") ||
+                n.contains("100media") ||
+                n.contains("100andro");
+          }).toList();
+
+      /// Load albums one by one to avoid memory issues
+      List<AssetEntity> temp = [];
+      for (final album in cameraAlbums) {
+        final assets = await album.getAssetListPaged(page: 0, size: 500);
+        temp.addAll(assets);
+      }
+
+      /// 🔥 FILTER — remove previously uploaded using asset ID (fast check)
+      final freshItems = temp.where((asset) => !savedHashes.contains(asset.id)).toList();
+
+      /// Only unseen images show in UI
+      galleryAssets.assignAll(freshItems);
+    } catch (e) {
+      print("❌ Error loading gallery: $e");
+    } finally {
+      isLoading.value = false;
     }
-
-    /// NEW — Only unseen images show in UI
-    galleryAssets.assignAll(freshItems);
-
-    isLoading.value = false;
-    update();
   }
 
   //----------------------------------------------------
@@ -214,6 +237,8 @@ class InvitedEventGalleryController extends GetxController {
   /// Called when Upload button is clicked.
   /// Filters unselected images and uploads them.
   Future<void> onUploadTap() async {
+    const int MAX_UPLOAD_LIMIT = 20;
+
     final assetsToUpload =
         galleryAssets.where((a) => !selectedAssets.contains(a)).toList();
 
@@ -222,18 +247,36 @@ class InvitedEventGalleryController extends GetxController {
       return;
     }
 
-    final files = <File>[];
-    for (final a in assetsToUpload) {
-      final f = await a.file;
-      if (f != null) files.add(f);
-    }
+    /// Read already uploaded permanent IDs
+    List storedList = Preference.box.get(
+      Preference.EVENT_UPLOADED_HASHES,
+      defaultValue: <String>[],
+    );
 
-    if (files.isEmpty) {
-      showCustomSnackBar("Files empty", SnackbarState.error);
+    int alreadyUploaded = storedList.length;
+    int remaining = MAX_UPLOAD_LIMIT - alreadyUploaded;
+
+    /// If reached max limit
+    if (remaining <= 0) {
+      showCustomSnackBar(
+        "Upload limit reached (20 allowed)",
+        SnackbarState.error,
+      );
       return;
     }
 
-    uploadPhotos(files); // 🔥 NEW — triggers popup upload
+    /// Allow only remaining photos
+    final limitedAssets = assetsToUpload.take(remaining).toList();
+
+    /// Notify if user selected more than limit
+    if (limitedAssets.length < assetsToUpload.length) {
+      showCustomSnackBar(
+        "Only $remaining photos can be uploaded (limit reached)",
+        SnackbarState.warning,
+      );
+    }
+
+    uploadPhotosFromAssets(limitedAssets); // Continue with upload flow
   }
 
   // ------------------------------------------------------
@@ -270,8 +313,10 @@ class InvitedEventGalleryController extends GetxController {
   /// Uploads one photo to server.
   /// Increases uploaded count if successful.
   Future<void> uploadOne(File file) async {
+    if (event == null) return;
+
     final res = await PublicApiService().uploadEventImagesPost(
-      eventId: event.eventId,
+      eventId: event!.eventId,
       files: [file],
     );
 
@@ -280,66 +325,57 @@ class InvitedEventGalleryController extends GetxController {
   }
 
   // ------------------------------------------------------
-  // 🚀 MAIN PARALLEL UPLOAD FUNCTION  (LOCAL DUPLICATE SKIP)
+  // 🚀 MAIN PARALLEL UPLOAD FUNCTION (OPTIMIZED FOR SPEED)
   // ------------------------------------------------------
 
-  Future<ui.Image> getImageInfo(File file) async {
-    final bytes = await file.readAsBytes();
-    final codec = await ui.instantiateImageCodec(bytes);
-    final frame = await codec.getNextFrame();
-    return frame.image;
-  }
-
-  /// Uploads multiple images in parallel (4 at once).
-  /// Prevents duplicate uploads by filename.
-  Future<String> getFileHash(File file) async {
-    final bytes = await file.readAsBytes(); // Read full image bytes
-    return md5.convert(bytes).toString(); // Hash = completely unique signature
-  }
-
-  Future<void> uploadPhotos(List<File> files) async {
-    totalToUpload.value = files.length;
+  /// Uploads multiple images in parallel (6 at once for faster upload).
+  /// Uses asset.id for duplicate tracking (fast, no file I/O).
+  Future<void> uploadPhotosFromAssets(List<AssetEntity> assets) async {
+    totalToUpload.value = assets.length;
     uploadedCount.value = 0;
     uploadDone.value = false;
 
     showUploadPopup();
 
-    List<Future> queue = [];
-
-    /// 🔥 Load previously uploaded hashes safely (convert dynamic→String)
+    /// Load previously uploaded IDs
     List storedList = Preference.box.get(
       Preference.EVENT_UPLOADED_HASHES,
       defaultValue: <String>[],
     );
+    Set<String> savedIds = storedList.map((e) => e.toString()).toSet();
 
-    Set<String> savedHashes =
-        storedList.map((e) => e.toString()).toSet(); // FIXED ✔
+    /// 🔥 Step 1: Prepare all files in parallel (faster than sequential)
+    List<MapEntry<String, File>> filesToUpload = [];
 
-    for (final file in files) {
-      String hash = await getFileHash(file); // Generate MD5 signature
+    await Future.wait(
+      assets.map((asset) async {
+        if (savedIds.contains(asset.id)) return;
+        final file = await asset.file;
+        if (file != null) {
+          filesToUpload.add(MapEntry(asset.id, file));
+        }
+      }),
+    );
 
-      /// 🛑 Already uploaded before → Skip permanently
-      if (savedHashes.contains(hash)) {
-        print("⛔ SKIPPED — Image already uploaded earlier");
-        continue;
-      }
+    /// 🚀 Step 2: Upload in batches of 6 for faster throughput
+    const int batchSize = 6;
 
-      /// 🟢 First time upload → Save hash permanently in Hive
-      savedHashes.add(hash);
-      Preference.box.put(
-        Preference.EVENT_UPLOADED_HASHES,
-        savedHashes.toList(),
+    for (int i = 0; i < filesToUpload.length; i += batchSize) {
+      final batch = filesToUpload.skip(i).take(batchSize).toList();
+
+      await Future.wait(
+        batch.map((entry) async {
+          await uploadOne(entry.value);
+          savedIds.add(entry.key);
+        }),
       );
 
-      queue.add(uploadOne(file));
-
-      if (queue.length == 4) {
-        await Future.wait(queue);
-        queue.clear();
-      }
+      /// Save to Hive after each batch (not every file - reduces I/O)
+      Preference.box.put(
+        Preference.EVENT_UPLOADED_HASHES,
+        savedIds.toList(),
+      );
     }
-
-    if (queue.isNotEmpty) await Future.wait(queue);
 
     uploadDone.value = true;
     clearSelection();
@@ -347,8 +383,7 @@ class InvitedEventGalleryController extends GetxController {
 
     LocalNotificationService.show(
       title: "Upload Complete",
-      body:
-          "Uploaded ${uploadedCount.value} NEW photos ✔ (Duplicates skipped permanently)",
+      body: "Uploaded ${uploadedCount.value} photos successfully",
     );
 
     Future.delayed(const Duration(seconds: 1), () {

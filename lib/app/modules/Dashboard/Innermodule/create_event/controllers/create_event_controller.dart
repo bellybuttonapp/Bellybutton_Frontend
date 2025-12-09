@@ -1,4 +1,4 @@
-// ignore_for_file: file_names, avoid_print, use_build_context_synchronously, unnecessary_null_comparison
+// ignore_for_file: file_names, avoid_print, use_build_context_synchronously, unnecessary_null_comparison, unused_field
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -192,11 +192,11 @@ class CreateEventController extends GetxController {
         invitedPeople: [],
       );
 
-      await LocalNotificationService.show(
-        title: AppTexts.NOTIFY_EVENT_CREATED_TITLE,
-        body:
-            "Your event '${titleController.text}' has been scheduled successfully.",
-      );
+      // await LocalNotificationService.show(
+      //   title: AppTexts.NOTIFY_EVENT_CREATED_TITLE,
+      //   body:
+      //       "Your event '${titleController.text}' has been scheduled successfully.",
+      // );
 
       Get.off(() {
         Get.delete<InviteuserController>();

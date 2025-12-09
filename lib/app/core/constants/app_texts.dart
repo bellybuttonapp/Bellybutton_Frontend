@@ -42,6 +42,7 @@ class AppTexts {
 
   static const String SIGNUP_BUTTON = "Sign Up";
   static const String SIGNUP_EMAIL = "Email";
+  static const String SIGNUP_MOBILE = "Enter your mobile number";
   static const String SIGNUP_NAME = "Name";
   static const String SIGNUP_PASSWORD = "Enter your password";
   static const String SIGNUP_SUBTITLE = "Join us in just a few steps.";
@@ -213,11 +214,54 @@ class AppTexts {
   // INVITED EVENT GALLERY
   //----------------------------------------------------
   static const String NO_EVENT_PHOTOS_TITLE = "No photos available";
+  static const String BTN_UPLOAD_PHOTOS = "Upload Photos";
+  static const String BTN_REMOVE = "Remove";
+  static const String BTN_UPLOAD = "Upload";
   static const String NO_EVENT_PHOTOS_DESCRIPTION =
-      "This event doesn’t have any shared photos at the moment.";
+      "This event doesn't have any shared photos at the moment.";
   static const String INVITED_EVENT_GALLERY = "Invited Event Gallery";
   static const String PHOTOS_UPLOADED_SUCCESSFULLY =
       "photos uploaded successfully";
+
+  //----------------------------------------------------
+  // EVENT GALLERY STATES (ADMIN/HOST VIEW)
+  //----------------------------------------------------
+  static const String EVENT_GALLERY_NOT_STARTED_TITLE = "Event Not Started";
+  static const String EVENT_GALLERY_NOT_STARTED_DESC =
+      "Photos will appear once the event begins";
+
+  static const String EVENT_GALLERY_ENDED_EMPTY_TITLE = "Event Ended";
+  static const String EVENT_GALLERY_ENDED_EMPTY_DESC =
+      "No photos were shared during this event";
+
+  static const String EVENT_GALLERY_ALL_SYNCED_TITLE = "All Photos Synced";
+  static const String EVENT_GALLERY_ALL_SYNCED_DESC =
+      "You've already downloaded all event photos";
+
+  static const String EVENT_GALLERY_LIVE_EMPTY_TITLE = "Waiting for Photos";
+  static const String EVENT_GALLERY_LIVE_EMPTY_DESC =
+      "Event is live — photos will appear as guests upload";
+  //----------------------------------------------------
+  // EVENT - INVITED EVENT GALLERY STATES (EMPTY / CONDITIONS)
+  //----------------------------------------------------
+  static const String EVENT_NOT_STARTED_TITLE = "Event Not Started";
+  static const String EVENT_NOT_STARTED_DESC =
+      "Photos can be uploaded once event begins";
+
+  static const String EVENT_ENDED_TITLE = "Event Ended";
+  static const String EVENT_ENDED_DESC =
+      "No photos were uploaded for this event";
+
+  static const String ALL_PHOTOS_SYNCED_TITLE = "All Photos Synced";
+  static const String ALL_PHOTOS_SYNCED_DESC =
+      "You’ve already uploaded everything";
+
+  static const String EVENT_LIVE_EMPTY_TITLE = "Be the First!";
+  static const String EVENT_LIVE_EMPTY_DESC =
+      "Event is live — upload your moments";
+
+  static const String NO_PHOTOS_FOUND_TITLE = "No Photos Found";
+  static const String NO_PHOTOS_FOUND_DESC = "Click upload to add pictures";
 
   //----------------------------------------------------
   // DELETE ACCOUNT POPUP
@@ -332,7 +376,7 @@ class AppTexts {
   //----------------------------------------------------
 
   static const String LIMIT_REACHED =
-      "Limit Reached\nYou can only invite up to 5 people.";
+      "Limit Reached\nYou can only invite up to 4 people.";
   static const String NO_CONTACTS_FOUND =
       "No contacts found.\nStart adding contacts to connect with people.";
   static const String USERS_INVITED_SUCCESSFULLY =
@@ -370,6 +414,13 @@ class AppTexts {
 
   static const String INVITED_EVENTS = "Invited Events";
   static const String NO_INVITED_EVENTS_FOUND = "No invited events found";
+  static const String UNABLE_TO_FETCH_INVITED_EVENTS =
+      "Unable to fetch invited events";
+  static const String EVENT_ACCEPTED = "You accepted";
+  static const String EVENT_DENIED = "You denied";
+  static const String FAILED_TO_ACCEPT_EVENT = "Failed to accept event";
+  static const String FAILED_TO_DENY_EVENT = "Failed to deny event";
+  static const String UNABLE_TO_PROCESS_REQUEST = "Unable to process request";
 
   //----------------------------------------------------
   // PHOTO PREVIEW – DETAILS SHEET

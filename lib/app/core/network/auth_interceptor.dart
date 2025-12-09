@@ -12,6 +12,13 @@ class AuthInterceptor extends Interceptor {
 
     print("🔥 FULL PATH → $endpoint");
 
+    // ✅ Skip if manually handled (e.g., multipart requests with custom auth)
+    final skipAuth = options.extra["skipAuth"] == true;
+    if (skipAuth) {
+      print("⏭ skipAuth=true → Skipping AuthInterceptor");
+      return handler.next(options);
+    }
+
     // ❌ Endpoints that NEVER require token
     final noAuthNeeded = [
       Endpoints.LOGIN.toLowerCase(),

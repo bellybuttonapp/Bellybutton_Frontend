@@ -1,6 +1,6 @@
 // ignore_for_file: avoid_print, unused_field, file_names
 
-import 'dart:convert';
+
 import 'dart:io';
 import 'package:dio/dio.dart';
 import '../core/network/dio_client.dart';
@@ -151,7 +151,7 @@ class PublicApiService {
   }
 
   // ==========================
-  // 5️⃣ updateProfile by ID (PUT + Multipart) — FINAL FIX
+  // 5️⃣ updateProfile by ID (PUT + Multipart)
   // ==========================
   Future<Map<String, dynamic>> updateProfile({
     required int userId,
@@ -165,10 +165,6 @@ class PublicApiService {
     final endpoint = "${Endpoints.UPDATE_PROFILE}/$userId";
 
     print("✏️ Sending Multipart PUT → $endpoint");
-
-    // FIX: Token must be cleaned BEFORE using
-    final cleanToken =
-        Preference.token.replaceAll("\n", "").replaceAll("\r", "").trim();
 
     final profileString =
         '{"email":"$email","fullName":"$fullName","phone":"$phone","address":"$address","bio":"$bio"}';
@@ -184,24 +180,34 @@ class PublicApiService {
         ),
     });
 
+    // Let AuthInterceptor handle token injection automatically
     final response = await DioClient().dio.put(
       endpoint,
       data: formData,
       options: Options(
         headers: {
-          // FIX: lowercase `authorization` avoids line folding
-          "authorization": "Bearer $cleanToken",
           "Accept": "application/json",
           "Content-Type": "multipart/form-data",
-        },
-        extra: {
-          // 🧨 Tells AuthInterceptor to NOT override your Authorization header
-          "skipAuth": true,
         },
       ),
     );
 
     return response.data;
+  }
+
+  // ==========================
+  // 5️⃣    Fetch profile by user ID
+  // ==========================
+  Future<Map<String, dynamic>> getProfileById(int userId) async {
+    final endpoint = Endpoints.GET_PROFILE_BY_ID.replaceFirst(
+      "{id}",
+      userId.toString(),
+    );
+
+    // Let AuthInterceptor handle token injection automatically
+    return await _handleApiCall(
+      DioClient().getRequest(endpoint),
+    );
   }
 
   // ==========================

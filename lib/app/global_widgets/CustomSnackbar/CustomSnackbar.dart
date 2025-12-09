@@ -23,7 +23,7 @@ class SnackbarConfig {
 void showCustomSnackBar(
   String message,
   SnackbarState state, {
-  String? subTitle, // <-- ADDED
+  String? subTitle,
   int durationSeconds = 4,
 }) {
   final context = Get.context!;
@@ -60,77 +60,75 @@ void showCustomSnackBar(
 
   final config = configs[state]!;
 
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      padding: EdgeInsets.zero,
-      duration: Duration(seconds: durationSeconds),
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      behavior: SnackBarBehavior.floating,
-      content: Container(
-        margin: EdgeInsets.symmetric(
-          horizontal: screenWidth * 0.03,
-          vertical: screenHeight * 0.008,
-        ),
-        padding: EdgeInsets.symmetric(
-          horizontal: screenWidth * 0.03,
-          vertical: screenHeight * 0.012,
-        ),
-        decoration: BoxDecoration(
-          color: config.backgroundColor,
-          borderRadius: BorderRadius.circular(screenWidth * 0.02),
-        ),
-        child: Row(
-          children: [
-            SvgPicture.asset(
-              config.iconPath,
-              width: screenWidth * 0.05,
-              height: screenWidth * 0.05,
-              colorFilter: ColorFilter.mode(config.textColor, BlendMode.srcIn),
-            ),
-            SizedBox(width: screenWidth * 0.02),
+  Get.snackbar(
+    '',
+    '',
+    snackPosition: SnackPosition.BOTTOM,
+    margin: const EdgeInsets.only(bottom: 80, left: 16, right: 16),
+    padding: EdgeInsets.zero,
+    duration: Duration(seconds: durationSeconds),
+    backgroundColor: Colors.transparent,
+    barBlur: 0,
+    overlayBlur: 0,
+    snackStyle: SnackStyle.FLOATING,
+    messageText: Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: screenWidth * 0.03,
+        vertical: screenHeight * 0.012,
+      ),
+      decoration: BoxDecoration(
+        color: config.backgroundColor,
+        borderRadius: BorderRadius.circular(screenWidth * 0.02),
+      ),
+      child: Row(
+        children: [
+          SvgPicture.asset(
+            config.iconPath,
+            width: screenWidth * 0.05,
+            height: screenWidth * 0.05,
+            colorFilter: ColorFilter.mode(config.textColor, BlendMode.srcIn),
+          ),
+          SizedBox(width: screenWidth * 0.02),
 
-            // ========== MAIN MESSAGE + Optional Subtitle ==========
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+          // ========== MAIN MESSAGE + Optional Subtitle ==========
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  message,
+                  style: customBoldText.copyWith(
+                    color: config.textColor,
+                    fontSize: screenWidth * 0.035,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (subTitle != null)
                   Text(
-                    message,
+                    subTitle,
                     style: customBoldText.copyWith(
-                      color: config.textColor,
-                      fontSize: screenWidth * 0.035,
-                      fontWeight: FontWeight.w700,
+                      color: config.textColor.withOpacity(0.8),
+                      fontSize: screenWidth * 0.03,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  if (subTitle != null) // <-- Subtitle Shows ONLY when given
-                    Text(
-                      subTitle,
-                      style: customBoldText.copyWith(
-                        color: config.textColor.withOpacity(0.8),
-                        fontSize: screenWidth * 0.03,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                ],
-              ),
+              ],
             ),
+          ),
 
-            GestureDetector(
-              onTap: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
-              child: SvgPicture.asset(
-                AppImages.CLOSE,
-                width: screenWidth * 0.045,
-                height: screenWidth * 0.045,
-                colorFilter: ColorFilter.mode(
-                  config.textColor,
-                  BlendMode.srcIn,
-                ),
-              ),
+          GestureDetector(
+            onTap: () => Get.closeCurrentSnackbar(),
+            child: SvgPicture.asset(
+              AppImages.CLOSE,
+              width: screenWidth * 0.045,
+              height: screenWidth * 0.045,
+              colorFilter: ColorFilter.mode(config.textColor, BlendMode.srcIn),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     ),
+    titleText: const SizedBox.shrink(),
   );
 }

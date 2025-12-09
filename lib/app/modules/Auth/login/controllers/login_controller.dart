@@ -101,6 +101,45 @@ class LoginController extends GetxController {
         print("🔵 LOGGED IN USER ID → ${Preference.userId}");
         print("🔵 TOKEN STORED → $rawToken");
 
+        // ✅ Fetch full profile from API to get bio, phone, address, etc.
+        try {
+          print("🔵 Fetching profile for userId: ${Preference.userId}");
+          final profileResult = await PublicApiService().getProfileById(
+            Preference.userId,
+          );
+          print("🔵 Profile API result: $profileResult");
+
+          // Check if data exists (API returns {data: {...}, message: "..."})
+          if (profileResult["data"] != null) {
+            final profileData = profileResult["data"];
+            print("🔵 Profile data extracted: $profileData");
+            if (profileData["fullName"] != null) {
+              Preference.userName = profileData["fullName"];
+              print("🔵 Set userName to: ${profileData["fullName"]}");
+            }
+            if (profileData["bio"] != null) {
+              Preference.bio = profileData["bio"];
+              print("🔵 Set bio to: ${profileData["bio"]}");
+            }
+            if (profileData["profileImageUrl"] != null) {
+              Preference.profileImage = profileData["profileImageUrl"];
+              print("🔵 Set profileImage to: ${profileData["profileImageUrl"]}");
+            }
+            if (profileData["phone"] != null) {
+              Preference.phone = profileData["phone"];
+            }
+            if (profileData["address"] != null) {
+              Preference.address = profileData["address"];
+            }
+            print("🔵 Preference updated - userName: ${Preference.userName}, bio: ${Preference.bio}");
+          } else {
+            print("⚠️ Profile result has no 'data' key: $profileResult");
+          }
+        } catch (e, stackTrace) {
+          print("⚠️ Failed to fetch profile after login: $e");
+          print("⚠️ Stack trace: $stackTrace");
+        }
+
         // ✅ Upload FCM token AFTER login
         final fcmToken = await FirebaseMessaging.instance.getToken();
         if (fcmToken != null) {

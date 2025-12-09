@@ -38,6 +38,7 @@ abstract class Routes {
   static const PHOTO_PRE = _Paths.PHOTO_PRE;
   static const INVITED_ADMINS_LIST =
       _Paths.DASHBOARD + _Paths.INVITED_ADMINS_LIST;
+  static const SIGNUP_OTP = _Paths.SIGNUP_OTP;
 }
 
 // 🌐 PATHS
@@ -72,4 +73,5 @@ abstract class _Paths {
   static const INVITED_EVENT_GALLERY = '/invited-event-gallery';
   static const PHOTO_PRE = '/photo-pre';
   static const INVITED_ADMINS_LIST = '/invited-admins-list';
+  static const SIGNUP_OTP = '/signup-otp';
 }

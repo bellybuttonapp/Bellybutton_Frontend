@@ -17,7 +17,6 @@ import '../../../../../global_widgets/custom_app_bar/custom_app_bar.dart';
 class AccountDetailsView extends GetView<AccountDetailsController> {
   final AccountDetailsController controller = Get.put(
     AccountDetailsController(),
-    permanent: true,
   );
 
   final _formKey = GlobalKey<FormState>();
@@ -29,6 +28,7 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     final user = AuthService().currentUser;
 
@@ -52,157 +52,154 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
     }
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor:
           isDarkMode
               ? AppTheme.darkTheme.scaffoldBackgroundColor
               : AppTheme.lightTheme.scaffoldBackgroundColor,
       appBar: CustomAppBar(title: AppTexts.ACCOUNT_DETAILS),
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          SliverPadding(
-            padding: EdgeInsets.symmetric(
-              horizontal: screenWidth * 0.05,
-              vertical: screenHeight * 0.04,
-            ),
-            sliver: SliverToBoxAdapter(
-              child: Form(
-                key: _formKey,
-                child: Column(
+      body: SingleChildScrollView(
+        padding: EdgeInsets.only(
+          left: screenWidth * 0.05,
+          right: screenWidth * 0.05,
+          top: screenHeight * 0.04,
+          bottom: bottomInset + screenHeight * 0.04,
+        ),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              /// PROFILE IMAGE
+              Center(
+                child: Stack(
+                  clipBehavior: Clip.none,
                   children: [
-                    /// PROFILE IMAGE
-                    Center(
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Obx(
-                            () => Hero(
-                              tag: 'profile-photo',
-                              child: CircleAvatar(
-                                radius: screenWidth * 0.16,
-                                backgroundColor: AppColors.other,
-                                backgroundImage: profileImage(),
-                                child:
-                                    profileImage() == null
-                                        ? Padding(
-                                          padding: EdgeInsets.all(
-                                            screenWidth * 0.03,
-                                          ),
-                                          child: SvgPicture.asset(
-                                            AppImages.PERSON,
-                                            height: screenWidth * 0.08,
-                                            width: screenWidth * 0.08,
-                                            color: AppColors.textColor
-                                                .withOpacity(0.7),
-                                          ),
-                                        )
-                                        : null,
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: screenWidth * 0.015,
-                            right: screenWidth * 0.015,
-                            child: GestureDetector(
-                              onTap: controller.pickImage,
-                              child: Container(
-                                padding: EdgeInsets.all(screenWidth * 0.015),
-                                decoration: const BoxDecoration(
-                                  color: Colors.black,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: SvgPicture.asset(
-                                  AppImages.CAMERA_ADD_ICON,
-                                  color: AppColors.textColor3,
-                                  width: screenWidth * 0.045,
-                                  height: screenWidth * 0.045,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    SizedBox(height: screenHeight * 0.04),
-
-                    /// NAME FIELD
                     Obx(
-                      () => GlobalTextField(
-                        controller: controller.nameController,
-                        hintText: AppTexts.SIGNUP_NAME,
-                        obscureText: false,
-                        keyboardType: TextInputType.name,
-                        errorText: controller.nameError.value,
-                        onChanged: controller.validateName,
-                      ),
-                    ),
-
-                    SizedBox(height: screenHeight * 0.025),
-
-                    /// BIO FIELD
-                    GlobalTextField(
-                      controller: controller.bioController,
-                      hintText: AppTexts.BIO,
-                      obscureText: false,
-                      keyboardType: TextInputType.text,
-                      maxLines: 3,
-                    ),
-
-                    SizedBox(height: screenHeight * 0.025),
-
-                    /// EMAIL FIELD (READ ONLY)
-                    GlobalTextField(
-                      enabled: false,
-                      controller: TextEditingController(
-                        text:
-                            Preference.email.isNotEmpty
-                                ? Preference.email
-                                : (user?.email ?? "example@email.com"),
-                      ),
-                      hintText: AppTexts.EMAIL,
-                      obscureText: false,
-                      suffixIcon: Padding(
-                        padding: EdgeInsets.all(screenWidth * 0.03),
-                        child: SvgPicture.asset(
-                          AppImages.CHECK_ICON,
-                          width: screenWidth * 0.025,
-                          height: screenWidth * 0.025,
+                      () => Hero(
+                        tag: 'profile-photo',
+                        child: CircleAvatar(
+                          radius: screenWidth * 0.16,
+                          backgroundColor: const Color.fromARGB(
+                            255,
+                            166,
+                            216,
+                            233,
+                          ).withOpacity(0.15),
+                          backgroundImage: profileImage(),
+                          child:
+                              profileImage() == null
+                                  ? Padding(
+                                    padding: EdgeInsets.all(screenWidth * 0.03),
+                                    child: SvgPicture.asset(
+                                      AppImages.PERSON,
+                                      height: screenWidth * 0.08,
+                                      width: screenWidth * 0.08,
+                                      color: AppColors.textColor.withOpacity(
+                                        0.7,
+                                      ),
+                                    ),
+                                  )
+                                  : null,
                         ),
                       ),
                     ),
-
-                    SizedBox(height: screenHeight * 0.25),
-
-                    /// SAVE BUTTON
-                    Obx(
-                      () => global_button(
-                        loaderWhite: true,
-                        isLoading: controller.isLoading.value,
-                        onTap:
-                            controller.hasChanges.value
-                                ? () {
-                                  if (_formKey.currentState?.validate() ??
-                                      false) {
-                                    controller.saveChanges();
-                                  }
-                                }
-                                : null, // ⭐ disable when no changes
-                        title: AppTexts.SAVE_CHANGES,
-                        backgroundColor:
-                            controller.hasChanges.value
-                                ? AppColors.primaryColor
-                                : AppColors.primaryColor.withOpacity(
-                                  0.4,
-                                ), // ⭐ faded
+                    Positioned(
+                      bottom: screenWidth * 0.015,
+                      right: screenWidth * 0.015,
+                      child: GestureDetector(
+                        onTap: controller.pickImage,
+                        child: Container(
+                          padding: EdgeInsets.all(screenWidth * 0.015),
+                          decoration: const BoxDecoration(
+                            color: Colors.black,
+                            shape: BoxShape.circle,
+                          ),
+                          child: SvgPicture.asset(
+                            AppImages.CAMERA_ADD_ICON,
+                            color: AppColors.textColor3,
+                            width: screenWidth * 0.045,
+                            height: screenWidth * 0.045,
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
+
+              SizedBox(height: screenHeight * 0.04),
+
+              /// NAME FIELD
+              Obx(
+                () => GlobalTextField(
+                  controller: controller.nameController,
+                  hintText: AppTexts.SIGNUP_NAME,
+                  obscureText: false,
+                  keyboardType: TextInputType.name,
+                  errorText: controller.nameError.value,
+                  onChanged: controller.validateName,
+                ),
+              ),
+
+              SizedBox(height: screenHeight * 0.025),
+
+              /// BIO FIELD
+              GlobalTextField(
+                controller: controller.bioController,
+                hintText: AppTexts.BIO,
+                obscureText: false,
+                keyboardType: TextInputType.text,
+                maxLines: 3,
+              ),
+
+              SizedBox(height: screenHeight * 0.025),
+
+              /// EMAIL FIELD (READ ONLY)
+              GlobalTextField(
+                enabled: false,
+                controller: TextEditingController(
+                  text:
+                      Preference.email.isNotEmpty
+                          ? Preference.email
+                          : (user?.email ?? "example@email.com"),
+                ),
+                hintText: AppTexts.EMAIL,
+                obscureText: false,
+                suffixIcon: Padding(
+                  padding: EdgeInsets.all(screenWidth * 0.03),
+                  child: SvgPicture.asset(
+                    AppImages.CHECK_ICON,
+                    width: screenWidth * 0.025,
+                    height: screenWidth * 0.025,
+                  ),
+                ),
+              ),
+
+              SizedBox(height: screenHeight * 0.23),
+
+              /// SAVE BUTTON
+              Obx(
+                () => global_button(
+                  loaderWhite: true,
+                  isLoading: controller.isLoading.value,
+                  onTap:
+                      controller.hasChanges.value
+                          ? () {
+                            if (_formKey.currentState?.validate() ?? false) {
+                              controller.saveChanges();
+                            }
+                          }
+                          : null,
+                  title: AppTexts.SAVE_CHANGES,
+                  backgroundColor:
+                      controller.hasChanges.value
+                          ? AppColors.primaryColor
+                          : AppColors.primaryColor.withOpacity(0.4),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

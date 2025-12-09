@@ -61,9 +61,23 @@ class MembersListWidget<T extends GetxController> extends StatelessWidget {
 
                 onRefresh: () async {
                   try {
-                    await c.fetchAdmins(c.event.eventId!); // Admin Screen
-                  } catch (_) {
-                    await c.fetchJoinedUsers(c.event.eventId!); // Users Screen
+                    // Get event ID - supports both EventModel (id) and InvitedEventModel (eventId)
+                    int? eventId;
+                    try {
+                      eventId = c.event.eventId;
+                    } catch (_) {
+                      eventId = c.event.id;
+                    }
+
+                    if (eventId != null) {
+                      try {
+                        await c.fetchAdmins(eventId); // Admin Screen
+                      } catch (_) {
+                        await c.fetchJoinedUsers(eventId); // Users Screen
+                      }
+                    }
+                  } catch (e) {
+                    print("❌ Error refreshing members: $e");
                   }
                   c.refreshController.refreshCompleted();
                 },

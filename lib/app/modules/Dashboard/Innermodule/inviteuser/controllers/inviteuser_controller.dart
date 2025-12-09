@@ -145,7 +145,7 @@ class InviteuserController extends GetxController {
       return;
     }
 
-    if (selectedUsers.length >= 5) {
+    if (selectedUsers.length >= 4) {
       showCustomSnackBar(AppTexts.LIMIT_REACHED, SnackbarState.error);
       return;
     }

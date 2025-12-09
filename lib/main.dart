@@ -1,8 +1,9 @@
-// ignore_for_file: avoid_print, deprecated_member_use
+// ignore_for_file: deprecated_member_use
 
 import 'dart:async';
 import 'package:bellybutton/app/core/utils/storage/preference.dart';
 import 'package:bellybutton/app/core/utils/initializer/app_initializer.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -25,9 +26,7 @@ import 'app/core/services/firebase_notification_service.dart';
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  // Safe: No UI work here
-  print("🌙 Background message received → ${message.messageId}");
+  debugPrint("🌙 Background message received → ${message.messageId}");
 }
 
 Future<void> main() async {
@@ -51,29 +50,31 @@ Future<void> main() async {
 
   Preference.init(hiveBox);
   Get.put(hiveBox);
-  print('✅ Hive Initialized');
+  debugPrint('✅ Hive Initialized');
 
   /// ----------------------------------------------------------
   /// 4️⃣ FIREBASE INIT
   /// ----------------------------------------------------------
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  print('✅ Firebase Initialized');
+  debugPrint('✅ Firebase Initialized');
 
-  print("📌 FCM Token: ${await FirebaseMessaging.instance.getToken()}");
+  if (kDebugMode) {
+    debugPrint("📌 FCM Token: ${await FirebaseMessaging.instance.getToken()}");
+  }
 
   /// ----------------------------------------------------------
   /// 5️⃣ Firebase App Check
   /// ----------------------------------------------------------
   await FirebaseAppCheck.instance.activate(
-    androidProvider: AndroidProvider.debug,
-    appleProvider: AppleProvider.debug,
+    androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+    appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
   );
 
   /// ----------------------------------------------------------
   /// 6️⃣ Crashlytics
   /// ----------------------------------------------------------
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
-  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!kDebugMode);
 
   /// ----------------------------------------------------------
   /// 7️⃣ FCM NOTIFICATION SYSTEM (Foreground / Tap / Terminated)

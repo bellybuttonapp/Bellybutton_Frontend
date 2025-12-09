@@ -1,5 +1,3 @@
-// ignore_for_file: avoid_print, unrelated_type_equality_checks
-
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
@@ -7,10 +5,11 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 class AppInitializer {
   static Future<void> initialize() async {
     try {
-      // Check network connectivity
       final connectivityResult = await Connectivity().checkConnectivity();
+      final hasConnection = connectivityResult.isNotEmpty &&
+          !connectivityResult.contains(ConnectivityResult.none);
 
-      if (connectivityResult != ConnectivityResult.none) {
+      if (hasConnection) {
         debugPrint('🌐 Connected → AppInitializer basic setup completed.');
       } else {
         debugPrint('⚠️ No internet connection. Firebase services skipped.');

@@ -16,6 +16,9 @@ class Endpoints {
   /// 📝 Register User (Available)
   static const String REGISTER = "/userresource/register/user";
 
+  /// 📝 Register User Via OTP(Available)
+  static const String REGISTER_VERIFY_OTP = "/userresource/verifyotps";
+
   /// 🚪 Logout (Available)
   static const String LOGOUT = "/userresource/logout";
 
@@ -38,6 +41,9 @@ class Endpoints {
   /// 🗑️ Delete Account (Available)
   static const String DELETE_ACCOUNT = "/userresource/delete";
 
+  /// 👤 Get Profile by ID (Available)
+  static const String GET_PROFILE_BY_ID = "/profile/view/{id}";
+
   // ------------------------------------------------------
   // 🔑 PASSWORD MANAGEMENT
   // ------------------------------------------------------
@@ -47,6 +53,9 @@ class Endpoints {
 
   /// 🔍 Verify OTP (Available)
   static const String VERIFY_OTP = "/userresource/verifyotp";
+
+  /// 🔐 Request OTP again
+  static const String REQUEST_OTP = "/userresource/resend-otp";
 
   /// 🔒 Reset Password (Available)
   static const String RESET_PASSWORD = "/userresource/resetpassword";

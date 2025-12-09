@@ -51,32 +51,32 @@ class EventController extends GetxController {
   }
 
   // ==========================
-  // 4️⃣ Upcoming Events (Sorted Soonest First)
+  // 4️⃣ Upcoming Events (Event hasn't ended yet - sorted soonest first)
   // ==========================
   List<EventModel> get upcomingEvents {
     final now = DateTime.now();
+    // Event is upcoming if end time hasn't passed yet
     final upcoming =
-        eventData.where((e) => e.fullEventDateTime.isAfter(now)).toList()
+        eventData.where((e) => e.fullEventEndDateTime.isAfter(now)).toList()
           ..sort((a, b) => a.fullEventDateTime.compareTo(b.fullEventDateTime));
 
-    print("📅 Upcoming: ${upcoming.map((e) => e.fullEventDateTime)}");
+    print("📅 Upcoming: ${upcoming.map((e) => '${e.title}: ${e.fullEventDateTime} - ${e.fullEventEndDateTime}')}");
     return upcoming;
   }
 
   // ==========================
-  // 5️⃣ Past Events (Sorted Most Recent First)
+  // 5️⃣ Past Events (Event has ended - sorted most recent first)
   // ==========================
   List<EventModel> get pastEvents {
     final now = DateTime.now();
+    // Event is past only after end time has passed
     final past =
-        eventData.where((e) => e.fullEventDateTime.isBefore(now)).toList()
-          ..sort((a, b) => b.fullEventDateTime.compareTo(a.fullEventDateTime));
+        eventData.where((e) => e.fullEventEndDateTime.isBefore(now)).toList()
+          ..sort((a, b) => b.fullEventEndDateTime.compareTo(a.fullEventEndDateTime));
 
-    print("🕓 Past: ${past.map((e) => e.fullEventDateTime)}");
+    print("🕓 Past: ${past.map((e) => '${e.title}: ended ${e.fullEventEndDateTime}')}");
     return past;
   }
-
- 
 
   // ==========================
   // 7️⃣ Retry Fetch Events

@@ -1,7 +1,6 @@
 // ignore_for_file: avoid_print, deprecated_member_use, duplicate_ignore
 
 import 'dart:io';
-import 'package:bellybutton/app/modules/Profile/views/profile_view.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,6 +9,8 @@ import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_images.dart';
 import 'package:bellybutton/app/core/utils/index.dart';
+
+import '../../routes/app_pages.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
@@ -180,17 +181,26 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       String? prefPhoto = Preference.profileImageRx.value;
 
       final firebaseUser = FirebaseAuth.instance.currentUser;
-      String displayName =
-          firebaseUser?.displayName?.isNotEmpty == true
-              ? firebaseUser!.displayName!
-              : prefName;
 
-      File? localImageFile =
-          (prefPhoto != null && prefPhoto.isNotEmpty) ? File(prefPhoto) : null;
+      // Priority: Preference (API data) > Firebase Auth
+      String displayName = prefName.isNotEmpty
+          ? prefName
+          : (firebaseUser?.displayName?.isNotEmpty == true
+              ? firebaseUser!.displayName!
+              : 'User');
 
       ImageProvider? imageProvider;
-      if (localImageFile != null && localImageFile.existsSync()) {
-        imageProvider = FileImage(localImageFile);
+
+      // Priority: Preference photo (API data) > Firebase photo
+      if (prefPhoto != null && prefPhoto.isNotEmpty) {
+        if (prefPhoto.startsWith('http')) {
+          imageProvider = NetworkImage(prefPhoto);
+        } else {
+          final file = File(prefPhoto);
+          if (file.existsSync()) {
+            imageProvider = FileImage(file);
+          }
+        }
       } else if (firebaseUser?.photoURL != null) {
         imageProvider = NetworkImage(firebaseUser!.photoURL!);
       }
@@ -200,11 +210,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         child: GestureDetector(
           onTap: () {
             HapticFeedback.mediumImpact();
-            Get.to(
-              () => ProfileView(),
-              transition: Transition.fade,
-              duration: const Duration(milliseconds: 300),
-            );
+            Get.toNamed(Routes.PROFILE);
           },
           child: Container(
             padding: EdgeInsets.symmetric(
@@ -245,17 +251,30 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   tag: 'profile-photo',
                   child: CircleAvatar(
                     radius: size.width * 0.045,
-                    backgroundColor: Colors.transparent,
-                    backgroundImage: imageProvider,
-                    child:
-                        imageProvider == null
-                            ? SvgPicture.asset(
+                    backgroundColor: Colors.grey.shade200,
+                    child: ClipOval(
+                      child: imageProvider != null
+                          ? Image(
+                              image: imageProvider,
+                              width: size.width * 0.09,
+                              height: size.width * 0.09,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return SvgPicture.asset(
+                                  AppImages.PERSON,
+                                  height: size.width * 0.055,
+                                  width: size.width * 0.055,
+                                  color: textColor,
+                                );
+                              },
+                            )
+                          : SvgPicture.asset(
                               AppImages.PERSON,
                               height: size.width * 0.055,
                               width: size.width * 0.055,
                               color: textColor,
-                            )
-                            : null,
+                            ),
+                    ),
                   ),
                 ),
                 SizedBox(width: size.width * 0.02),

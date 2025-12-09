@@ -1,6 +1,5 @@
 // ignore_for_file: prefer_interpolation_to_compose_strings, file_names, curly_braces_in_flow_control_structures
 
-import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../constants/app_texts.dart';
 
@@ -183,10 +182,11 @@ class Validation {
   // FORM VALIDATIONS
   //----------------------------------------------------
   static String? validateName(String value) {
-    if (value.isEmpty) return 'Name cannot be empty';
-    if (!RegExp(r"^[a-zA-Z\s]+$").hasMatch(value))
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return 'Name cannot be empty';
+    if (!RegExp(r"^[a-zA-Z\s]+$").hasMatch(trimmed))
       return 'Name must contain only letters';
-    if (value.length < 3) return 'Name must be at least 3 characters';
+    if (trimmed.length < 3) return 'Name must be at least 3 characters';
     return null;
   }
 
@@ -227,10 +227,25 @@ class Validation {
   }
 
   static String? validatePassword(String value) {
-    if (value.isEmpty) return 'Password cannot be empty';
-    if (value.length < 8) return 'Minimum 8 characters required';
-    if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)').hasMatch(value)) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return 'Password cannot be empty';
+    if (trimmed.length < 8) return 'Minimum 8 characters required';
+    if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)').hasMatch(trimmed)) {
       return 'Include uppercase, lowercase, and a number';
+    }
+    return null;
+  }
+
+  //----------------------------------------------------
+  // MOBILE NUMBER VALIDATOR
+  //----------------------------------------------------
+  static String? validatePhone(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return "Mobile number is required";
+
+    // 10-digit Indian mobile number (starts with 6-9)
+    if (!RegExp(r'^[6-9]\d{9}$').hasMatch(trimmed)) {
+      return "Enter valid 10-digit number";
     }
     return null;
   }
@@ -239,26 +254,37 @@ class Validation {
   // EVENT FORM VALIDATIONS (MOVED FROM CONTROLLER)
   // ---------------------------------------------
   static String? validateEventTitle(String value) {
-    return value.trim().length < 3
-        ? "Title must be at least 3 characters"
-        : null;
+    final trimmed = value.trim();
+    return trimmed.length < 3 ? "Title must be at least 3 characters" : null;
   }
 
   static String? validateEventDescription(String value) {
-    return value.trim().length < 5
+    final trimmed = value.trim();
+    return trimmed.length < 5
         ? "Description must be at least 5 characters"
         : null;
   }
 
   static String? validateEventDate(String value) {
-    return value.trim().isEmpty ? "Please select date" : null;
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? "Please select date" : null;
   }
 
   static String? validateEventStart(String value) {
-    return value.trim().isEmpty ? "Please select start time" : null;
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? "Please select start time" : null;
   }
 
   static String? validateEventEnd(String value) {
-    return value.trim().isEmpty ? "Please select end time" : null;
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? "Please select end time" : null;
+  }
+
+  static String? validateOtp(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return "OTP cannot be empty";
+    if (!RegExp(r'^\d{6}$').hasMatch(trimmed))
+      return "Please enter a valid 6-digit OTP";
+    return null;
   }
 }

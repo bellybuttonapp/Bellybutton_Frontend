@@ -32,7 +32,7 @@ class SignupView extends GetView<SignupController> {
           width: double.infinity,
           decoration: const BoxDecoration(
             image: DecorationImage(
-              image: AssetImage(AppImages.LOGIN_PNG), // same as LoginView
+              image: AssetImage(AppImages.LOGIN_PNG),
               fit: BoxFit.cover,
             ),
           ),
@@ -83,7 +83,6 @@ class SignupView extends GetView<SignupController> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Title
                         Text(
                           AppTexts.SIGNUP_TITLE,
                           style: customBoldText.copyWith(
@@ -91,7 +90,7 @@ class SignupView extends GetView<SignupController> {
                           ),
                         ),
 
-                        SizedBox(height: screenHeight * 0.02),
+                        SizedBox(height: screenHeight * 0.01),
 
                         // Name
                         Obx(
@@ -102,14 +101,12 @@ class SignupView extends GetView<SignupController> {
                             keyboardType: TextInputType.name,
                             textCapitalization: TextCapitalization.words,
                             errorText:
-                                (controller.nameError.value ?? '').isEmpty
+                                controller.nameError.value?.isEmpty ?? true
                                     ? null
                                     : controller.nameError.value,
                             onChanged: controller.validateName,
                           ),
                         ),
-
-                        SizedBox(height: screenHeight * 0.015),
 
                         // Email
                         Obx(
@@ -118,17 +115,57 @@ class SignupView extends GetView<SignupController> {
                             hintText: AppTexts.SIGNUP_EMAIL,
                             obscureText: false,
                             keyboardType: TextInputType.emailAddress,
-                            textCapitalization: TextCapitalization.none,
                             errorText:
-                                (controller.emailError.value ?? '').isEmpty
+                                controller.emailError.value?.isEmpty ?? true
                                     ? null
                                     : controller.emailError.value,
                             onChanged: controller.validateEmail,
                           ),
                         ),
 
-                        SizedBox(height: screenHeight * 0.015),
-
+                        // Mobile with Country Picker
+                        Signup_textfield(
+                          controller: controller.mobileController,
+                          hintText: AppTexts.SIGNUP_MOBILE,
+                          keyboardType: TextInputType.phone,
+                          obscureText: false,
+                          prefixIcon: GestureDetector(
+                            onTap: () => controller.showCountrySheet(context),
+                            child: Obx(
+                              () => Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      controller
+                                          .selectedCountry
+                                          .value
+                                          .flagEmoji,
+                                      style: const TextStyle(fontSize: 22),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      "+${controller.selectedCountry.value.phoneCode}",
+                                      style: customBoldText.copyWith(
+                                        fontSize: screenWidth * 0.04,
+                                        color: AppColors.textColor,
+                                      ),
+                                    ),
+                                    const Icon(Icons.arrow_drop_down),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          onChanged: controller.validateMobile,
+                          errorText:
+                              controller.mobileError.value?.isEmpty ?? true
+                                  ? null
+                                  : controller.mobileError.value,
+                        ),
                         // Password
                         Obx(
                           () => Signup_textfield(
@@ -136,10 +173,9 @@ class SignupView extends GetView<SignupController> {
                             hintText: AppTexts.SIGNUP_PASSWORD,
                             obscureText: controller.isPasswordHidden.value,
                             errorText:
-                                (controller.passwordError.value ?? '').isEmpty
+                                controller.passwordError.value?.isEmpty ?? true
                                     ? null
                                     : controller.passwordError.value,
-                            textCapitalization: TextCapitalization.none,
                             keyboardType: TextInputType.visiblePassword,
                             onChanged: controller.validatePassword,
                             suffixIcon: IconButton(
@@ -149,14 +185,12 @@ class SignupView extends GetView<SignupController> {
                                     : Icons.visibility,
                                 color: AppColors.tertiaryColor,
                               ),
-                              onPressed: () {
-                                controller.isPasswordHidden.toggle();
-                              },
+                              onPressed: controller.isPasswordHidden.toggle,
                             ),
                           ),
                         ),
 
-                        SizedBox(height: screenHeight * 0.03),
+                        SizedBox(height: screenHeight * 0.02),
 
                         // Signup Button
                         Obx(
@@ -175,7 +209,7 @@ class SignupView extends GetView<SignupController> {
                           ),
                         ),
 
-                        SizedBox(height: screenHeight * 0.04),
+                        SizedBox(height: screenHeight * 0.02),
 
                         // OR Divider
                         Row(
@@ -207,7 +241,7 @@ class SignupView extends GetView<SignupController> {
                           ],
                         ),
 
-                        SizedBox(height: screenHeight * 0.04),
+                        SizedBox(height: screenHeight * 0.02),
 
                         // Google Sign-in
                         Obx(
@@ -220,7 +254,7 @@ class SignupView extends GetView<SignupController> {
                           ),
                         ),
 
-                        SizedBox(height: screenHeight * 0.05),
+                        SizedBox(height: screenHeight * 0.03),
 
                         // Already have account
                         Row(

@@ -45,21 +45,27 @@ class InvitedEventCard extends StatelessWidget {
     final textColor = isDarkMode ? Colors.white : Colors.black87;
     final imageSize = w * .18;
 
-    return Container(
-      padding: EdgeInsets.all(w * .04),
-      margin: EdgeInsets.only(bottom: h * .015),
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF7FBFF),
-        borderRadius: BorderRadius.circular(w * .035),
-        border: Border.all(
-          color:
-              isDarkMode
-                  ? Colors.white10
-                  : AppColors.primaryColor.withOpacity(.2),
-        ),
-      ),
+    final cardColor =
+        isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF7FBFF);
+    final borderColor =
+        isDarkMode ? Colors.white10 : AppColors.primaryColor.withOpacity(.2);
 
-      child: Row(
+    return Padding(
+      padding: EdgeInsets.only(bottom: h * .015),
+      child: Material(
+        color: cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(w * .035),
+          side: BorderSide(color: borderColor),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(w * .035),
+          splashColor: AppColors.primaryColor.withOpacity(0.15),
+          onTap: () {},
+          child: Padding(
+            padding: EdgeInsets.all(w * .04),
+            child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           /// image
@@ -195,6 +201,9 @@ class InvitedEventCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+          ),
+        ),
       ),
     );
   }

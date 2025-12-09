@@ -31,6 +31,7 @@ class EventGalleryController extends GetxController {
   RxBool enableOK = false.obs;
   RxInt savedCount = 0.obs;
   RxInt totalToSave = 0.obs;
+  RxBool isLoading = true.obs;
 
   // ------------------------------------------------------
   // 👤 ADMIN & INVITATION MANAGEMENT
@@ -40,6 +41,28 @@ class EventGalleryController extends GetxController {
 
   late String albumName;
   RxList<String> photos = <String>[].obs;
+
+  // ======================================================
+  //  ⭐ EVENT STATE GETTERS (EMPTY PLACEHOLDER CONDITIONS)
+  // ======================================================
+
+  /// 1️⃣ Event NOT started yet
+  bool get eventNotStarted => DateTime.now().isBefore(event.fullEventDateTime);
+
+  /// 2️⃣ Event already finished
+  bool get eventEnded => DateTime.now().isAfter(event.fullEventEndDateTime);
+
+  /// 3️⃣ Event is currently live (ongoing)
+  bool get eventLive => !eventNotStarted && !eventEnded;
+
+  /// 4️⃣ All synced on this device
+  bool get allSynced => Preference.box.get(Preference.EVENT_SYNC_DONE) == true;
+
+  /// 5️⃣ No photos uploaded to this event yet (from server)
+  bool get noPhotosUploaded => photos.isEmpty && !isLoading.value;
+
+  /// 6️⃣ Event live but no photos yet
+  bool get eventLiveButEmpty => eventLive && noPhotosUploaded;
 
   @override
   void onInit() {
@@ -74,42 +97,54 @@ class EventGalleryController extends GetxController {
   int loadedCount = 0; // how many loaded till now
 
   Future<void> fetchPhotos({bool loadMore = false}) async {
-    // Load cache only on first run
+    // Set loading state on first load
     if (!loadMore) {
-      List<String>? cached =
-          Preference.box.get(Preference.EVENT_GALLERY_CACHE)?.cast<String>();
+      isLoading.value = true;
+    }
 
-      if (cached != null && cached.isNotEmpty) {
-        photos.assignAll(cached.take(batchSize).toList());
-        loadedCount = photos.length;
+    try {
+      // Load cache only on first run
+      if (!loadMore) {
+        List<String>? cached =
+            Preference.box.get(Preference.EVENT_GALLERY_CACHE)?.cast<String>();
+
+        if (cached != null && cached.isNotEmpty) {
+          photos.assignAll(cached.take(batchSize).toList());
+          loadedCount = photos.length;
+        }
       }
+
+      // 🔥 Fetch all images once (full list heavy only first time)
+      final result = await PublicApiService().fetchEventPhotos(event.id);
+      if (result["data"] == null) {
+        isLoading.value = false;
+        return;
+      }
+
+      List<String> all =
+          result["data"].map<String>((e) => e["fileUrl"].toString()).toList();
+
+      Preference.box.put(Preference.EVENT_GALLERY_CACHE, all);
+
+      if (!loadMore) {
+        /// First load: Only first batch
+        photos.assignAll(all.take(batchSize).toList());
+        loadedCount = photos.length;
+      } else {
+        /// Load more when user scrolls
+        int next = loadedCount + batchSize;
+        if (next > all.length) next = all.length;
+
+        photos.addAll(all.sublist(loadedCount, next));
+        loadedCount = next;
+      }
+
+      debugPrint(
+        "🔼 Loaded: $loadedCount / ${Preference.box.get(Preference.EVENT_GALLERY_CACHE).length}",
+      );
+    } finally {
+      isLoading.value = false;
     }
-
-    // 🔥 Fetch all images once (full list heavy only first time)
-    final result = await PublicApiService().fetchEventPhotos(event.id);
-    if (result["data"] == null) return;
-
-    List<String> all =
-        result["data"].map<String>((e) => e["fileUrl"].toString()).toList();
-
-    Preference.box.put(Preference.EVENT_GALLERY_CACHE, all);
-
-    if (!loadMore) {
-      /// First load: Only first batch
-      photos.assignAll(all.take(batchSize).toList());
-      loadedCount = photos.length;
-    } else {
-      /// Load more when user scrolls
-      int next = loadedCount + batchSize;
-      if (next > all.length) next = all.length;
-
-      photos.addAll(all.sublist(loadedCount, next));
-      loadedCount = next;
-    }
-
-    debugPrint(
-      "🔼 Loaded: $loadedCount / ${Preference.box.get(Preference.EVENT_GALLERY_CACHE).length}",
-    );
   }
 
   // ------------------------------------------------------
@@ -175,7 +210,7 @@ class EventGalleryController extends GetxController {
   }
 
   // ------------------------------------------------------
-  // 💾 SAVE IMAGES TO GALLERY
+  // 💾 SAVE IMAGES TO GALLERY (PARALLEL FOR SPEED)
   // ------------------------------------------------------
   Future<void> saveImages() async {
     if (!await askPermission()) return;
@@ -183,22 +218,31 @@ class EventGalleryController extends GetxController {
     Directory dir = Directory("/storage/emulated/0/Pictures/$albumName");
     if (!dir.existsSync()) dir.createSync(recursive: true);
 
-    for (String url in photos) {
-      String name = url.split("/").last;
-      String path = "${dir.path}/$name";
+    final dio = Dio();
+    const int batchSize = 6; // Download 6 images at once
 
-      if (File(path).existsSync()) {
-        savedCount.value++;
-        continue;
-      }
+    for (int i = 0; i < photos.length; i += batchSize) {
+      final batch = photos.skip(i).take(batchSize).toList();
 
-      try {
-        await Dio().download(url, path);
-        await GallerySaver.saveImage(path, albumName: albumName);
-        savedCount.value++;
-      } catch (e) {
-        debugPrint("❌ Save Failed $e");
-      }
+      await Future.wait(
+        batch.map((url) async {
+          String name = url.split("/").last;
+          String path = "${dir.path}/$name";
+
+          if (File(path).existsSync()) {
+            savedCount.value++;
+            return;
+          }
+
+          try {
+            await dio.download(url, path);
+            await GallerySaver.saveImage(path, albumName: albumName);
+            savedCount.value++;
+          } catch (e) {
+            debugPrint("❌ Save Failed $e");
+          }
+        }),
+      );
     }
   }
 

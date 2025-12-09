@@ -37,11 +37,12 @@ class UpcommingEventController extends GetxController {
 
       final now = DateTime.now();
 
-      // 🎯 Correct upcoming logic
+      // 🎯 Upcoming = event end time hasn't passed yet (includes live events)
       final upcoming =
-          events.where((e) => e.fullEventDateTime.isAfter(now)).toList()..sort(
-            (a, b) => a.fullEventDateTime.compareTo(b.fullEventDateTime),
-          );
+          events.where((e) => e.fullEventEndDateTime.isAfter(now)).toList()
+            ..sort(
+              (a, b) => a.fullEventDateTime.compareTo(b.fullEventDateTime),
+            );
 
       if (upcoming.isEmpty) {
         errorMessage.value = 'No upcoming events found';

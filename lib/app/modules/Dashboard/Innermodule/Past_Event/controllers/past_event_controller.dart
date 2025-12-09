@@ -39,11 +39,12 @@ class PastEventController extends GetxController {
 
       final now = DateTime.now();
 
-      // use fullEventDateTime instead of eventDate
+      // 🔥 Use fullEventEndDateTime — event is "past" only after end time
       final past =
-          events.where((e) => e.fullEventDateTime.isBefore(now)).toList()..sort(
-            (a, b) => b.fullEventDateTime.compareTo(a.fullEventDateTime),
-          );
+          events.where((e) => e.fullEventEndDateTime.isBefore(now)).toList()
+            ..sort(
+              (a, b) => b.fullEventEndDateTime.compareTo(a.fullEventEndDateTime),
+            );
 
       if (past.isEmpty) {
         errorMessage.value = 'No past events found';
