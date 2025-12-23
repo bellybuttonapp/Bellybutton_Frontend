@@ -60,6 +60,7 @@ class DioClient {
     String endpoint, {
     dynamic data,
     ResponseType responseType = ResponseType.json,
+    bool rethrowError = false,
   }) async {
     try {
       return await _dio.post(
@@ -69,6 +70,7 @@ class DioClient {
       );
     } catch (e) {
       _handleError(e as DioException);
+      if (rethrowError) rethrow;
       return null;
     }
   }

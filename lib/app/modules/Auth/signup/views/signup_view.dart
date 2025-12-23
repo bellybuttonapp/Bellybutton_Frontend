@@ -2,6 +2,7 @@
 
 import 'package:bellybutton/app/core/constants/app_texts.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_images.dart';
@@ -28,6 +29,7 @@ class SignupView extends GetView<SignupController> {
 
     return Scaffold(
       body: SingleChildScrollView(
+        physics: const ClampingScrollPhysics(), // No bounce effect
         child: Container(
           width: double.infinity,
           decoration: const BoxDecoration(
@@ -124,15 +126,19 @@ class SignupView extends GetView<SignupController> {
                         ),
 
                         // Mobile with Country Picker
-                        Signup_textfield(
-                          controller: controller.mobileController,
-                          hintText: AppTexts.SIGNUP_MOBILE,
-                          keyboardType: TextInputType.phone,
-                          obscureText: false,
-                          prefixIcon: GestureDetector(
-                            onTap: () => controller.showCountrySheet(context),
-                            child: Obx(
-                              () => Container(
+                        Obx(
+                          () => Signup_textfield(
+                            controller: controller.mobileController,
+                            hintText: AppTexts.SIGNUP_MOBILE,
+                            keyboardType: TextInputType.phone,
+                            obscureText: false,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(15),
+                            ],
+                            prefixIcon: GestureDetector(
+                              onTap: () => controller.showCountrySheet(context),
+                              child: Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 10,
                                 ),
@@ -140,10 +146,7 @@ class SignupView extends GetView<SignupController> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      controller
-                                          .selectedCountry
-                                          .value
-                                          .flagEmoji,
+                                      controller.selectedCountry.value.flagEmoji,
                                       style: const TextStyle(fontSize: 22),
                                     ),
                                     const SizedBox(width: 6),
@@ -159,12 +162,12 @@ class SignupView extends GetView<SignupController> {
                                 ),
                               ),
                             ),
+                            onChanged: controller.validateMobile,
+                            errorText:
+                                controller.mobileError.value?.isEmpty ?? true
+                                    ? null
+                                    : controller.mobileError.value,
                           ),
-                          onChanged: controller.validateMobile,
-                          errorText:
-                              controller.mobileError.value?.isEmpty ?? true
-                                  ? null
-                                  : controller.mobileError.value,
                         ),
                         // Password
                         Obx(

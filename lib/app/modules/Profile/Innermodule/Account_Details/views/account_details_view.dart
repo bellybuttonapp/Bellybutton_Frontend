@@ -10,9 +10,9 @@ import '../../../../../core/constants/app_images.dart';
 import '../../../../../core/constants/app_texts.dart';
 import '../../../../../global_widgets/Button/global_button.dart';
 import '../../../../../global_widgets/GlobalTextField/GlobalTextField.dart';
-import '../../../../../core/utils/storage/preference.dart';
-import '../controllers/account_details_controller.dart';
 import '../../../../../global_widgets/custom_app_bar/custom_app_bar.dart';
+import '../controllers/account_details_controller.dart';
+import 'package:bellybutton/app/core/utils/index.dart';
 
 class AccountDetailsView extends GetView<AccountDetailsController> {
   final AccountDetailsController controller = Get.put(
@@ -51,14 +51,23 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
       return null;
     }
 
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      backgroundColor:
-          isDarkMode
-              ? AppTheme.darkTheme.scaffoldBackgroundColor
-              : AppTheme.lightTheme.scaffoldBackgroundColor,
-      appBar: CustomAppBar(title: AppTexts.ACCOUNT_DETAILS),
-      body: SingleChildScrollView(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        controller.discardChanges();
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        backgroundColor:
+            isDarkMode
+                ? AppTheme.darkTheme.scaffoldBackgroundColor
+                : AppTheme.lightTheme.scaffoldBackgroundColor,
+        appBar: CustomAppBar(
+          title: AppTexts.ACCOUNT_DETAILS,
+          onBackPressed: controller.discardChanges,
+        ),
+        body: SingleChildScrollView(
         padding: EdgeInsets.only(
           left: screenWidth * 0.05,
           right: screenWidth * 0.05,
@@ -133,26 +142,65 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
               Obx(
                 () => GlobalTextField(
                   controller: controller.nameController,
+                  focusNode: controller.nameFocusNode,
                   hintText: AppTexts.SIGNUP_NAME,
                   obscureText: false,
+                  readOnly: !controller.isNameEditing.value,
                   keyboardType: TextInputType.name,
                   errorText: controller.nameError.value,
                   onChanged: controller.validateName,
+                  suffixIcon: GestureDetector(
+                    onTap: controller.toggleNameEdit,
+                    child: Padding(
+                      padding: EdgeInsets.all(screenWidth * 0.03),
+                      child: SvgPicture.asset(
+                        AppImages.EDIT_PENCIL,
+                        width: screenWidth * 0.04,
+                        height: screenWidth * 0.04,
+                        color: controller.isNameEditing.value
+                            ? AppColors.primaryColor
+                            : AppColors.textColor.withOpacity(0.5),
+                      ),
+                    ),
+                  ),
                 ),
               ),
 
-              SizedBox(height: screenHeight * 0.025),
+              SizedBox(height: screenHeight * 0.015),
 
               /// BIO FIELD
-              GlobalTextField(
-                controller: controller.bioController,
-                hintText: AppTexts.BIO,
-                obscureText: false,
-                keyboardType: TextInputType.text,
-                maxLines: 3,
-              ),
+              Obx(() {
+                // Access both observables to ensure Obx tracks them
+                final isEmpty = controller.isBioEmpty.value;
+                final suggestion = controller.currentBioSuggestion;
+                final isEditing = controller.isBioEditing.value;
+                return GlobalTextField(
+                  controller: controller.bioController,
+                  focusNode: controller.bioFocusNode,
+                  hintText: AppTexts.BIO_HINT,
+                  labelText: isEmpty ? suggestion : null,
+                  obscureText: false,
+                  readOnly: !isEditing,
+                  keyboardType: TextInputType.text,
+                  maxLines: 3,
+                  suffixIcon: GestureDetector(
+                    onTap: controller.toggleBioEdit,
+                    child: Padding(
+                      padding: EdgeInsets.all(screenWidth * 0.03),
+                      child: SvgPicture.asset(
+                        AppImages.EDIT_PENCIL,
+                        width: screenWidth * 0.04,
+                        height: screenWidth * 0.04,
+                        color: isEditing
+                            ? AppColors.primaryColor
+                            : AppColors.textColor.withOpacity(0.5),
+                      ),
+                    ),
+                  ),
+                );
+              }),
 
-              SizedBox(height: screenHeight * 0.025),
+              SizedBox(height: screenHeight * 0.015),
 
               /// EMAIL FIELD (READ ONLY)
               GlobalTextField(
@@ -175,7 +223,7 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
                 ),
               ),
 
-              SizedBox(height: screenHeight * 0.23),
+              SizedBox(height: screenHeight * 0.15),
 
               /// SAVE BUTTON
               Obx(
@@ -200,6 +248,7 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

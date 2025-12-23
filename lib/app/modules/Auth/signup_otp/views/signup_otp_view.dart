@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:pinput/pinput.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_images.dart';
+import '../../../../core/constants/app_texts.dart';
 import '../../../../core/utils/themes/font_style.dart';
 import '../../../../global_widgets/Button/global_button.dart';
 import '../controllers/signup_otp_controller.dart';
@@ -102,14 +103,14 @@ class SignupOtpView extends GetView<SignupOtpController> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Confirm Email",
+                            AppTexts.SIGNUP_OTP_TITLE,
                             style: customBoldText.copyWith(
                               fontSize: size.width * 0.065,
                             ),
                           ),
                           SizedBox(height: size.height * 0.015),
                           Text(
-                            "Enter the verification code we sent to your email.",
+                            AppTexts.SIGNUP_OTP_SUBTITLE,
                             style: customBoldText.copyWith(
                               fontSize: size.width * 0.04,
                               color: AppColors.textColor,
@@ -160,7 +161,7 @@ class SignupOtpView extends GetView<SignupOtpController> {
                           /// Verify Button
                           global_button(
                             loaderWhite: true,
-                            title: "Verify",
+                            title: AppTexts.SIGNUP_OTP_VERIFY,
                             onTap: controller.verifyOtp,
                             isLoading: controller.isLoading.value,
                             backgroundColor: AppColors.primaryColor,
@@ -169,13 +170,12 @@ class SignupOtpView extends GetView<SignupOtpController> {
 
                           SizedBox(height: size.height * 0.028),
 
-                          /// Resend Row
                           /// Resend Row with 30-sec timer
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                "Didn't get the code? ",
+                                AppTexts.SIGNUP_OTP_DIDNT_GET_CODE,
                                 style: customBoldText.copyWith(
                                   color: AppColors.textColor,
                                 ),
@@ -189,14 +189,14 @@ class SignupOtpView extends GetView<SignupOtpController> {
                                   child:
                                       controller.canResend.value
                                           ? Text(
-                                            "Resend",
+                                            AppTexts.SIGNUP_OTP_RESEND,
                                             style: customBoldText.copyWith(
                                               color: AppColors.primaryColor,
                                               fontSize: size.width * 0.04,
                                             ),
                                           )
                                           : Text(
-                                            "Resend in ${controller.resendSeconds.value}s",
+                                            "${AppTexts.SIGNUP_OTP_RESEND_IN} ${controller.resendSeconds.value}s",
                                             style: customBoldText.copyWith(
                                               color: Colors.grey,
                                               fontSize: size.width * 0.04,

@@ -39,6 +39,8 @@ abstract class Routes {
   static const INVITED_ADMINS_LIST =
       _Paths.DASHBOARD + _Paths.INVITED_ADMINS_LIST;
   static const SIGNUP_OTP = _Paths.SIGNUP_OTP;
+  static const TERMS_AND_CONDITIONS = _Paths.TERMS_AND_CONDITIONS;
+  static const SHARED_EVENT_GALLERY = _Paths.SHARED_EVENT_GALLERY;
 }
 
 // 🌐 PATHS
@@ -74,4 +76,6 @@ abstract class _Paths {
   static const PHOTO_PRE = '/photo-pre';
   static const INVITED_ADMINS_LIST = '/invited-admins-list';
   static const SIGNUP_OTP = '/signup-otp';
+  static const TERMS_AND_CONDITIONS = '/terms-and-conditions';
+  static const SHARED_EVENT_GALLERY = '/shared-event-gallery';
 }

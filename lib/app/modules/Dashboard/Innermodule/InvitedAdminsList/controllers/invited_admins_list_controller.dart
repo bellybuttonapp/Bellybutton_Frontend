@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import '../../../../../database/models/InvitedEventModel.dart';
+import '../../../../../database/models/MemberModel.dart';
 import '../../../../../api/PublicApiService.dart';
 
 class InvitedAdminsListController extends GetxController {
@@ -15,9 +16,9 @@ class InvitedAdminsListController extends GetxController {
   final refreshController = RefreshController(initialRefresh: false);
 
   // Data
-  final adminUser = "".obs;
-  final admins = <String>[].obs;
-  final filteredAdmins = <String>[].obs;
+  final Rx<MemberModel?> adminUser = Rx<MemberModel?>(null);
+  final admins = <MemberModel>[].obs;
+  final filteredAdmins = <MemberModel>[].obs;
 
   // UI Loading State
   final isLoading = true.obs;
@@ -52,17 +53,19 @@ class InvitedAdminsListController extends GetxController {
       final response = await PublicApiService().getJoinedAdmins(eventId);
 
       // Main Admin
-      adminUser.value = response["admin"]?["name"] ?? "";
+      if (response["admin"] != null) {
+        adminUser.value = MemberModel.fromJson(response["admin"]);
+      }
 
       // All Admins List
       final adminList = response["admins"] ?? [];
       admins.assignAll(
-        adminList.map<String>((e) => e["name"].toString()).toList(),
+        adminList.map<MemberModel>((e) => MemberModel.fromJson(e)).toList(),
       );
 
       // Build Final List (Admin always first)
       filteredAdmins.assignAll([
-        if (adminUser.isNotEmpty) adminUser.value,
+        if (adminUser.value != null) adminUser.value!,
         ...admins,
       ]);
     } catch (e) {
@@ -76,10 +79,13 @@ class InvitedAdminsListController extends GetxController {
   // --------------------------------------------------------------
   // 🔍 FILTER SEARCH RESULTS
   void validateSearch(String query) {
-    final combined = [adminUser.value, ...admins];
+    final List<MemberModel> combined = [
+      if (adminUser.value != null) adminUser.value!,
+      ...admins,
+    ];
 
     filteredAdmins.assignAll(
-      combined.where((u) => u.toLowerCase().contains(query.toLowerCase())),
+      combined.where((u) => u.name.toLowerCase().contains(query.toLowerCase())),
     );
   }
 }

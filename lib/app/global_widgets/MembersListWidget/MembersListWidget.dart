@@ -1,5 +1,6 @@
-// ignore_for_file: file_names, deprecated_member_use, prefer_typing_uninitialized_variables, prefer_if_null_operators, unnecessary_underscores
+// ignore_for_file: file_names, deprecated_member_use, prefer_typing_uninitialized_variables, prefer_if_null_operators, unnecessary_underscores, avoid_print
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_texts.dart';
 import '../../core/utils/themes/font_style.dart';
+import '../../database/models/MemberModel.dart';
 import '../EmptyJobsPlaceholder/EmptyJobsPlaceholder.dart';
 import '../GlobalTextField/GlobalTextField.dart';
 import '../Shimmers/InvitedUsersShimmer.dart';
@@ -129,26 +131,82 @@ class MembersListWidget<T extends GetxController> extends StatelessWidget {
   }
 
   // 👤 User/Admin Tile
-  Widget _memberTile(String name, double Function(double) w) {
+  Widget _memberTile(dynamic member, double Function(double) w) {
     final c = controller as dynamic;
-    final isAdmin = c.adminUser?.value == name;
+
+    // Support both MemberModel and String
+    final String name;
+    final String? profileImage;
+
+    if (member is MemberModel) {
+      name = member.name;
+      profileImage = member.profileImage;
+    } else {
+      name = member.toString();
+      profileImage = null;
+    }
+
+    // Check if this member is admin
+    bool isAdmin = false;
+    try {
+      final adminUser = c.adminUser?.value;
+      if (adminUser is MemberModel) {
+        isAdmin = adminUser.name == name;
+      } else if (adminUser is String) {
+        isAdmin = adminUser == name;
+      }
+    } catch (_) {}
+
     final letter = name.isNotEmpty ? name[0].toUpperCase() : "?";
+    final hasImage = profileImage != null && profileImage.isNotEmpty;
 
     return Padding(
       padding: EdgeInsets.symmetric(vertical: w(.015)),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: w(.045),
-            backgroundColor: AppColors.primaryColor,
-            child: Text(
-              letter,
-              style: customBoldText.copyWith(
-                color: Colors.white,
-                fontSize: w(.04),
-              ),
-            ),
-          ),
+          // Profile Image or Letter Avatar
+          hasImage
+              ? ClipOval(
+                  child: CachedNetworkImage(
+                    imageUrl: profileImage!,
+                    width: w(.09),
+                    height: w(.09),
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => CircleAvatar(
+                      radius: w(.045),
+                      backgroundColor: AppColors.primaryColor,
+                      child: Text(
+                        letter,
+                        style: customBoldText.copyWith(
+                          color: Colors.white,
+                          fontSize: w(.04),
+                        ),
+                      ),
+                    ),
+                    errorWidget: (_, __, ___) => CircleAvatar(
+                      radius: w(.045),
+                      backgroundColor: AppColors.primaryColor,
+                      child: Text(
+                        letter,
+                        style: customBoldText.copyWith(
+                          color: Colors.white,
+                          fontSize: w(.04),
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              : CircleAvatar(
+                  radius: w(.045),
+                  backgroundColor: AppColors.primaryColor,
+                  child: Text(
+                    letter,
+                    style: customBoldText.copyWith(
+                      color: Colors.white,
+                      fontSize: w(.04),
+                    ),
+                  ),
+                ),
 
           SizedBox(width: w(.04)),
 
@@ -174,9 +232,9 @@ class MembersListWidget<T extends GetxController> extends StatelessWidget {
                 border: Border.all(color: Colors.orange, width: 1.1),
               ),
               child: Text(
-                "ADMIN",
+                AppTexts.EVENT_DIRECTOR,
                 style: customBoldText.copyWith(
-                  color: Colors.orange,
+                  color: Colors.orange, 
                   fontSize: w(.032),
                 ),
               ),

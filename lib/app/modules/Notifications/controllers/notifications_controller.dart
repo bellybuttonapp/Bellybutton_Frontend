@@ -1,40 +1,58 @@
 // ignore_for_file: unnecessary_overrides, avoid_print
 
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
+import '../../../core/services/notification_service.dart';
+import '../../../database/models/NotificationModel.dart';
 
 class NotificationsController extends GetxController {
-  var isLoading = false.obs;
+  // Access the shared notification service
+  NotificationService get _service => NotificationService.to;
 
-  final count = 0.obs;
+  // ScrollController for the notification list
+  final ScrollController scrollController = ScrollController();
+
+  // RefreshController for SmartRefresher
+  final RefreshController refreshController = RefreshController(initialRefresh: false);
+
+  // Expose data from the shared service
+  RxBool get isLoading => _service.isLoading;
+  RxList<NotificationModel> get notifications => _service.notifications;
+  RxList<NotificationModel> get todayNotifications => _service.todayNotifications;
+  RxList<NotificationModel> get yesterdayNotifications => _service.yesterdayNotifications;
+  RxList<NotificationModel> get olderNotifications => _service.olderNotifications;
+
+  bool get hasNotifications => _service.hasNotifications;
+  int get unreadCount => _service.unreadCount;
+
   @override
   void onInit() {
     super.onInit();
+    // Refresh notifications when entering the view
+    _service.fetchNotifications();
   }
 
-  @override
-  void onReady() {
-    super.onReady();
-  }
-
-  // New: Button tap handler
   void goToBack() async {
     try {
       isLoading.value = true;
-
-      // Simulate some async operation, e.g., API call or navigation delay
       await Future.delayed(const Duration(milliseconds: 200));
       Get.back();
-
       print('Button tapped, proceed to next step');
     } finally {
       isLoading.value = false;
     }
   }
 
-  @override
-  void onClose() {
-    super.onClose();
+  Future<void> refreshNotifications() async {
+    await _service.refresh();
+    refreshController.refreshCompleted();
   }
 
-  void increment() => count.value++;
+  @override
+  void onClose() {
+    scrollController.dispose();
+    refreshController.dispose();
+    super.onClose();
+  }
 }

@@ -237,9 +237,30 @@ class Validation {
   }
 
   //----------------------------------------------------
-  // MOBILE NUMBER VALIDATOR
+  // MOBILE NUMBER VALIDATOR (Global)
   //----------------------------------------------------
-  static String? validatePhone(String value) {
+  static String? validatePhone(String value, {int minLength = 7, int maxLength = 15}) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return "Mobile number is required";
+
+    // Only digits allowed
+    if (!RegExp(r'^\d+$').hasMatch(trimmed)) {
+      return "Enter digits only";
+    }
+
+    // Global phone number length validation (7-15 digits)
+    if (trimmed.length < minLength) {
+      return "Minimum $minLength digits required";
+    }
+    if (trimmed.length > maxLength) {
+      return "Maximum $maxLength digits allowed";
+    }
+
+    return null;
+  }
+
+  // Indian specific phone validation
+  static String? validateIndianPhone(String value) {
     final trimmed = value.trim();
     if (trimmed.isEmpty) return "Mobile number is required";
 

@@ -1,6 +1,8 @@
 // ignore_for_file: non_constant_identifier_names, avoid_print, unused_local_variable, unnecessary_null_comparison
 
 import 'dart:io';
+import 'package:bellybutton/app/core/constants/app_colors.dart';
+import 'package:flutter/material.dart';
 import 'package:bellybutton/app/Controllers/oauth.dart';
 import 'package:bellybutton/app/modules/Profile/Innermodule/Reset_password/views/reset_password_view.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,6 +16,8 @@ import '../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../routes/app_pages.dart';
 import '../../../core/utils/storage/preference.dart';
 import '../Innermodule/Account_Details/views/account_details_view.dart';
+import '../../../modules/terms_and_conditions/views/terms_and_conditions_view.dart';
+import '../../../modules/terms_and_conditions/bindings/terms_and_conditions_binding.dart';
 
 class ProfileController extends GetxController {
   RxBool isLoading = false.obs; //--for shimmer / profile fetch
@@ -70,7 +74,9 @@ class ProfileController extends GetxController {
         if (data["address"] != null) {
           Preference.address = data["address"];
         }
-        print("✅ Profile synced to Preference - userName: ${Preference.userName}, bio: ${Preference.bio}");
+        print(
+          "✅ Profile synced to Preference - userName: ${Preference.userName}, bio: ${Preference.bio}",
+        );
       } else {
         final msg = result["message"] ?? "Failed to fetch profile";
         print("⚠️ Profile fetch failed: $msg");
@@ -110,106 +116,138 @@ class ProfileController extends GetxController {
     );
   }
 
-  void onPrivacyTap() => print("Privacy & Permissions tapped");
-  void onFaqsTap() => print("FAQs tapped");
-
-  void _showConfirmationDialog({
-    required String title,
-    required String message,
-    required String confirmText,
-    required Future<void> Function() onConfirm,
-    RxBool? processingState,
-  }) {
-    Get.dialog(
-      CustomPopup(
-        title: title,
-        message: message,
-        confirmText: confirmText,
-        cancelText: AppTexts.CANCEL,
-        isProcessing: processingState ?? isProcessing,
-        onConfirm: onConfirm,
-      ),
+  void onPrivacyTap() {
+    Get.to(
+      () => const TermsAndConditionsView(),
+      binding: TermsAndConditionsBinding(),
+      transition: Transition.rightToLeftWithFade,
+      duration: const Duration(milliseconds: 350),
+      preventDuplicates: true,
     );
   }
+
+  void onFaqsTap() => print("FAQs tapped");
+
+void _showConfirmationDialog({
+  required String title,
+  required String message,
+  required String confirmText,
+  required Future<void> Function() onConfirm,
+  RxBool? processingState,
+
+  // 🔥 Optional button colors
+  Color? confirmButtonColor,
+  Color? cancelButtonColor,
+}) {
+  Get.dialog(
+    CustomPopup(
+      title: title,
+      message: message,
+      confirmText: confirmText,
+      cancelText: AppTexts.CANCEL,
+      isProcessing: processingState ?? isProcessing,
+      onConfirm: onConfirm,
+
+      // pass colors
+      confirmButtonColor: confirmButtonColor,
+      cancelButtonColor: cancelButtonColor,
+    ),
+  );
+}
+
 
   /// =====================
   /// DELETE ACCOUNT
   /// =====================
-  void onDeleteAccountTap() {
-    _showConfirmationDialog(
-      title: AppTexts.DELETE_POPUP_TITLE,
-      message: AppTexts.DELETE_POPUP_SUBTITLE,
-      confirmText: AppTexts.DELETE,
-      onConfirm: () async {
-        isProcessing.value = true;
-        try {
-          try {
-            await DioClient().postRequest(
-              Endpoints.DELETE_ACCOUNT,
-              data: {"email": Preference.email},
-            );
-          } catch (apiError) {
-            print("API account deletion error: $apiError");
-          }
+void onDeleteAccountTap() {
+  _showConfirmationDialog(
+    title: AppTexts.DELETE_POPUP_TITLE,
+    message: AppTexts.DELETE_POPUP_SUBTITLE,
+    confirmText: AppTexts.DELETE,
 
-          await AuthService().deleteAccount();
-          Preference.clearAll();
-          Get.deleteAll(force: true);
-          Get.back();
-          Get.offAllNamed(Routes.LOGIN);
+    // 🔥 Red destructive action
+    confirmButtonColor:AppColors.error,
+    cancelButtonColor: AppColors.primaryColor,
 
-          showCustomSnackBar(
-            AppTexts.ACCOUNT_DELETED_SUCCESS,
-            SnackbarState.success,
-          );
-        } catch (e) {
-          showCustomSnackBar(
-            AppTexts.ACCOUNT_DELETE_ERROR,
-            SnackbarState.error,
-          );
-          print("Account deletion error: $e");
-        } finally {
-          isProcessing.value = false;
-        }
-      },
-    );
-  }
+    onConfirm: () async {
+      isProcessing.value = true;
+      try {
+        await DioClient().postRequest(
+          Endpoints.DELETE_ACCOUNT,
+          data: {"email": Preference.email},
+        );
+
+        await AuthService().deleteAccount();
+        Preference.clearAll();
+        Get.deleteAll(force: true);
+
+        Get.back();
+        Get.offAllNamed(Routes.LOGIN);
+
+        showCustomSnackBar(
+          AppTexts.ACCOUNT_DELETED_SUCCESS,
+          SnackbarState.success,
+        );
+      } catch (e) {
+        showCustomSnackBar(
+          AppTexts.ACCOUNT_DELETE_ERROR,
+          SnackbarState.error,
+        );
+      } finally {
+        isProcessing.value = false;
+      }
+    },
+  );
+}
+
 
   void onSignOut() {
-    _showConfirmationDialog(
-      title: AppTexts.SIGNOUT_POPUP_TITLE,
-      message: AppTexts.SIGNOUT_POPUP_SUBTITLE,
-      confirmText: AppTexts.LOGOUT,
-      processingState: isSigningOut,
-      onConfirm: () async {
-        isSigningOut.value = true;
-        try {
-          await AuthService().signOutUser();
+  _showConfirmationDialog(
+    title: AppTexts.SIGNOUT_POPUP_TITLE,
+    message: AppTexts.SIGNOUT_POPUP_SUBTITLE,
+    confirmText: AppTexts.LOGOUT,
+    processingState: isSigningOut,
 
-          // Clear all user data from Preference (preserves EVENT_UPLOADED_HASHES)
-          Preference.clearAll();
-          Preference.isLoggedIn = false;
+    // 🔥 Same styling pattern as Delete Account
+       confirmButtonColor:AppColors.error,
+    cancelButtonColor: AppColors.primaryColor,
 
-          // Clear local controller state
-          userProfile.value = {};
-          pickedImage.value = null;
+    onConfirm: () async {
+      isSigningOut.value = true;
+      try {
+        await AuthService().signOutUser();
 
-          // Close the dialog first
-          Get.back();
+        // Clear all user data from Preference
+        Preference.clearAll();
+        Preference.isLoggedIn = false;
 
-          // Delete all controllers to clear cached data
-          Get.deleteAll(force: true);
+        // Clear local controller state
+        userProfile.value = {};
+        pickedImage.value = null;
 
-          Get.offAllNamed(Routes.LOGIN);
+        // Close popup
+        Get.back();
 
-          showCustomSnackBar(AppTexts.LOGOUT_SUCCESS, SnackbarState.success);
-        } catch (e) {
-          showCustomSnackBar(AppTexts.LOGOUT_ERROR, SnackbarState.error);
-          print("Logout error: $e");
-        } finally {
-          isSigningOut.value = false;
-        }
-      },
-    );
-  }
+        // Clear controllers
+        Get.deleteAll(force: true);
+
+        Get.offAllNamed(Routes.LOGIN);
+
+        showCustomSnackBar(
+          AppTexts.LOGOUT_SUCCESS,
+          SnackbarState.success,
+        );
+      } catch (e) {
+        showCustomSnackBar(
+          AppTexts.LOGOUT_ERROR,
+          SnackbarState.error,
+        );
+        print("Logout error: $e");
+      } finally {
+        isSigningOut.value = false;
+      }
+    },
+  );
+}
+
 }

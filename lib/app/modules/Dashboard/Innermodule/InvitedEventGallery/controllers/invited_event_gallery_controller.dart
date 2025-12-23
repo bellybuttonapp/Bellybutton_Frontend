@@ -189,27 +189,47 @@ class InvitedEventGalleryController extends GetxController {
         orders: [const OrderOption(type: OrderOptionType.createDate, asc: false)],
       );
 
+      // Use hasAll: true to include the "All Photos" album (contains front + back camera images)
       final albums = await PhotoManager.getAssetPathList(
         type: RequestType.image,
-        hasAll: false,
+        hasAll: true,
         filterOption: filter,
       );
 
-      final cameraAlbums =
-          albums.where((a) {
-            final n = a.name.toLowerCase();
-            return n.contains("camera") ||
-                n.contains("dcim") ||
-                n.contains("100media") ||
-                n.contains("100andro");
-          }).toList();
-
-      /// Load albums one by one to avoid memory issues
       List<AssetEntity> temp = [];
-      for (final album in cameraAlbums) {
-        final assets = await album.getAssetListPaged(page: 0, size: 500);
+
+      // First, try to load from "All" album (includes ALL camera images - front & back)
+      final allAlbum = albums.firstWhereOrNull(
+        (a) => a.isAll || a.name.toLowerCase() == "recent" || a.name.toLowerCase() == "all photos",
+      );
+
+      if (allAlbum != null) {
+        final assets = await allAlbum.getAssetListPaged(page: 0, size: 500);
         temp.addAll(assets);
+        print("Loaded ${assets.length} images from '${allAlbum.name}' album");
+      } else {
+        // Fallback: Load from camera-related albums (expanded list for better coverage)
+        final cameraAlbums = albums.where((a) {
+          final n = a.name.toLowerCase();
+          return n.contains("camera") ||
+              n.contains("dcim") ||
+              n.contains("100media") ||
+              n.contains("100andro") ||
+              n.contains("photo") ||
+              n.contains("selfie") ||
+              n.contains("front");
+        }).toList();
+
+        for (final album in cameraAlbums) {
+          final assets = await album.getAssetListPaged(page: 0, size: 500);
+          temp.addAll(assets);
+          print("Loaded ${assets.length} images from '${album.name}' album");
+        }
       }
+
+      // Remove duplicates (same image might appear in multiple albums)
+      final seen = <String>{};
+      temp = temp.where((asset) => seen.add(asset.id)).toList();
 
       /// 🔥 FILTER — remove previously uploaded using asset ID (fast check)
       final freshItems = temp.where((asset) => !savedHashes.contains(asset.id)).toList();
@@ -243,7 +263,7 @@ class InvitedEventGalleryController extends GetxController {
         galleryAssets.where((a) => !selectedAssets.contains(a)).toList();
 
     if (assetsToUpload.isEmpty) {
-      showCustomSnackBar("No photos to upload", SnackbarState.warning);
+      showCustomSnackBar(AppTexts.NO_PHOTOS_TO_UPLOAD, SnackbarState.warning);
       return;
     }
 
@@ -259,7 +279,7 @@ class InvitedEventGalleryController extends GetxController {
     /// If reached max limit
     if (remaining <= 0) {
       showCustomSnackBar(
-        "Upload limit reached (20 allowed)",
+        AppTexts.UPLOAD_LIMIT_REACHED,
         SnackbarState.error,
       );
       return;
@@ -271,7 +291,7 @@ class InvitedEventGalleryController extends GetxController {
     /// Notify if user selected more than limit
     if (limitedAssets.length < assetsToUpload.length) {
       showCustomSnackBar(
-        "Only $remaining photos can be uploaded (limit reached)",
+        "Only $remaining ${AppTexts.ONLY_PHOTOS_CAN_BE_UPLOADED}",
         SnackbarState.warning,
       );
     }
@@ -288,13 +308,13 @@ class InvitedEventGalleryController extends GetxController {
     Get.dialog(
       Obx(
         () => CustomPopup(
-          title:
-              uploadDone.value ? "Upload Complete 🎉" : "Uploading Photos...",
-          message:
-              uploadDone.value
-                  ? "All images uploaded successfully!"
-                  : "Uploading to server, please wait...",
-          confirmText: uploadDone.value ? "Close" : "Processing...",
+          title: uploadDone.value
+              ? AppTexts.UPLOAD_COMPLETE_TITLE
+              : AppTexts.UPLOADING_PHOTOS,
+          message: uploadDone.value
+              ? AppTexts.ALL_IMAGES_UPLOADED_SUCCESSFULLY
+              : "",
+          confirmText: uploadDone.value ? AppTexts.CLOSE : "",
           onConfirm: uploadDone.value ? () => Get.back() : null,
           isProcessing: RxBool(!uploadDone.value),
           showProgress: true,
@@ -382,8 +402,8 @@ class InvitedEventGalleryController extends GetxController {
     refreshGallery();
 
     LocalNotificationService.show(
-      title: "Upload Complete",
-      body: "Uploaded ${uploadedCount.value} photos successfully",
+      title: AppTexts.UPLOAD_COMPLETE_NOTIFICATION_TITLE,
+      body: "${uploadedCount.value} ${AppTexts.PHOTOS_UPLOADED_SUCCESSFULLY}",
     );
 
     Future.delayed(const Duration(seconds: 1), () {

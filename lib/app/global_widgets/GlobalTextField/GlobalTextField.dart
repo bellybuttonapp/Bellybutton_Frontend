@@ -7,6 +7,7 @@ import 'package:bellybutton/app/core/utils/index.dart';
 
 class GlobalTextField extends StatelessWidget {
   final TextEditingController? controller;
+  final FocusNode? focusNode;
   final String? initialValue;
   final String hintText;
   final bool obscureText;
@@ -22,10 +23,12 @@ class GlobalTextField extends StatelessWidget {
   final int? maxLines;
   final String? tooltip;
   final int? maxLength; // add this in the class properties
+  final String? labelText; // floating label inside text field
 
   const GlobalTextField({
     super.key,
     this.controller,
+    this.focusNode,
     this.initialValue,
     required this.hintText,
     this.obscureText = false,
@@ -42,6 +45,7 @@ class GlobalTextField extends StatelessWidget {
     // Inside constructor
     this.maxLength,
     this.tooltip,
+    this.labelText,
   });
 
   @override
@@ -56,6 +60,7 @@ class GlobalTextField extends StatelessWidget {
             SizedBox(height: screenHeight * 0.02),
             TextFormField(
               controller: controller,
+              focusNode: focusNode,
               initialValue: controller == null ? initialValue : null,
               enabled: enabled,
               obscureText: obscureText,
@@ -100,6 +105,13 @@ class GlobalTextField extends StatelessWidget {
                   color: AppColors.tertiaryColor,
                   fontSize: screenWidth * 0.035,
                 ),
+                labelText: labelText,
+                labelStyle: customBoldText.copyWith(
+                  color: AppColors.tertiaryColor,
+                  fontSize: screenWidth * 0.035,
+                  fontStyle: FontStyle.italic,
+                ),
+                floatingLabelBehavior: FloatingLabelBehavior.never,
                 prefixIcon: prefixIcon,
                 suffixIcon: suffixIcon,
                 contentPadding: EdgeInsets.symmetric(

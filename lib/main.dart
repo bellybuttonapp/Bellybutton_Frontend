@@ -15,10 +15,13 @@ import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'app/core/constants/app_colors.dart';
 import 'app/core/services/local_notification_service.dart';
+import 'app/core/services/notification_service.dart';
 import 'firebase_options.dart';
 import 'app/routes/app_pages.dart';
 import 'app/database/models/EventModel.dart';
 import 'app/core/services/firebase_notification_service.dart';
+import 'app/core/services/deep_link_service.dart';
+import 'app/core/services/app_badge_service.dart';
 
 /// ----------------------------------------------------------
 /// 1️⃣ BACKGROUND HANDLER — MUST BE TOP LEVEL
@@ -58,9 +61,9 @@ Future<void> main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   debugPrint('✅ Firebase Initialized');
 
-  if (kDebugMode) {
-    debugPrint("📌 FCM Token: ${await FirebaseMessaging.instance.getToken()}");
-  }
+  // if (kDebugMode) {
+  //   debugPrint("📌 FCM Token: ${await FirebaseMessaging.instance.getToken()}");
+  // }
 
   /// ----------------------------------------------------------
   /// 5️⃣ Firebase App Check
@@ -91,6 +94,16 @@ Future<void> main() async {
   /// 8️⃣ App Initializer (connectivity, etc.)
   /// ----------------------------------------------------------
   await AppInitializer.initialize();
+
+  /// ----------------------------------------------------------
+  /// 8️⃣.5 App Badge Service (app icon badge management)
+  /// ----------------------------------------------------------
+  await Get.putAsync(() => AppBadgeService().init());
+
+  /// ----------------------------------------------------------
+  /// 8️⃣.6 Notification Service (global state)
+  /// ----------------------------------------------------------
+  await Get.putAsync(() => NotificationService().init());
 
   /// ----------------------------------------------------------
   /// 9️⃣ Orientation + Status Bar
@@ -128,9 +141,11 @@ Future<void> main() async {
   );
 
   /// ----------------------------------------------------------
-  /// 1️⃣2️⃣ Initialize Local Notifications AFTER UI builds
+  /// 1️⃣2️⃣ Initialize Local Notifications & Deep Links AFTER UI builds
   /// ----------------------------------------------------------
   WidgetsBinding.instance.addPostFrameCallback((_) {
     FirebaseNotificationService.initLocalNotifications();
+    DeepLinkService.init();
   });
 }
+

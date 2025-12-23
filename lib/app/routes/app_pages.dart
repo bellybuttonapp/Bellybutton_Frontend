@@ -44,10 +44,14 @@ import '../modules/Profile/Innermodule/Reset_password/bindings/reset_password_bi
 import '../modules/Profile/Innermodule/Reset_password/views/reset_password_view.dart';
 import '../modules/Profile/bindings/profile_binding.dart';
 import '../modules/Profile/views/profile_view.dart';
+import '../modules/SharedEventGallery/bindings/shared_event_gallery_binding.dart';
+import '../modules/SharedEventGallery/views/shared_event_gallery_view.dart';
 import '../modules/home/bindings/home_binding.dart';
 import '../modules/home/views/home_view.dart';
 import '../modules/onboarding/bindings/onboarding_binding.dart';
 import '../modules/onboarding/views/onboarding_view.dart';
+import '../modules/terms_and_conditions/bindings/terms_and_conditions_binding.dart';
+import '../modules/terms_and_conditions/views/terms_and_conditions_view.dart';
 
 // ignore_for_file: constant_identifier_names
 
@@ -247,6 +251,19 @@ class AppPages {
       transition: Transition.rightToLeftWithFade,
       curve: Curves.easeInOutCubic,
       transitionDuration: Duration(milliseconds: 350),
+    ),
+    GetPage(
+      name: _Paths.TERMS_AND_CONDITIONS,
+      page: () => const TermsAndConditionsView(),
+      binding: TermsAndConditionsBinding(),
+      transition: Transition.rightToLeftWithFade,
+      curve: Curves.easeInOutCubic,
+      transitionDuration: Duration(milliseconds: 350),
+    ),
+    GetPage(
+      name: _Paths.SHARED_EVENT_GALLERY,
+      page: () => const SharedEventGalleryView(),
+      binding: SharedEventGalleryBinding(),
     ),
   ];
 }

@@ -57,6 +57,30 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Deep Link: Handle shared event links -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <!-- Development API server -->
+                <data android:scheme="http" android:host="54.90.159.46" />
+                <data android:scheme="https" android:host="54.90.159.46" />
+                <!-- Development domain -->
+                <data android:scheme="http" android:host="mobapidev.bellybutton.global" />
+                <data android:scheme="https" android:host="mobapidev.bellybutton.global" />
+                <!-- Production domain -->
+                <data android:scheme="https" android:host="bellybutton.app" />
+                <data android:scheme="https" android:host="www.bellybutton.app" />
+            </intent-filter>
+
+            <!-- Custom URL Scheme (fallback) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="bellybutton" android:host="event" />
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

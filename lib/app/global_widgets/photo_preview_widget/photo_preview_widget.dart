@@ -21,6 +21,7 @@ class ReusablePhotoPreview extends StatefulWidget {
   final int initialIndex;
   final List<Uint8List>? preloadedBytes;
   final VoidCallback? onInfoTap;
+  final void Function(int index)? onInfoTapWithIndex;
   final bool enableInfoButton;
 
   const ReusablePhotoPreview({
@@ -29,6 +30,7 @@ class ReusablePhotoPreview extends StatefulWidget {
     this.isNetwork = false,
     this.initialIndex = 0,
     this.onInfoTap,
+    this.onInfoTapWithIndex,
     this.enableInfoButton = false,
     this.preloadedBytes,
   });
@@ -76,16 +78,22 @@ class _ReusablePhotoPreviewState extends State<ReusablePhotoPreview> {
           ),
         ),
         actions:
-            widget.enableInfoButton && widget.onInfoTap != null
+            widget.enableInfoButton && (widget.onInfoTap != null || widget.onInfoTapWithIndex != null)
                 ? [
                   IconButton(
                     icon: SvgPicture.asset(
                       AppImages.PHOTO_INFO_ICON,
-                      color: Colors.white,
+        
                       width: width * 0.06,
                       height: width * 0.06,
                     ),
-                    onPressed: widget.onInfoTap,
+                    onPressed: () {
+                      if (widget.onInfoTapWithIndex != null) {
+                        widget.onInfoTapWithIndex!(index.value);
+                      } else if (widget.onInfoTap != null) {
+                        widget.onInfoTap!();
+                      }
+                    },
                   ),
                 ]
                 : [],

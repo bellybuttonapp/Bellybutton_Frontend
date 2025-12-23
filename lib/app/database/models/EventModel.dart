@@ -57,6 +57,27 @@ class EventModel extends HiveObject {
     );
   }
 
+  // ============================
+  // 🔥 NEW: fromCreateResponse() - For create event API response
+  // Uses data.invitedPeople (has id) instead of data.event.invitedPeople (no id)
+  // ============================
+  factory EventModel.fromCreateResponse(Map<String, dynamic> response) {
+    final event = response['event'] as Map<String, dynamic>;
+    final invitedPeopleWithId = response['invitedPeople'] as List<dynamic>? ?? [];
+    final parsedDate = DateTime.parse(event['eventDate']);
+
+    return EventModel(
+      id: event['id'],
+      title: event['title'],
+      description: event['description'],
+      eventDate: DateTime(parsedDate.year, parsedDate.month, parsedDate.day),
+      startTime: event['startTime'],
+      endTime: event['endTime'],
+      invitedPeople: invitedPeopleWithId, // Use the one with id!
+      imagePath: event['imagePath'],
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id, // nullable OK

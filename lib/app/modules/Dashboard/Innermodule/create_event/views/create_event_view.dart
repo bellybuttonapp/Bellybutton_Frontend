@@ -1,4 +1,4 @@
-// ignore_for_file: curly_braces_in_flow_control_structures, deprecated_member_use, annotate_overrides, use_key_in_widget_constructors
+// ignore_for_file: curly_braces_in_flow_control_structures, deprecated_member_use, annotate_overrides, use_key_in_widget_constructors, must_be_immutable
 
 import 'package:bellybutton/app/core/constants/app_images.dart';
 import 'package:bellybutton/app/core/constants/app_texts.dart';
@@ -8,8 +8,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/services/showcase_service.dart';
 import '../../../../../core/utils/themes/font_style.dart';
 import '../../../../../core/utils/themes/custom_color.g.dart';
 import '../../../../../global_widgets/Button/global_button.dart';
@@ -21,18 +23,63 @@ class CreateEventView extends GetView<CreateEventController> {
   final CreateEventController controller = Get.put(CreateEventController());
   final _formKey = GlobalKey<FormState>();
 
+  // Showcase GlobalKeys - Create unique keys per instance
+  final GlobalKey _titleKey = GlobalKey();
+  final GlobalKey _descriptionKey = GlobalKey();
+  final GlobalKey _dateKey = GlobalKey();
+  final GlobalKey _timeKey = GlobalKey();
+
+  // Flag to prevent showcase from starting multiple times
+  bool _showcaseStarted = false;
+
   @override
   Widget build(BuildContext context) {
+    // Only show showcase for new event creation (not edit mode)
+    if (!controller.isEditMode.value) {
+      return ShowCaseWidget(
+        onFinish: () {
+          ShowcaseService.completeCreateEventTour();
+          _showcaseStarted = false;
+        },
+        builder: (context) => _buildCreateEventScreen(context),
+      );
+    }
+    return _buildCreateEventScreen(context);
+  }
+
+  Widget _buildCreateEventScreen(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final size = MediaQuery.of(context).size;
 
-    return Scaffold(
-      backgroundColor:
-          isDarkMode
-              ? AppTheme.darkTheme.scaffoldBackgroundColor
-              : AppTheme.lightTheme.scaffoldBackgroundColor,
-      appBar: CustomAppBar(title: AppTexts.CREATE_EVENT),
-      body: Padding(
+    // Start showcase tour if not shown before (only once per session, only for new events)
+    if (!controller.isEditMode.value) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (ShowcaseService.shouldShowCreateEventTour && !_showcaseStarted) {
+          _showcaseStarted = true;
+          ShowcaseService.startShowcase(
+            context,
+            [_titleKey, _descriptionKey, _dateKey, _timeKey],
+          );
+        }
+      });
+    }
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        controller.discardChanges();
+      },
+      child: Scaffold(
+        backgroundColor:
+            isDarkMode
+                ? AppTheme.darkTheme.scaffoldBackgroundColor
+                : AppTheme.lightTheme.scaffoldBackgroundColor,
+        appBar: CustomAppBar(
+          title: AppTexts.CREATE_SHOOT,
+          onBackPressed: controller.discardChanges,
+        ),
+        body: Padding(
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
           child: Form(
@@ -60,81 +107,115 @@ class CreateEventView extends GetView<CreateEventController> {
           ),
         ),
       ),
+      ),
     );
   }
 
   Widget _buildTitleField() {
-    return Obx(
-      () => GlobalTextField(
-        controller: controller.titleController,
-        hintText: AppTexts.EVENT_TITLE,
-        obscureText: false,
-        keyboardType: TextInputType.text,
-        maxLength: 50, // limit title to 50 chars
-        errorText: controller.titleError.value,
-        onChanged: controller.validateTitle,
+    return Showcase(
+      key: _titleKey,
+      title: AppTexts.SHOWCASE_CREATE_TITLE_TITLE,
+      description: AppTexts.SHOWCASE_CREATE_TITLE_DESC,
+      tooltipBackgroundColor: ShowcaseService.tooltipBackgroundColor,
+      textColor: ShowcaseService.textColor,
+      titleTextStyle: ShowcaseService.titleStyle,
+      descTextStyle: ShowcaseService.descriptionStyle,
+      child: Obx(
+        () => GlobalTextField(
+          controller: controller.titleController,
+          hintText: AppTexts.EVENT_TITLE,
+          labelText: controller.titleController.text.isEmpty
+              ? controller.currentTitleSuggestion
+              : null,
+          obscureText: false,
+          keyboardType: TextInputType.text,
+          maxLength: 50,
+          errorText: controller.titleError.value,
+          onChanged: controller.validateTitle,
+        ),
       ),
     );
   }
 
   Widget _buildDescriptionField() {
-    return Obx(
-      () => GlobalTextField(
-        controller: controller.descriptionController,
-        hintText: AppTexts.DESCRIPTION,
-        obscureText: false,
-        keyboardType: TextInputType.multiline,
-        maxLines: 2,
-        maxLength: 200, // short description limit
-        errorText: controller.descriptionError.value,
-        onChanged: controller.validateDescription,
+    return Showcase(
+      key: _descriptionKey,
+      title: AppTexts.SHOWCASE_CREATE_DESC_TITLE,
+      description: AppTexts.SHOWCASE_CREATE_DESC_DESC,
+      tooltipBackgroundColor: ShowcaseService.tooltipBackgroundColor,
+      textColor: ShowcaseService.textColor,
+      titleTextStyle: ShowcaseService.titleStyle,
+      descTextStyle: ShowcaseService.descriptionStyle,
+      child: Obx(
+        () => GlobalTextField(
+          controller: controller.descriptionController,
+          hintText: AppTexts.DESCRIPTION,
+          labelText: controller.descriptionController.text.isEmpty
+              ? controller.currentDescriptionSuggestion
+              : null,
+          obscureText: false,
+          keyboardType: TextInputType.multiline,
+          maxLines: 2,
+          maxLength: 200,
+          errorText: controller.descriptionError.value,
+          onChanged: controller.validateDescription,
+        ),
       ),
     );
   }
 
   Widget _buildDatePicker(Size size) {
-    return Obx(
-      () => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          GlobalTextField(
-            controller: controller.dateController,
-            hintText: AppTexts.SET_DATE,
-            obscureText: false,
-            readOnly: true,
-            suffixIcon: InkWell(
+    return Showcase(
+      key: _dateKey,
+      title: AppTexts.SHOWCASE_CREATE_DATE_TITLE,
+      description: AppTexts.SHOWCASE_CREATE_DATE_DESC,
+      tooltipBackgroundColor: ShowcaseService.tooltipBackgroundColor,
+      textColor: ShowcaseService.textColor,
+      titleTextStyle: ShowcaseService.titleStyle,
+      descTextStyle: ShowcaseService.descriptionStyle,
+      child: Obx(
+        () => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GlobalTextField(
+              controller: controller.dateController,
+              hintText: AppTexts.SET_DATE,
+              obscureText: false,
+              readOnly: true,
+              suffixIcon: InkWell(
+                onTap: () {
+                  // Close any open keyboard
+                  FocusScope.of(Get.context!).unfocus();
+
+                  // Toggle calendar visibility
+                  controller.showCalendar.value = !controller.showCalendar.value;
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Image.asset(
+                    AppImages.CALENDAR,
+                    height: 20,
+                    width: 20,
+                    color: AppColors.textColor,
+                  ),
+                ),
+              ),
+              errorText:
+                  controller.dateError.value.isEmpty
+                      ? null
+                      : controller.dateError.value,
               onTap: () {
                 // Close any open keyboard
                 FocusScope.of(Get.context!).unfocus();
 
-                // Toggle calendar visibility
+                // Toggle calendar visibility when tapping the text field
                 controller.showCalendar.value = !controller.showCalendar.value;
               },
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Image.asset(
-                  AppImages.CALENDAR,
-                  height: 20,
-                  width: 20,
-                  color: AppColors.textColor,
-                ),
-              ),
             ),
-            errorText:
-                controller.dateError.value.isEmpty
-                    ? null
-                    : controller.dateError.value,
-            onTap: () {
-              // Close any open keyboard
-              FocusScope.of(Get.context!).unfocus();
-
-              // Toggle calendar visibility when tapping the text field
-              controller.showCalendar.value = !controller.showCalendar.value;
-            },
-          ),
-          const SizedBox(height: 8),
-          if (controller.showCalendar.value) _buildInlineCalendar(size),
-        ],
+            const SizedBox(height: 8),
+            if (controller.showCalendar.value) _buildInlineCalendar(size),
+          ],
+        ),
       ),
     );
   }
@@ -237,18 +318,26 @@ class CreateEventView extends GetView<CreateEventController> {
   }
 
   Widget _buildTimeRangePicker(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          AppTexts.SET_TIME_RANGE,
-          style: customBoldText.copyWith(
-            fontSize: 16,
-            color: AppColors.textColor,
+    return Showcase(
+      key: _timeKey,
+      title: AppTexts.SHOWCASE_CREATE_TIME_TITLE,
+      description: AppTexts.SHOWCASE_CREATE_TIME_DESC,
+      tooltipBackgroundColor: ShowcaseService.tooltipBackgroundColor,
+      textColor: ShowcaseService.textColor,
+      titleTextStyle: ShowcaseService.titleStyle,
+      descTextStyle: ShowcaseService.descriptionStyle,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            AppTexts.SET_TIME_RANGE,
+            style: customBoldText.copyWith(
+              fontSize: 16,
+              color: AppColors.textColor,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Row(
+          const SizedBox(height: 8),
+          Row(
           children: [
             Expanded(
               child: Obx(
@@ -267,14 +356,19 @@ class CreateEventView extends GetView<CreateEventController> {
                         controller.startTimeController,
                         controller.startTimeError,
                       ),
-                  suffixIcon: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: SvgPicture.asset(
-                      AppImages.CLOCK_ICON,
-                      height: 20,
-                      width: 20,
-                      color: AppColors.textColor,
-                    ),
+                  suffixIcon: Builder(
+                    builder: (context) {
+                      final isDark = Theme.of(context).brightness == Brightness.dark;
+                      return Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: SvgPicture.asset(
+                          AppImages.CLOCK_ICON,
+                          height: 20,
+                          width: 20,
+                          color: isDark ? Colors.white : AppColors.primaryColor,
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -298,14 +392,19 @@ class CreateEventView extends GetView<CreateEventController> {
                         controller.endTimeError,
                         // isEndTime: true,
                       ),
-                  suffixIcon: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: SvgPicture.asset(
-                      AppImages.CLOCK_ICON,
-                      height: 20,
-                      width: 20,
-                      color: AppColors.textColor,
-                    ),
+                  suffixIcon: Builder(
+                    builder: (context) {
+                      final isDark = Theme.of(context).brightness == Brightness.dark;
+                      return Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: SvgPicture.asset(
+                          AppImages.CLOCK_ICON,
+                          height: 20,
+                          width: 20,
+                          color: isDark ? Colors.white : AppColors.primaryColor,
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -313,6 +412,7 @@ class CreateEventView extends GetView<CreateEventController> {
           ],
         ),
       ],
+      ),
     );
   }
 
@@ -332,7 +432,7 @@ class CreateEventView extends GetView<CreateEventController> {
         title:
             controller.isEditMode.value
                 ? AppTexts.UPDATE_EVENT
-                : AppTexts.CREATE_EVENT,
+                : AppTexts.CREATE_SHOOT,
         backgroundColor:
             isDarkMode
                 ? AppTheme.darkTheme.scaffoldBackgroundColor

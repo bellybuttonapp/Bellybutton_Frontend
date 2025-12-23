@@ -33,7 +33,6 @@ dependencies:
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
   get: ^4.7.2
   flutter_svg: ^2.0.10
   pinput: ^6.0.1
@@ -41,8 +40,6 @@ dependencies:
   easy_localization: ^3.0.8
   firebase_crashlytics: ^5.0.5
   image_picker: ^1.2.0
-  floor: ^1.5.0
-  sqflite: ^2.4.2
   permission_handler: ^12.0.1
   cached_network_image: ^3.4.1
   connectivity_plus: ^7.0.0
@@ -52,11 +49,10 @@ dependencies:
   firebase_core: ^4.2.1
   firebase_messaging: ^16.0.4
   flutter_inapp_notifications: ^1.0.0
-  firebase_database: ^12.1.0
   cloud_firestore: ^6.1.0
   google_fonts: ^6.3.0
   table_calendar: ^3.2.0
-  flutter_haptic_feedback: ^1.0.1
+  # flutter_haptic_feedback: ^1.0.1
   get_storage: ^2.1.1
   firebase_storage: ^13.0.4
   flutter_contacts: ^1.1.9+2
@@ -76,15 +72,16 @@ dependencies:
   photo_manager: ^3.7.1
   wechat_assets_picker: ^10.0.0
   photo_view: ^0.15.0
-  phone_numbers_parser: ^9.0.16
   flutter_local_notifications: ^19.5.0
   flutter_isolate: ^2.1.0 
   gallery_saver_plus: ^3.2.9
   screen_protector: ^1.4.7
   app_links: ^6.4.1
-  crypto: ^3.0.7
   country_picker: ^2.0.27
-  # very_good_infinite_list: ^0.9.0
+  flutter_widget_from_html_core: ^0.15.2
+  badges: ^3.1.2
+  flutter_staggered_grid_view: ^0.7.0
+  showcaseview: ^3.0.0
 
 dev_dependencies:
   flutter_test:

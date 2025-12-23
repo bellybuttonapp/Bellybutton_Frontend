@@ -1,4 +1,4 @@
-// ignore_for_file: unnecessary_overrides, deprecated_member_use, unnecessary_set_literal
+// ignore_for_file: unnecessary_overrides, deprecated_member_use, unnecessary_set_literal, depend_on_referenced_packages
 
 import 'dart:io';
 import 'package:dio/dio.dart';
@@ -6,9 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gallery_saver_plus/gallery_saver.dart';
 import 'package:get/get.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../../../api/PublicApiService.dart';
+import '../../../../../core/constants/app_constant.dart';
 import '../../../../../core/constants/app_texts.dart';
 import '../../../../../core/services/local_notification_service.dart';
 import '../../../../../core/utils/storage/preference.dart';
@@ -19,8 +21,8 @@ import '../../../../../global_widgets/Button/global_button.dart';
 import '../../../../../global_widgets/CustomPopup/CustomPopup.dart';
 import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../../../global_widgets/CustomBottomSheet/CustomBottomsheet.dart';
-import '../../../../../global_widgets/GlobalTextField/GlobalTextField.dart';
 import '../../../../../routes/app_pages.dart';
+import '../../../../../global_widgets/Shimmers/MediaInfoShimmer.dart';
 
 class EventGalleryController extends GetxController {
   late EventModel event;
@@ -41,6 +43,13 @@ class EventGalleryController extends GetxController {
 
   late String albumName;
   RxList<String> photos = <String>[].obs;
+  RxList<Map<String, dynamic>> photoData = <Map<String, dynamic>>[].obs;
+
+  // ------------------------------------------------------
+  // 📷 MEDIA INFO VARIABLES
+  // ------------------------------------------------------
+  RxBool isMediaInfoLoading = false.obs;
+  Rx<Map<String, dynamic>> currentMediaInfo = Rx<Map<String, dynamic>>({});
 
   // ======================================================
   //  ⭐ EVENT STATE GETTERS (EMPTY PLACEHOLDER CONDITIONS)
@@ -121,14 +130,18 @@ class EventGalleryController extends GetxController {
         return;
       }
 
+      List<Map<String, dynamic>> allData =
+          (result["data"] as List).map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e)).toList();
+
       List<String> all =
-          result["data"].map<String>((e) => e["fileUrl"].toString()).toList();
+          allData.map<String>((e) => e["fileUrl"].toString()).toList();
 
       Preference.box.put(Preference.EVENT_GALLERY_CACHE, all);
 
       if (!loadMore) {
         /// First load: Only first batch
         photos.assignAll(all.take(batchSize).toList());
+        photoData.assignAll(allData.take(batchSize).toList());
         loadedCount = photos.length;
       } else {
         /// Load more when user scrolls
@@ -136,6 +149,7 @@ class EventGalleryController extends GetxController {
         if (next > all.length) next = all.length;
 
         photos.addAll(all.sublist(loadedCount, next));
+        photoData.addAll(allData.sublist(loadedCount, next));
         loadedCount = next;
       }
 
@@ -153,7 +167,7 @@ class EventGalleryController extends GetxController {
   Future<void> syncNow() async {
     await fetchPhotos();
     if (photos.isEmpty) {
-      showCustomSnackBar("No Images Found", SnackbarState.warning);
+      showCustomSnackBar(AppTexts.NO_IMAGES_FOUND, SnackbarState.warning);
       return;
     }
 
@@ -164,12 +178,12 @@ class EventGalleryController extends GetxController {
     Get.dialog(
       Obx(
         () => CustomPopup(
-          title: enableOK.value ? "Sync Complete 🎉" : "Saving Images...",
+          title: enableOK.value ? "${AppTexts.SYNC_COMPLETE} 🎉" : AppTexts.SAVING_IMAGES,
           message:
               enableOK.value
-                  ? "Download Finished Successfully"
-                  : "Downloading images, please wait...",
-          confirmText: enableOK.value ? "Close" : "Please wait...",
+                  ? AppTexts.DOWNLOAD_FINISHED
+                  : AppTexts.DOWNLOADING_IMAGES,
+          confirmText: enableOK.value ? AppTexts.CLOSE : AppTexts.PLEASE_WAIT,
           onConfirm: enableOK.value ? () => Get.back() : null,
           isProcessing: enableOK,
           showProgress: true,
@@ -200,13 +214,48 @@ class EventGalleryController extends GetxController {
   // 🔐 STORAGE PERMISSION
   // ------------------------------------------------------
   Future<bool> askPermission() async {
-    if (await Permission.storage.request().isGranted) return true;
-    if (await Permission.manageExternalStorage.request().isGranted) return true;
-    showCustomSnackBar(
-      "Storage access needed to save images!",
-      SnackbarState.error,
-    );
-    return false;
+    try {
+      if (Platform.isIOS) {
+        // iOS uses Photos permission (addOnly for saving to gallery)
+        var status = await Permission.photosAddOnly.request();
+        if (status.isGranted || status.isLimited) return true;
+
+        // Fallback to full photos permission
+        status = await Permission.photos.request();
+        if (status.isGranted || status.isLimited) return true;
+
+        showCustomSnackBar(
+          AppTexts.STORAGE_PERMISSION_NEEDED,
+          SnackbarState.error,
+        );
+        return false;
+      }
+
+      // Android handling
+      if (Platform.isAndroid) {
+        // Android 13+ (API 33+) uses granular media permissions
+        if (await Permission.photos.request().isGranted) return true;
+
+        // Android 10-12 (API 29-32)
+        if (await Permission.storage.request().isGranted) return true;
+
+        // Fallback for older Android versions
+        if (await Permission.manageExternalStorage.request().isGranted) return true;
+      }
+
+      showCustomSnackBar(
+        AppTexts.STORAGE_PERMISSION_NEEDED,
+        SnackbarState.error,
+      );
+      return false;
+    } catch (e) {
+      debugPrint("❌ Permission error: $e");
+      showCustomSnackBar(
+        AppTexts.STORAGE_PERMISSION_NEEDED,
+        SnackbarState.error,
+      );
+      return false;
+    }
   }
 
   // ------------------------------------------------------
@@ -215,8 +264,12 @@ class EventGalleryController extends GetxController {
   Future<void> saveImages() async {
     if (!await askPermission()) return;
 
-    Directory dir = Directory("/storage/emulated/0/Pictures/$albumName");
-    if (!dir.existsSync()) dir.createSync(recursive: true);
+    // Use temporary directory for downloading (works on all platforms)
+    final tempDir = await getTemporaryDirectory();
+    final downloadDir = Directory("${tempDir.path}/$albumName");
+    if (!downloadDir.existsSync()) {
+      downloadDir.createSync(recursive: true);
+    }
 
     final dio = Dio();
     const int batchSize = 6; // Download 6 images at once
@@ -227,23 +280,42 @@ class EventGalleryController extends GetxController {
       await Future.wait(
         batch.map((url) async {
           String name = url.split("/").last;
-          String path = "${dir.path}/$name";
-
-          if (File(path).existsSync()) {
-            savedCount.value++;
-            return;
-          }
+          String tempPath = "${downloadDir.path}/$name";
 
           try {
-            await dio.download(url, path);
-            await GallerySaver.saveImage(path, albumName: albumName);
-            savedCount.value++;
+            // Download to temp directory first
+            await dio.download(url, tempPath);
+
+            // Save to gallery using GallerySaver (handles platform differences)
+            final saved = await GallerySaver.saveImage(
+              tempPath,
+              albumName: albumName,
+            );
+
+            if (saved == true) {
+              savedCount.value++;
+              // Clean up temp file after saving to gallery
+              try {
+                File(tempPath).deleteSync();
+              } catch (_) {}
+            } else {
+              debugPrint("❌ GallerySaver failed for: $name");
+              savedCount.value++; // Still count as processed
+            }
           } catch (e) {
-            debugPrint("❌ Save Failed $e");
+            debugPrint("❌ Save Failed: $e");
+            savedCount.value++; // Count as processed to avoid infinite loop
           }
         }),
       );
     }
+
+    // Clean up temp directory after all downloads
+    try {
+      if (downloadDir.existsSync()) {
+        downloadDir.deleteSync(recursive: true);
+      }
+    } catch (_) {}
   }
 
   // ------------------------------------------------------
@@ -251,20 +323,71 @@ class EventGalleryController extends GetxController {
   // ------------------------------------------------------
   RxBool viewOnly = true.obs;
   RxBool viewAndSync = false.obs;
+  RxBool isShareLoading = false.obs;
+  RxString shareLink = "".obs;
+  final shareLinkController = TextEditingController();
 
-  String generateShareLink() =>
-      "https://bellybutton.app/invite/${event.id}?permission=${viewOnly.value ? "view-only" : "view-sync"}";
+  /// Get current permission type based on selection
+  String get currentPermission => viewOnly.value ? "view-only" : "view-sync";
 
   // ------------------------------------------------------
   // 📤 SHARE BOTTOMSHEET
   // ------------------------------------------------------
   void openShareBottomSheet() {
+    // Reset states
+    viewOnly.value = true;
+    viewAndSync.value = false;
+    shareLink.value = "";
+    shareLinkController.text = AppTexts.LOADING;
+
+    // Fetch initial link with default permission
+    _fetchShareLink();
+
     CustomBottomSheet.show(
-      title: "Share Event Images",
+      title: AppTexts.SHARE_GROUP_TITLE,
       header: _permissionSelector(),
       footer: _shareButton(),
       actions: [],
     );
+  }
+
+  /// Fetch share link from API
+  Future<void> _fetchShareLink() async {
+    isShareLoading.value = true;
+    shareLinkController.text = AppTexts.LOADING;
+
+    try {
+      final response = await PublicApiService().shareEvent(
+        event.id!,
+        permission: currentPermission,
+      );
+
+      debugPrint("📦 Share Response: $response");
+
+      // Response format: { "shareLink": "...", "message": "...", "status": "success" }
+      if (response["status"] == "success" && response["shareLink"] != null) {
+        shareLink.value = response["shareLink"];
+        shareLinkController.text = response["shareLink"];
+      } else if (response["success"] == true && response["shareLink"] != null) {
+        shareLink.value = response["shareLink"];
+        shareLinkController.text = response["shareLink"];
+      } else {
+        // Fallback to generated link if API fails
+        final fallback =
+            "${AppConstants.UNIVERSAL_LINK_PREFIX}/invite/${event.id}?permission=$currentPermission";
+        shareLink.value = fallback;
+        shareLinkController.text = fallback;
+      }
+    } catch (e) {
+      debugPrint("❌ Share link fetch error: $e");
+      // Fallback link
+      final fallback =
+          "${AppConstants.UNIVERSAL_LINK_PREFIX}/invite/${event.id}?permission=$currentPermission";
+      shareLink.value = fallback;
+      shareLinkController.text = fallback;
+    } finally {
+      isShareLoading.value = false;
+    }
   }
 
   Widget _permissionSelector() => Obx(
@@ -274,14 +397,22 @@ class EventGalleryController extends GetxController {
           AppTexts.VIEW_ONLY,
           AppTexts.VIEW_ONLY_DESC,
           viewOnly.value,
-          (_) => {viewOnly(true), viewAndSync(false)},
+          (_) {
+            viewOnly.value = true;
+            viewAndSync.value = false;
+            _fetchShareLink();
+          },
         ),
         const SizedBox(height: 12),
         _switchTile(
           AppTexts.VIEW_AND_SYNC,
           AppTexts.VIEW_AND_SYNC_DESC,
           viewAndSync.value,
-          (_) => {viewOnly(false), viewAndSync(true)},
+          (_) {
+            viewOnly.value = false;
+            viewAndSync.value = true;
+            _fetchShareLink();
+          },
         ),
         const SizedBox(height: 18),
         _linkField(),
@@ -313,31 +444,256 @@ class EventGalleryController extends GetxController {
     );
   }
 
-  Widget _linkField() => GlobalTextField(
-    hintText: "Share Link",
-    initialValue: generateShareLink(),
-    readOnly: true,
-    suffixIcon: IconButton(
-      icon: const Icon(Icons.copy),
-      onPressed: () {
-        Clipboard.setData(ClipboardData(text: generateShareLink()));
-        showCustomSnackBar("Copied!", SnackbarState.success);
-        Get.back();
-      },
+  Widget _linkField() => Obx(
+    () => Container(
+      width: Get.width,
+      padding: EdgeInsets.symmetric(
+        horizontal: Get.width * 0.04,
+        vertical: Get.height * 0.015,
+      ),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade600),
+        borderRadius: BorderRadius.circular(Get.width * 0.02),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              isShareLoading.value ? AppTexts.LOADING : shareLinkController.text,
+              style: TextStyle(
+                fontSize: Get.width * 0.035,
+                color: Colors.grey.shade700,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          SizedBox(width: Get.width * 0.02),
+          GestureDetector(
+            onTap:
+                isShareLoading.value
+                    ? null
+                    : () {
+                      Clipboard.setData(ClipboardData(text: shareLink.value));
+                      showCustomSnackBar(AppTexts.COPIED, SnackbarState.success);
+                    },
+            child: Icon(
+              isShareLoading.value
+                  ? Icons.hourglass_empty
+                  : Icons.copy_outlined,
+              size: Get.width * 0.055,
+              color: Colors.grey.shade600,
+            ),
+          ),
+        ],
+      ),
     ),
   );
 
-  Widget _shareButton() => global_button(
-    title: "Share Link",
-    backgroundColor: AppColors.primaryColor,
-    onTap: () => Share.share(generateShareLink()),
+  /// Generate formatted share message with event details
+  String get _shareMessage {
+    final permissionText =
+        viewOnly.value ? AppTexts.VIEW_PHOTOS : AppTexts.VIEW_AND_DOWNLOAD_PHOTOS;
+
+    return '''
+📸 *${event.title}*
+
+$permissionText from this event:
+${shareLink.value}
+
+📲 ${AppTexts.DOWNLOAD_APP_MESSAGE}
+${AppConstants.APP_STORE_URL}
+''';
+  }
+
+  Widget _shareButton() => Obx(
+    () => global_button(
+      title: isShareLoading.value ? AppTexts.LOADING : AppTexts.SHARE_LINK,
+      backgroundColor: AppColors.primaryColor,
+      onTap:
+          isShareLoading.value
+              ? null
+              : () {
+                Get.back(); // Close bottomsheet first
+                Share.share(
+                  _shareMessage,
+                  subject: "${AppTexts.EVENT_PHOTOS_SUBJECT} ${event.title}",
+                );
+              },
+    ),
   );
 
   // ------------------------------------------------------
   // ⚡ FAB ACTIONS
   // ------------------------------------------------------
   void fabOneAction() => openShareBottomSheet();
-  void fabTwoAction() => Get.toNamed(Routes.INVITEUSER);
+  void fabTwoAction() => Get.toNamed(Routes.INVITEUSER, arguments: event);
   void onInvitedUsersTap() =>
       Get.toNamed(Routes.INVITED_USERS_LIST, arguments: event);
+
+  // ------------------------------------------------------
+  // 📷 MEDIA INFO BOTTOM SHEET
+  // ------------------------------------------------------
+
+  /// Open media info bottom sheet for a specific photo index
+  void showMediaInfoBottomSheet(int photoIndex) {
+    if (photoIndex < 0 || photoIndex >= photoData.length) return;
+
+    final data = photoData[photoIndex];
+    final mediaId = data["id"];
+
+    if (mediaId == null) {
+      showCustomSnackBar(AppTexts.MEDIA_INFO_NOT_AVAILABLE, SnackbarState.warning);
+      return;
+    }
+
+    // Show bottom sheet with loading state first
+    isMediaInfoLoading.value = true;
+    currentMediaInfo.value = {};
+
+    CustomBottomSheet.show(
+      title: AppTexts.PHOTO_DETAILS,
+      showCloseButton: true,
+      header: _mediaInfoContent(),
+      actions: [],
+    );
+
+    // Fetch detailed info from API
+    _fetchMediaInfo(mediaId);
+  }
+
+  /// Fetch media info from API
+  Future<void> _fetchMediaInfo(int mediaId) async {
+    try {
+      isMediaInfoLoading.value = true;
+      final response = await PublicApiService().getMediaInfo(mediaId);
+
+      debugPrint("📷 Media Info Response: $response");
+
+      if (response["data"] != null) {
+        currentMediaInfo.value = Map<String, dynamic>.from(response["data"]);
+      } else if (response["headers"]?["status"] == "success" && response["data"] != null) {
+        currentMediaInfo.value = Map<String, dynamic>.from(response["data"]);
+      } else {
+        showCustomSnackBar(AppTexts.MEDIA_INFO_LOAD_FAILED, SnackbarState.error);
+      }
+    } catch (e) {
+      debugPrint("❌ Media info fetch error: $e");
+      showCustomSnackBar(AppTexts.MEDIA_INFO_LOAD_ERROR, SnackbarState.error);
+    } finally {
+      isMediaInfoLoading.value = false;
+    }
+  }
+
+  /// Build media info content widget
+  Widget _mediaInfoContent() => Obx(() {
+    final isDark = Get.isDarkMode;
+    final width = Get.width;
+
+    if (isMediaInfoLoading.value) {
+      return const MediaInfoShimmer();
+    }
+
+    final info = currentMediaInfo.value;
+    if (info.isEmpty) {
+      return _buildMediaInfoEmptyState(isDark, width);
+    }
+
+    // Extract info from response
+    final fileName = info["fileName"] ?? AppTexts.MEDIA_INFO_UNKNOWN;
+    final fileSize = info["fileSize"] ?? AppTexts.MEDIA_INFO_UNKNOWN;
+    final fileType = info["fileType"] ?? AppTexts.MEDIA_INFO_UNKNOWN;
+    final imgWidth = info["width"]?.toString() ?? "-";
+    final imgHeight = info["height"]?.toString() ?? "-";
+    final uploadedAt = info["uploadedAt"] ?? "";
+    final uploadedBy = info["uploadedBy"];
+    final uploaderName = uploadedBy?["name"] ?? AppTexts.MEDIA_INFO_UNKNOWN;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _infoRow(AppTexts.MEDIA_INFO_FILE_NAME, fileName, isDark, width),
+        _infoRow(AppTexts.FILE_SIZE, fileSize, isDark, width),
+        _infoRow(AppTexts.MEDIA_INFO_FILE_TYPE, fileType.toString().toUpperCase(), isDark, width),
+        _infoRow(AppTexts.MEDIA_INFO_DIMENSIONS, "$imgWidth × $imgHeight", isDark, width),
+        _infoRow(AppTexts.MEDIA_INFO_UPLOADED_BY, uploaderName, isDark, width),
+        if (uploadedAt.isNotEmpty)
+          _infoRow(AppTexts.MEDIA_INFO_UPLOADED_AT, _formatDateTime(uploadedAt), isDark, width),
+      ],
+    );
+  });
+
+  /// Build empty state for media info
+  Widget _buildMediaInfoEmptyState(bool isDark, double width) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: Get.height * 0.04),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            size: width * 0.15,
+            color: isDark ? Colors.white38 : AppColors.textColor2,
+          ),
+          SizedBox(height: Get.height * 0.02),
+          Text(
+            AppTexts.MEDIA_INFO_EMPTY_TITLE,
+            style: customBoldText.copyWith(
+              color: isDark ? Colors.white70 : AppColors.textColor,
+              fontSize: width * 0.045,
+            ),
+          ),
+          SizedBox(height: Get.height * 0.01),
+          Text(
+            AppTexts.MEDIA_INFO_EMPTY_DESC,
+            textAlign: TextAlign.center,
+            style: customTextNormal.copyWith(
+              color: isDark ? Colors.white54 : AppColors.textColor2,
+              fontSize: width * 0.035,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build a single info row
+  Widget _infoRow(String label, String value, bool isDark, double width) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: Get.height * 0.008),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: width * 0.3,
+            child: Text(
+              label,
+              style: customMediumText.copyWith(
+                fontSize: width * 0.035,
+                color: isDark ? Colors.white70 : AppColors.textColor2,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: customSemiBoldText.copyWith(
+                fontSize: width * 0.035,
+                color: isDark ? Colors.white : AppColors.textColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Format datetime string
+  String _formatDateTime(String dateTimeStr) {
+    try {
+      final dt = DateTime.parse(dateTimeStr);
+      return "${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+    } catch (e) {
+      return dateTimeStr;
+    }
+  }
 }

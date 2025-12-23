@@ -36,6 +36,16 @@ class UpcommingEventController extends GetxController {
       print("📦 All Events Response: ${events.length} items");
 
       final now = DateTime.now();
+      // 🔍 DEBUG: Check each event's time parsing
+      for (var e in events) {
+        print("🔍 Event: ${e.title}");
+        print("   eventDate: ${e.eventDate}");
+        print("   startTime: ${e.startTime}");
+        print("   endTime: ${e.endTime}");
+        print("   fullEventEndDateTime: ${e.fullEventEndDateTime}");
+        print("   now: $now");
+        print("   isAfter now: ${e.fullEventEndDateTime.isAfter(now)}");
+      }
 
       // 🎯 Upcoming = event end time hasn't passed yet (includes live events)
       final upcoming =

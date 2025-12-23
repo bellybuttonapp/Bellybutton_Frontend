@@ -25,7 +25,7 @@ class LoginView extends GetView<LoginController> {
 
     return Scaffold(
       body: SingleChildScrollView(
-        // physics: const NeverScrollableScrollPhysics(),
+                physics: const ClampingScrollPhysics(), // No bounce effect
         child: Container(
           width: double.infinity,
           decoration: const BoxDecoration(
@@ -60,7 +60,7 @@ class LoginView extends GetView<LoginController> {
                     color: AppColors.textColor,
                   ),
                 ),
-                SizedBox(height: screenHeight * 0.08),
+                SizedBox(height: screenHeight * 0.09),
 
                 // Login Form
                 Container(

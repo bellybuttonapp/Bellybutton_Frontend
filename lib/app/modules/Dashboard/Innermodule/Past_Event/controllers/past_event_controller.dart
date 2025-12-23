@@ -1,7 +1,9 @@
 // ignore_for_file: unnecessary_overrides, avoid_print
 
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../../api/PublicApiService.dart';
+import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_texts.dart';
 import '../../../../../database/models/EventModel.dart';
 import '../../../../../global_widgets/CustomPopup/CustomPopup.dart';
@@ -38,6 +40,17 @@ class PastEventController extends GetxController {
       print("📦 All Events Response: ${events.length} items");
 
       final now = DateTime.now();
+
+        // 🔍 DEBUG: Check each event's time parsing
+      for (var e in events) {
+        print("🔍 Event: ${e.title}");
+        print("   eventDate: ${e.eventDate}");
+        print("   startTime: ${e.startTime}");
+        print("   endTime: ${e.endTime}");
+        print("   fullEventEndDateTime: ${e.fullEventEndDateTime}");
+        print("   now: $now");
+        print("   isAfter now: ${e.fullEventEndDateTime.isAfter(now)}");
+      }
 
       // 🔥 Use fullEventEndDateTime — event is "past" only after end time
       final past =
@@ -125,30 +138,40 @@ class PastEventController extends GetxController {
       title: AppTexts.DELETE_EVENT,
       message: "Are you sure you want to delete '${event.title}'?",
       confirmText: AppTexts.DELETE,
+      processingState: isProcessing,          // ✅ FIX
+    confirmButtonColor: AppColors.error,    // optional (red)
+    cancelButtonColor: AppColors.primaryColor,      // optional
       onConfirm: () async {
         await deleteEvent(event.id!);
       },
+  
     );
   }
 
-  void _showConfirmationDialog({
-    required String title,
-    required String message,
-    required String confirmText,
-    required Future<void> Function() onConfirm,
-  }) {
-    Get.dialog(
-      CustomPopup(
-        title: title,
-        message: message,
-        confirmText: confirmText,
-        cancelText: AppTexts.CANCEL,
-        isProcessing: isProcessing,
-        onConfirm: onConfirm,
-      ),
-      barrierDismissible: false,
-    );
-  }
+void _showConfirmationDialog({
+  required String title,
+  required String message,
+  required String confirmText,
+  required VoidCallback onConfirm,
+ required RxBool processingState, // ✅ FIX
+  Color? confirmButtonColor,
+  Color? cancelButtonColor,
+}) {
+  Get.dialog(
+    CustomPopup(
+      title: title,
+      message: message,
+      confirmText: confirmText,
+      cancelText: AppTexts.CANCEL,
+      isProcessing: processingState,
+      confirmButtonColor: confirmButtonColor,
+      cancelButtonColor: cancelButtonColor,
+      onConfirm: onConfirm,
+    ),
+  );
+}
+
+
 
   // ============================================================
   // ✏️ Edit Event

@@ -1,11 +1,13 @@
-// ignore_for_file: curly_braces_in_flow_control_structures, unrelated_type_equality_checks, avoid_print, prefer_interpolation_to_compose_strings, unused_local_variable
+// ignore_for_file: curly_braces_in_flow_control_structures, unrelated_type_equality_checks, avoid_print, prefer_interpolation_to_compose_strings, unused_local_variable, deprecated_member_use
 
 import 'dart:io';
+import 'package:adaptive_scrollbar/adaptive_scrollbar.dart';
 import 'package:bellybutton/app/Controllers/oauth.dart';
 import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/services/deep_link_service.dart';
 import '../../../../core/utils/helpers/validation_utils.dart';
 import '../../../../core/utils/storage/preference.dart';
 import '../../../../core/constants/app_texts.dart';
@@ -29,6 +31,7 @@ class SignupController extends GetxController {
   final passwordController = TextEditingController();
   final mobileController = TextEditingController();
   final searchController = TextEditingController();
+  final countryScrollController = ScrollController();
 
   // Error fields
   final nameError = RxnString();
@@ -43,10 +46,31 @@ class SignupController extends GetxController {
   var selectedCountry = Country.parse('IN').obs; // default India
   final filteredCountries = <Country>[].obs;
 
+  // Google signup data
+  final isGoogleSignup = false.obs;
+  String? googlePhoto;
+
   @override
   void onInit() {
     super.onInit();
     loadUserData();
+    _loadGoogleSignupData();
+  }
+
+  //----------------------------------------------------
+  // LOAD GOOGLE SIGNUP DATA (if coming from Google sign-in)
+  //----------------------------------------------------
+  void _loadGoogleSignupData() {
+    final args = Get.arguments;
+    if (args != null && args is Map<String, dynamic>) {
+      if (args['isGoogleSignup'] == true) {
+        isGoogleSignup.value = true;
+        nameController.text = args['googleName'] ?? '';
+        emailController.text = args['googleEmail'] ?? '';
+        googlePhoto = args['googlePhoto'];
+        print('📱 Google Signup Data Loaded → ${args['googleEmail']}');
+      }
+    }
   }
 
   //----------------------------------------------------
@@ -226,43 +250,58 @@ class SignupController extends GetxController {
           );
         }
 
+        final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
         return ConstrainedBox(
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.5,
           ),
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Column(
-              children:
-                  filteredCountries
-                      .map(
-                        (c) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Material(
-                            color: Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(12),
-                            child: ListTile(
-                              leading: Text(
-                                c.flagEmoji,
-                                style: const TextStyle(fontSize: 20),
-                              ),
-                              title: Text(
-                                "${c.name} (+${c.phoneCode})",
-                                style: customBoldText.copyWith(
-                                  // fontSize: 14 * textScale,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.textColor,
+          child: AdaptiveScrollbar(
+            controller: countryScrollController,
+            position: ScrollbarPosition.right,
+            width: 10,
+            sliderSpacing: const EdgeInsets.symmetric(vertical: 6),
+            sliderDefaultColor: AppColors.primaryColor,
+            sliderActiveColor: AppColors.primaryColor.withOpacity(0.8),
+            underColor: isDarkMode
+                ? Colors.white.withOpacity(0.05)
+                : Colors.black.withOpacity(0.05),
+            sliderHeight: 100,
+            child: SingleChildScrollView(
+              controller: countryScrollController,
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                children:
+                    filteredCountries
+                        .map(
+                          (c) => Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Material(
+                              color: Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(12),
+                              child: ListTile(
+                                leading: Text(
+                                  c.flagEmoji,
+                                  style: const TextStyle(fontSize: 20),
                                 ),
+                                title: Text(
+                                  "${c.name} (+${c.phoneCode})",
+                                  style: customBoldText.copyWith(
+                                    // fontSize: 14 * textScale,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.textColor,
+                                  ),
+                                ),
+                                onTap: () {
+                                  selectedCountry.value = c;
+                                  Get.back();
+                                },
                               ),
-                              onTap: () {
-                                selectedCountry.value = c;
-                                Get.back();
-                              },
                             ),
                           ),
-                        ),
-                      )
-                      .toList(),
+                        )
+                        .toList(),
+              ),
             ),
           ),
         );
@@ -311,6 +350,9 @@ class SignupController extends GetxController {
 
       showCustomSnackBar(AppTexts.GOOGLE_SIGNIN_SUCCESS, SnackbarState.success);
       Get.offAllNamed(Routes.DASHBOARD);
+
+      // Process any pending deep link after signup
+      DeepLinkService.processPendingDeepLink();
     } on SocketException {
       showCustomSnackBar(AppTexts.NO_INTERNET, SnackbarState.error);
     } catch (_) {
@@ -344,6 +386,7 @@ class SignupController extends GetxController {
     passwordController.dispose();
     mobileController.dispose();
     searchController.dispose();
+    countryScrollController.dispose();
     super.onClose();
   }
 }

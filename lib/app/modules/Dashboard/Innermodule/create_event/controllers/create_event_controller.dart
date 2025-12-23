@@ -1,10 +1,12 @@
-// ignore_for_file: file_names, avoid_print, use_build_context_synchronously, unnecessary_null_comparison, unused_field
+// ignore_for_file: file_names, avoid_print, use_build_context_synchronously, unnecessary_null_comparison, unused_field, deprecated_member_use
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../../../../api/PublicApiService.dart';
+import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_texts.dart';
 import '../../../../../core/services/local_notification_service.dart';
 import '../../../../../core/utils/helpers/validation_utils.dart';
@@ -29,6 +31,7 @@ class CreateEventController extends GetxController {
   RxBool isLoading = false.obs;
   RxBool isProcessing = false.obs;
   RxBool isEditMode = false.obs;
+  RxBool hasChanges = false.obs;
 
   EventModel? editingEvent;
 
@@ -47,10 +50,36 @@ class CreateEventController extends GetxController {
 
   bool _isInitializing = false;
 
+  /// ---------------- ROTATING SUGGESTIONS ----------------
+  var currentTitleSuggestionIndex = 0.obs;
+  var currentDescriptionSuggestionIndex = 0.obs;
+  Timer? _suggestionTimer;
+
+  String get currentTitleSuggestion =>
+      AppTexts.TITLE_SUGGESTIONS[currentTitleSuggestionIndex.value];
+  String get currentDescriptionSuggestion =>
+      AppTexts.DESCRIPTION_SUGGESTIONS[currentDescriptionSuggestionIndex.value];
+
   @override
   void onInit() {
     super.onInit();
     _initControllers();
+    _startSuggestionTimer();
+  }
+
+  void _startSuggestionTimer() {
+    _suggestionTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      // Only rotate if fields are empty
+      if (titleController.text.isEmpty) {
+        currentTitleSuggestionIndex.value =
+            (currentTitleSuggestionIndex.value + 1) % AppTexts.TITLE_SUGGESTIONS.length;
+      }
+      if (descriptionController.text.isEmpty) {
+        currentDescriptionSuggestionIndex.value =
+            (currentDescriptionSuggestionIndex.value + 1) %
+                AppTexts.DESCRIPTION_SUGGESTIONS.length;
+      }
+    });
   }
 
   void _initControllers() {
@@ -59,6 +88,48 @@ class CreateEventController extends GetxController {
     dateController = TextEditingController();
     startTimeController = TextEditingController();
     endTimeController = TextEditingController();
+
+    // Add listeners to detect changes
+    titleController.addListener(_checkForChanges);
+    descriptionController.addListener(_checkForChanges);
+    dateController.addListener(_checkForChanges);
+    startTimeController.addListener(_checkForChanges);
+    endTimeController.addListener(_checkForChanges);
+  }
+
+  void _checkForChanges() {
+    if (_isInitializing) return;
+
+    final hasTitle = titleController.text.isNotEmpty;
+    final hasDescription = descriptionController.text.isNotEmpty;
+    final hasDate = dateController.text.isNotEmpty;
+    final hasStartTime = startTimeController.text.isNotEmpty;
+    final hasEndTime = endTimeController.text.isNotEmpty;
+
+    hasChanges.value = hasTitle || hasDescription || hasDate || hasStartTime || hasEndTime;
+  }
+
+  /// Discard all unsaved changes and go back
+  void discardChanges() {
+    if (!hasChanges.value) {
+      Get.back();
+      return;
+    }
+
+    Get.dialog(
+      CustomPopup(
+        title: AppTexts.DISCARD_CHANGES_TITLE,
+        message: AppTexts.DISCARD_CHANGES_SUBTITLE,
+        confirmText: AppTexts.DISCARD,
+        cancelText: AppTexts.CANCEL,
+        isProcessing: false.obs,
+        onConfirm: () {
+          clearForm();
+          Get.back(); // Close dialog
+          Get.back(); // Go back to previous screen
+        },
+      ),
+    );
   }
 
   @override
@@ -201,7 +272,7 @@ class CreateEventController extends GetxController {
       Get.off(() {
         Get.delete<InviteuserController>();
         Get.put(InviteuserController());
-        return const InviteuserView();
+        return  InviteuserView();
       }, arguments: newEvent);
     } catch (e) {
       showCustomSnackBar(
@@ -263,7 +334,7 @@ class CreateEventController extends GetxController {
         Get.off(() {
           Get.delete<InviteuserController>();
           Get.put(InviteuserController());
-          return const InviteuserView();
+          return  InviteuserView();
         }, arguments: updatedEvent);
       } else {
         showCustomSnackBar(
@@ -363,13 +434,44 @@ class CreateEventController extends GetxController {
       return;
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: now,
       builder: (context, child) {
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
-          child: child!,
+        return Theme(
+          data: Theme.of(context).copyWith(
+            timePickerTheme: TimePickerThemeData(
+              backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+              hourMinuteColor: isDark ? Colors.grey[800] : AppColors.primaryColor.withOpacity(0.1),
+              hourMinuteTextColor: isDark ? Colors.white : AppColors.primaryColor,
+              dialHandColor: AppColors.primaryColor,
+              dialBackgroundColor: isDark ? Colors.grey[800] : AppColors.primaryColor.withOpacity(0.1),
+              dialTextColor: WidgetStateColor.resolveWith((states) =>
+                  states.contains(WidgetState.selected)
+                      ? Colors.white
+                      : (isDark ? Colors.white : AppColors.primaryColor)),
+              entryModeIconColor: isDark ? Colors.white : AppColors.primaryColor,
+              dayPeriodColor: WidgetStateColor.resolveWith((states) =>
+                  states.contains(WidgetState.selected)
+                      ? AppColors.primaryColor
+                      : (isDark ? Colors.grey[800]! : AppColors.primaryColor.withOpacity(0.1))),
+              dayPeriodTextColor: WidgetStateColor.resolveWith((states) =>
+                  states.contains(WidgetState.selected)
+                      ? Colors.white
+                      : (isDark ? Colors.white : AppColors.primaryColor)),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: isDark ? Colors.white : AppColors.primaryColor,
+              ),
+            ),
+          ),
+          child: MediaQuery(
+            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+            child: child!,
+          ),
         );
       },
     );
@@ -397,15 +499,16 @@ class CreateEventController extends GetxController {
         return;
       }
 
-      final formatted24 = DateFormat('HH:mm:ss').format(selectedDateTime);
+      final formattedTime = DateFormat('h:mm a').format(selectedDateTime);
 
-      timeController.text = formatted24;
+      timeController.text = formattedTime;
       errorObservable.value = '';
     }
   }
 
   @override
   void onClose() {
+    _suggestionTimer?.cancel();
     titleController.dispose();
     descriptionController.dispose();
     dateController.dispose();

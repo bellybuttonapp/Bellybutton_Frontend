@@ -1,8 +1,9 @@
 // ignore_for_file: avoid_print, depend_on_referenced_packages
 
+import 'dart:io';
 import 'dart:math';
-import 'package:permission_handler/permission_handler.dart'; // REQUIRED
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -11,22 +12,30 @@ class LocalNotificationService {
       FlutterLocalNotificationsPlugin();
 
   /// ============================================================
-  /// 🔥 Initialize – MUST Request Permissions First
+  /// 🔥 Initialize (iOS + Android SAFE)
   /// ============================================================
   static Future<void> init() async {
-    // Android 13+ Notification Permission
-    await Permission.notification.request();
+    /// 🔴 Android-only permissions
+    if (Platform.isAndroid) {
+      await Permission.notification.request();
 
-    // Android Exact Alarm Permission (REQUIRED for scheduled)
-    if (await Permission.scheduleExactAlarm.isDenied) {
-      await Permission.scheduleExactAlarm.request();
+      if (await Permission.scheduleExactAlarm.isDenied) {
+        await Permission.scheduleExactAlarm.request();
+      }
     }
 
-    const AndroidInitializationSettings androidSettings =
+    const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    const InitializationSettings settings = InitializationSettings(
+    const iosSettings = DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
+
+    const settings = InitializationSettings(
       android: androidSettings,
+      iOS: iosSettings, // ✅ REQUIRED
     );
 
     await _plugin.initialize(
@@ -36,11 +45,11 @@ class LocalNotificationService {
       },
     );
 
-    tz.initializeTimeZones(); // 🔥 REQUIRED for scheduling
+    tz.initializeTimeZones();
   }
 
   /// ============================================================
-  /// 1️⃣ BASIC NOTIFICATION (Immediate)
+  /// 1️⃣ IMMEDIATE NOTIFICATION
   /// ============================================================
   static Future<void> show({
     required String title,
@@ -60,22 +69,26 @@ class LocalNotificationService {
           playSound: true,
           enableVibration: true,
         ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentSound: true,
+          presentBadge: true,
+        ),
       ),
       payload: payload,
     );
-    
   }
 
   /// ============================================================
-  /// 2️⃣ RANDOM NOTIFICATIONS — 2 Per Day
+  /// 2️⃣ RANDOM NOTIFICATIONS (2 PER DAY)
   /// ============================================================
   static Future<void> scheduleRandomTwoDaily({
     int minGapHours = 2,
     int maxGapHours = 6,
   }) async {
-    // 🚨 Prevent crash if permission not allowed
-    if (!await Permission.scheduleExactAlarm.isGranted) {
-      print("⛔ Exact Alarm Permission Denied – Scheduling Blocked");
+    if (Platform.isAndroid &&
+        !await Permission.scheduleExactAlarm.isGranted) {
+      print("⛔ Exact Alarm Permission Denied");
       return;
     }
 
@@ -83,22 +96,24 @@ class LocalNotificationService {
     int totalMinutes = 0;
 
     for (int i = 0; i < 2; i++) {
-      int gap =
-          (minGapHours * 60) +
+      final gap = (minGapHours * 60) +
           random.nextInt((maxGapHours * 60) - (minGapHours * 60));
 
       totalMinutes += gap;
-
       final time = DateTime.now().add(Duration(minutes: totalMinutes));
 
-      await schedule(title: _randomTitle(), body: _randomBody(), when: time);
+      await schedule(
+        title: _randomTitle(),
+        body: _randomBody(),
+        when: time,
+      );
     }
 
-    print("📌 TWO Random Notifications Scheduled Today 🚀");
+    print("📌 TWO Random Notifications Scheduled");
   }
 
   /// ============================================================
-  /// 3️⃣ SCHEDULER — WORKS EVEN IN TERMINATED MODE
+  /// 3️⃣ SCHEDULED NOTIFICATION
   /// ============================================================
   static Future<void> schedule({
     required String title,
@@ -117,13 +132,16 @@ class LocalNotificationService {
           importance: Importance.high,
           priority: Priority.high,
         ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentSound: true,
+          presentBadge: true,
+        ),
       ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle, // 🔥 Key
-      matchDateTimeComponents: null,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
     );
   }
 
-  // Random title
   static String _randomTitle() {
     const titles = [
       "Hey there 👋",
@@ -134,7 +152,6 @@ class LocalNotificationService {
     return titles[Random().nextInt(titles.length)];
   }
 
-  // Random body
   static String _randomBody() {
     const bodies = [
       "Upload a moment today!",

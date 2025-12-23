@@ -11,7 +11,7 @@ class InvitedUsersListView extends GetView<InvitedUsersListController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(title: AppTexts.INVITED_USERS_LIST),
+      appBar: const CustomAppBar(title: AppTexts.CAMERA_CREW),
       body: MembersListWidget(controller: controller),
     );
   }

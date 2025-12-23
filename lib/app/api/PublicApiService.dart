@@ -1,6 +1,5 @@
 // ignore_for_file: avoid_print, unused_field, file_names
 
-
 import 'dart:io';
 import 'package:dio/dio.dart';
 import '../core/network/dio_client.dart';
@@ -8,6 +7,7 @@ import '../api/end_points.dart';
 import '../core/utils/storage/preference.dart';
 import '../database/models/EventModel.dart';
 import '../database/models/InvitedEventModel.dart';
+import '../database/models/NotificationModel.dart';
 
 class PublicApiService {
   final Dio _dio = DioClient().dio;
@@ -94,7 +94,21 @@ class PublicApiService {
 
       print("📦 Parsed Events Count: ${data.length}");
 
-      return data.map((e) => EventModel.fromJson(e)).toList();
+      // Handle both old and new response formats
+      return data.map((item) {
+        final Map<String, dynamic> itemMap = Map<String, dynamic>.from(item);
+
+        // New format: { event: {...}, invitedPeople: [{id: 1, ...}] }
+        if (itemMap.containsKey('event')) {
+          print("📦 Using NEW format (with event wrapper)");
+          return EventModel.fromCreateResponse(itemMap);
+        }
+        // Old format: { id: 1, title: ..., invitedPeople: [...] }
+        else {
+          print("📦 Using OLD format (direct event object)");
+          return EventModel.fromJson(itemMap);
+        }
+      }).toList();
     } catch (e) {
       print("❌ Error parsing events: $e");
       return [];
@@ -205,9 +219,7 @@ class PublicApiService {
     );
 
     // Let AuthInterceptor handle token injection automatically
-    return await _handleApiCall(
-      DioClient().getRequest(endpoint),
-    );
+    return await _handleApiCall(DioClient().getRequest(endpoint));
   }
 
   // ==========================
@@ -257,6 +269,50 @@ class PublicApiService {
     print("❌ Deny request → $endpoint");
 
     final response = await _handleApiCall(DioClient().putRequest(endpoint));
+
+    return response;
+  }
+
+  // ==========================
+  // 8️⃣ Invite Users to Existing Event
+  // ==========================
+  Future<Map<String, dynamic>> inviteUsersToEvent({
+    required int eventId,
+    required List<Map<String, dynamic>> invitedPeople,
+  }) async {
+    final endpoint = Endpoints.INVITE_USERS_TO_EVENT.replaceFirst(
+      "{eventId}",
+      eventId.toString(),
+    );
+
+    print("📨 Invite users → $endpoint");
+
+    final response = await _handleApiCall(
+      DioClient().postRequest(
+        endpoint,
+        data: {"invitedPeople": invitedPeople},
+      ),
+    );
+
+    return response;
+  }
+
+  // ==========================
+  // 9️⃣ Remove Invited User from Event
+  // ==========================
+  Future<Map<String, dynamic>> removeInvitedUser({
+    required int eventId,
+    required dynamic inviteId, // Can be int (inviteId) or String (phone)
+  }) async {
+    final endpoint = Endpoints.REMOVE_INVITED_USER
+        .replaceFirst("{eventId}", eventId.toString())
+        .replaceFirst("{inviteId}", inviteId.toString());
+
+    print("🗑️ Remove invited user → $endpoint");
+
+    final response = await _handleApiCall(
+      DioClient().deleteRequest(endpoint),
+    );
 
     return response;
   }
@@ -316,6 +372,28 @@ class PublicApiService {
       ),
     );
   }
+
+  // ==========================
+  // 8️⃣ GET Single Media Info (Photo Size/Details)
+  // ==========================
+  Future<Map<String, dynamic>> getMediaInfo(int mediaId) async {
+    final endpoint = Endpoints.GET_MEDIA_INFO.replaceFirst(
+      "{id}",
+      mediaId.toString(),
+    );
+
+    return await _handleApiCall(
+      _dio.get(
+        endpoint,
+        options: Options(
+          headers: {
+            "Authorization": "Bearer ${Preference.token}",
+            "Accept": "application/json",
+          },
+        ),
+      ),
+    );
+  }
   // ==================================
   // 7️⃣ FETCH Invited Event Axcepted participants
   // ==================================
@@ -359,21 +437,20 @@ class PublicApiService {
   // 1️⃣ SHARE EVENT (Generate Link)
   // ===============================
 
-  Future<Map<String, dynamic>> shareEvent(int eventId) async {
+  /// Share event with permission type
+  /// [permission] can be "view-only" or "view-sync"
+  Future<Map<String, dynamic>> shareEvent(
+    int eventId, {
+    String permission = "view-only",
+  }) async {
     final endpoint = Endpoints.SHARE_EVENT.replaceFirst(
-      '{id}',
+      '{eventId}',
       eventId.toString(),
     );
-    print("🔗 Share Event → $endpoint");
+    final fullUrl = "$endpoint?permission=$permission";
+    print("🔗 Share Event → $fullUrl");
 
-    return await _handleApiCall(
-      _dio.post(
-        endpoint,
-        options: Options(
-          headers: {"Authorization": "Bearer ${Preference.token}"},
-        ),
-      ),
-    );
+    return await _handleApiCall(DioClient().getRequest(fullUrl));
   }
 
   // ===============================================
@@ -418,6 +495,72 @@ class PublicApiService {
       return {"success": false, "message": "Invalid event link"};
     }
   }
+
+  // ===============================================
+  // 3️⃣ OPEN SHARED EVENT BY TOKEN (Deep Link Handler)
+  // ===============================================
+  /// Opens a shared event using the share token
+  /// Token format: abc123xyz (from share/event/open/{token})
+  /// Returns event data with permission level
+  Future<Map<String, dynamic>> openSharedEventByToken(String shareToken) async {
+    try {
+      print("🔍 Opening shared event by token: $shareToken");
+
+      final endpoint = Endpoints.OPEN_SHARED_EVENT.replaceFirst(
+        '{eventId}',
+        shareToken,
+      );
+
+      print("📌 Endpoint: $endpoint");
+
+      final response = await _handleApiCall(
+        _dio.get(
+          endpoint,
+          options: Options(
+            headers: {
+              "Authorization": "Bearer ${Preference.token}",
+              "Accept": "application/json",
+            },
+          ),
+        ),
+      );
+
+      print("📦 Share Token Response: $response");
+
+      // Expected response format from backend:
+      // { "event": {...}, "permission": "view-only" | "view-sync", "success": true }
+      if (response["event"] != null) {
+        return {
+          "success": true,
+          "event": response["event"],
+          "permission": response["permission"] ?? "view-only",
+        };
+      }
+
+      // Alternative response format: { "data": {...}, "permission": "..." }
+      if (response["data"] != null) {
+        return {
+          "success": true,
+          "event": response["data"],
+          "permission": response["permission"] ?? "view-only",
+        };
+      }
+
+      // If response contains event data directly (flat structure)
+      if (response["id"] != null && response["title"] != null) {
+        return {
+          "success": true,
+          "event": response,
+          "permission": response["permission"] ?? "view-only",
+        };
+      }
+
+      return {"success": false, "message": response["message"] ?? "Event not found"};
+    } catch (e) {
+      print("❌ Error opening shared event by token: $e");
+      return {"success": false, "message": "Failed to open shared event"};
+    }
+  }
   // ===============================================
   // 🔔 PUSH NOTIFICATION → Save / Update FCM Token
   // ===============================================
@@ -443,6 +586,35 @@ class PublicApiService {
     } catch (e, stacktrace) {
       print("❌ Failed to update FCM Token → $e");
       print("📌 Stacktrace → $stacktrace");
+    }
+  }
+
+  // ===============================================
+  // 📜 TERMS & CONDITIONS
+  // ===============================================
+
+  /// Fetch latest terms and conditions content
+  Future<Map<String, dynamic>> getTermsAndConditions() async {
+    return await _handleApiCall(DioClient().getRequest(Endpoints.TERMS_LATEST));
+  }
+
+  // ===============================================
+  // 🔔 NOTIFICATIONS
+  // ===============================================
+
+  /// Fetch all notifications for the current user
+  Future<List<NotificationModel>> getNotifications() async {
+    final response = await _handleApiCall(
+      DioClient().getRequest(Endpoints.LIST_NOTIFICATIONS),
+    );
+
+    try {
+      final List<dynamic> data = response["data"] ?? [];
+      print("📬 Parsed Notifications Count: ${data.length}");
+      return data.map((e) => NotificationModel.fromJson(e)).toList();
+    } catch (e) {
+      print("❌ Error parsing notifications: $e");
+      return [];
     }
   }
 }

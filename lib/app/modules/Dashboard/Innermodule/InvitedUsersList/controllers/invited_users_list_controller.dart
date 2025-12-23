@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import '../../../../../api/PublicApiService.dart';
 import '../../../../../database/models/EventModel.dart';
+import '../../../../../database/models/MemberModel.dart';
 
 /// ===============================================================
 /// 🔥 Invited Users List Controller (Final Fixed + Stable)
@@ -23,9 +24,9 @@ class InvitedUsersListController extends GetxController {
   // ------------------------------------------------------
   // 👥 USER MANAGEMENT
   // ------------------------------------------------------
-  RxString adminUser = "".obs; // Event Admin
-  final users = <String>[].obs; // Joined participants
-  final filteredUsers = <String>[].obs; // Search results
+  final Rx<MemberModel?> adminUser = Rx<MemberModel?>(null); // Event Admin
+  final users = <MemberModel>[].obs; // Joined participants
+  final filteredUsers = <MemberModel>[].obs; // Search results
   final isLoading = true.obs; // Loader state
 
   // ------------------------------------------------------
@@ -64,14 +65,20 @@ class InvitedUsersListController extends GetxController {
 
       final response = await PublicApiService().getJoinedUsers(eventId);
 
-      adminUser.value = response["admin"]?["name"] ?? "";
+      // Main Admin
+      if (response["admin"] != null) {
+        adminUser.value = MemberModel.fromJson(response["admin"]);
+      }
 
+      // Joined Users List
       final list = response["joinedPeople"] ?? [];
-      users.assignAll(list.map<String>((e) => e["name"].toString()).toList());
+      users.assignAll(
+        list.map<MemberModel>((e) => MemberModel.fromJson(e)).toList(),
+      );
 
       // Admin always at top 🔥
       filteredUsers.assignAll([
-        if (adminUser.isNotEmpty) adminUser.value,
+        if (adminUser.value != null) adminUser.value!,
         ...users,
       ]);
     } catch (e) {
@@ -86,10 +93,13 @@ class InvitedUsersListController extends GetxController {
   // 🔍 LIVE SEARCH FILTER
   // ------------------------------------------------------
   void validateSearch(String query) {
-    final all = [adminUser.value, ...users];
+    final List<MemberModel> all = [
+      if (adminUser.value != null) adminUser.value!,
+      ...users,
+    ];
 
     filteredUsers.assignAll(
-      all.where((u) => u.toLowerCase().contains(query.toLowerCase())),
+      all.where((u) => u.name.toLowerCase().contains(query.toLowerCase())),
     );
   }
 }

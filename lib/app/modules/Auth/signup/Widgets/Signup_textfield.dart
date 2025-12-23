@@ -1,6 +1,7 @@
 // ignore_for_file: camel_case_types, file_names
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../core/constants/app_colors.dart';
 import 'package:bellybutton/app/core/utils/index.dart';
 
@@ -20,6 +21,8 @@ class Signup_textfield extends StatelessWidget {
   final void Function(String)? onChanged;
   final VoidCallback? onTap;
   final int? maxLines;
+  final List<TextInputFormatter>? inputFormatters;
+  final int? maxLength;
 
   const Signup_textfield({
     super.key,
@@ -38,6 +41,8 @@ class Signup_textfield extends StatelessWidget {
     this.onChanged,
     this.onTap,
     this.maxLines,
+    this.inputFormatters,
+    this.maxLength,
   });
 
   @override
@@ -64,6 +69,8 @@ class Signup_textfield extends StatelessWidget {
               onChanged: onChanged,
               onTap: onTap,
               maxLines: maxLines ?? 1,
+              inputFormatters: inputFormatters,
+              maxLength: maxLength,
               style: customBoldText.copyWith(
                 fontSize: screenWidth * 0.035,
                 color: AppColors.tertiaryColor,

@@ -16,7 +16,9 @@ class AuthService {
   // ---------- Firebase ----------
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    serverClientId: '480572814025-n6561pfngtku0nbvv70v1k9uuphnluhd.apps.googleusercontent.com',
+  );
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
   // ---------- API / Dio ----------
@@ -47,15 +49,32 @@ class AuthService {
         return {"result": false, "message": "No internet connection."};
       }
       print("DioException: ${e.message}");
-      return {"result": false};
+
+      // Extract error message from response if available
+      if (e.response?.data != null) {
+        final data = e.response!.data;
+        if (data is Map<String, dynamic>) {
+          final headers = data['headers'];
+          if (headers is Map<String, dynamic> && headers['message'] != null) {
+            return {
+              "result": false,
+              "headers": headers,
+              "message": headers['message'],
+            };
+          }
+          return {"result": false, ...data};
+        }
+      }
+
+      return {"result": false, "message": "Something went wrong. Please try again."};
     } catch (e) {
       print("Unexpected error: $e");
-      return {"result": false};
+      return {"result": false, "message": "Something went wrong. Please try again."};
     }
   }
 
   // ==========================
-  // Firebase Google Sign-In
+  // Firebase Google Sign-In (Local only)
   // ==========================
   Future<UserCredential?> signInWithGoogle() async {
     try {
@@ -110,6 +129,179 @@ class AuthService {
   }
 
   // ==========================
+  // Get Google User Info (without backend login)
+  // ==========================
+  Future<Map<String, dynamic>> getGoogleUserInfo() async {
+    try {
+      // Start Google Sign-In flow
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        return {"success": false, "message": "Google sign-in canceled"};
+      }
+
+      // Get Google authentication details
+      final googleAuth = await googleUser.authentication;
+      final String? idToken = googleAuth.idToken;
+
+      if (idToken == null) {
+        return {"success": false, "message": "Failed to get Google ID token"};
+      }
+
+      print('🔥 Google User Info → ${googleUser.email}');
+
+      return {
+        "success": true,
+        "email": googleUser.email,
+        "name": googleUser.displayName ?? '',
+        "photoUrl": googleUser.photoUrl ?? '',
+        "idToken": idToken,
+      };
+    } catch (e, s) {
+      print('❌ Google sign-in error: $e');
+      print('Stacktrace: $s');
+      return {"success": false, "message": "Google sign-in failed"};
+    }
+  }
+
+  // ==========================
+  // Google Sign-In with Backend API (using existing token)
+  // ==========================
+  Future<Map<String, dynamic>> signInWithGoogleAPIWithToken(String idToken) async {
+    try {
+      print('🔥 Google ID Token: $idToken');
+
+      // Send ID token to backend API
+      final response = await DioClient().dio.post(
+        Endpoints.GOOGLE_LOGIN,
+        data: {"token": idToken},
+        options: Options(headers: {"Content-Type": "application/json"}),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final data = response.data;
+        final headers = data['headers'] ?? {};
+        final userData = data['data'] ?? {};
+
+        final isSuccess =
+            headers['status'] == 'success' || headers['statusCode'] == 200;
+
+        if (isSuccess) {
+          // ✅ Save user data to local storage
+          Preference.token = userData['accessToken'] ?? '';
+          Preference.userId = userData['userId'] ?? 0;
+          Preference.email = userData['email'] ?? '';
+          Preference.userName = userData['name'] ?? '';
+          Preference.isLoggedIn = true;
+
+          print('✅ Google login successful → User: ${userData['name']}');
+
+          return {
+            "success": true,
+            "message": headers['message'] ?? "Google login successful",
+            "data": userData,
+          };
+        }
+
+        return {
+          "success": false,
+          "message": headers['message'] ?? "Google login failed",
+        };
+      }
+
+      return {"success": false, "message": "Unexpected server response"};
+    } on DioException catch (e) {
+      print('❌ Google API login error: ${e.message}');
+      if (e.error is SocketException) {
+        return {"success": false, "message": "No internet connection"};
+      }
+      return {
+        "success": false,
+        "message": e.response?.data?['headers']?['message'] ?? "Network error",
+      };
+    } catch (e, s) {
+      print('❌ Google sign-in API error: $e');
+      print('Stacktrace: $s');
+      return {"success": false, "message": "Google sign-in failed"};
+    }
+  }
+
+  // ==========================
+  // Google Sign-In with Backend API
+  // ==========================
+  Future<Map<String, dynamic>> signInWithGoogleAPI() async {
+    try {
+      // 1️⃣ Start Google Sign-In flow
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        return {"success": false, "message": "Google sign-in canceled"};
+      }
+
+      // 2️⃣ Get Google authentication details
+      final googleAuth = await googleUser.authentication;
+      final String? idToken = googleAuth.idToken;
+
+      if (idToken == null) {
+        return {"success": false, "message": "Failed to get Google ID token"};
+      }
+
+      print('🔥 Google ID Token: $idToken');
+
+      // 3️⃣ Send ID token to backend API
+      final response = await DioClient().dio.post(
+        Endpoints.GOOGLE_LOGIN,
+        data: {"token": idToken},
+        options: Options(headers: {"Content-Type": "application/json"}),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final data = response.data;
+        final headers = data['headers'] ?? {};
+        final userData = data['data'] ?? {};
+
+        final isSuccess =
+            headers['status'] == 'success' || headers['statusCode'] == 200;
+
+        if (isSuccess) {
+          // ✅ Save user data to local storage
+          Preference.token = userData['accessToken'] ?? '';
+          Preference.userId = userData['userId'] ?? 0;
+          Preference.email = userData['email'] ?? '';
+          Preference.userName = userData['name'] ?? '';
+          Preference.isLoggedIn = true;
+
+          print('✅ Google login successful → User: ${userData['name']}');
+
+          return {
+            "success": true,
+            "message": headers['message'] ?? "Google login successful",
+            "data": userData,
+          };
+        }
+
+        return {
+          "success": false,
+          "message": headers['message'] ?? "Google login failed",
+        };
+      }
+
+      return {"success": false, "message": "Unexpected server response"};
+    } on DioException catch (e) {
+      print('❌ Google API login error: ${e.message}');
+      if (e.error is SocketException) {
+        return {"success": false, "message": "No internet connection"};
+      }
+      return {
+        "success": false,
+        "message": e.response?.data?['headers']?['message'] ?? "Network error",
+      };
+    } catch (e, s) {
+      print('❌ Google sign-in API error: $e');
+      print('Stacktrace: $s');
+      return {"success": false, "message": "Google sign-in failed"};
+    }
+  }
+
+  // ==========================
   // API Signup
   // ==========================
   Future<Map<String, dynamic>> registerWithAPI({
@@ -139,32 +331,81 @@ class AuthService {
   Future<Map<String, dynamic>> verifySignupOtp({
     required String email,
     required String otp,
+    String? deviceId,
+    String? deviceModel,
+    String? deviceBrand,
+    String? deviceOS,
+    String? deviceType,
   }) async {
     try {
+      final Map<String, dynamic> requestData = {
+        "email": email.trim(),
+        "otp": otp.trim(),
+      };
+
+      // Add device info if provided
+      if (deviceId != null && deviceId.isNotEmpty) {
+        requestData["deviceId"] = deviceId;
+      }
+      if (deviceModel != null && deviceModel.isNotEmpty) {
+        requestData["deviceModel"] = deviceModel;
+      }
+      if (deviceBrand != null && deviceBrand.isNotEmpty) {
+        requestData["deviceBrand"] = deviceBrand;
+      }
+      if (deviceOS != null && deviceOS.isNotEmpty) {
+        requestData["deviceOS"] = deviceOS;
+      }
+      if (deviceType != null && deviceType.isNotEmpty) {
+        requestData["deviceType"] = deviceType;
+      }
+
       final response = await DioClient().postRequest(
         Endpoints.REGISTER_VERIFY_OTP,
-        data: {"email": email.trim(), "otp": otp.trim()},
+        data: requestData,
       );
 
       if (response?.data == null) {
         return _errorResponse("Something went wrong. Please try again.");
       }
 
-      final data = response?.data;
-      final headers = data["headers"] ?? {};
-      bool success = headers["status"]?.toLowerCase() == "success";
+      final responseData = response?.data;
+
+      // ✅ Handle direct response format (without nested headers)
+      // Expected format:
+      // {
+      //   "userId": 62,
+      //   "email": "as7@yopmail.com",
+      //   "status": "success",
+      //   "accessToken": "...",
+      //   "device": {...}
+      // }
+
+      final status = responseData["status"]?.toString().toLowerCase();
+      bool success = status == "success";
 
       return {
         "status": success,
-        "message":
-            data["message"] ??
-            (success
-                ? "OTP verified successfully."
-                : "Invalid OTP. Please try again."),
+        "message": success
+            ? "OTP verified successfully."
+            : (responseData["message"] ?? "Invalid OTP. Please try again."),
+        "data": success ? responseData : null, // ✅ Return the entire response as data
       };
     } on DioException catch (e) {
       // Log internally for debugging, do not expose to user
       debugPrint("DIO ERROR → ${e.message} | ${e.response?.statusCode}");
+
+      // Extract error message from API response if available
+      if (e.response?.data != null) {
+        final responseData = e.response!.data;
+        if (responseData is Map<String, dynamic>) {
+          // Try to get message from different possible locations
+          final message = responseData['message'] ??
+                         responseData['headers']?['message'] ??
+                         "Invalid OTP. Please try again.";
+          return _errorResponse(message.toString());
+        }
+      }
 
       return _errorResponse(
         e.type == DioExceptionType.connectionTimeout ||
@@ -299,11 +540,39 @@ class AuthService {
   Future<Map<String, dynamic>> loginWithAPI({
     required String email,
     required String password,
+    String? deviceId,
+    String? deviceModel,
+    String? deviceBrand,
+    String? deviceOS,
+    String? deviceType,
   }) async {
+    final Map<String, dynamic> data = {
+      "email": email,
+      "password": password,
+    };
+
+    // Add device info if provided
+    if (deviceId != null && deviceId.isNotEmpty) {
+      data["deviceId"] = deviceId;
+    }
+    if (deviceModel != null && deviceModel.isNotEmpty) {
+      data["deviceModel"] = deviceModel;
+    }
+    if (deviceBrand != null && deviceBrand.isNotEmpty) {
+      data["deviceBrand"] = deviceBrand;
+    }
+    if (deviceOS != null && deviceOS.isNotEmpty) {
+      data["deviceOS"] = deviceOS;
+    }
+    if (deviceType != null && deviceType.isNotEmpty) {
+      data["deviceType"] = deviceType;
+    }
+
     return await _handleApiCall(
       DioClient().postRequest(
         Endpoints.LOGIN,
-        data: {"email": email, "password": password},
+        data: data,
+        rethrowError: true,
       ),
     );
   }

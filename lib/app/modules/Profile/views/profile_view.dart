@@ -217,13 +217,13 @@ class ProfileView extends GetView<ProfileController> {
                         onTap: controller.ResetPassword,
                       ),
 
-                      const _SectionDivider(),
+                      // const _SectionDivider(),
 
-                      _ProfileMenuTile(
-                        svgPath: AppImages.FAQ_ICON,
-                        title: AppTexts.FAQS,
-                        onTap: controller.onFaqsTap,
-                      ),
+                      // _ProfileMenuTile(
+                      //   svgPath: AppImages.FAQ_ICON,
+                      //   title: AppTexts.FAQS,
+                      //   onTap: controller.onFaqsTap,
+                      // ),
 
                       const _SectionDivider(),
 

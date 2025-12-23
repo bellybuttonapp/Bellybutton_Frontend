@@ -64,18 +64,27 @@ class FirebaseNotificationService {
   /// MAIN INIT FUNCTION (called inside main BEFORE runApp)
   /// =============================================================
   static Future<void> init() async {
-    print('🔥 FirebaseNotificationService.init() start');
+  debugPrint('🔥 FirebaseNotificationService.init() start');
 
-    await _requestPermission();
-    await _initLocalNotifications();
-    await _createNotificationChannel();
-
-    _setupForegroundListener();
-    _setupOnMessageOpenedAppListener();
-    await _handleInitialMessageIfAny();
-
-    print('🔥 FirebaseNotificationService.init() done');
+  try {
+    final token = await FirebaseMessaging.instance.getToken();
+    debugPrint('🔥 FCM TOKEN → $token');
+  } catch (e) {
+    debugPrint('⚠️ FCM token not ready yet (iOS): $e');
   }
+
+  await _requestPermission();
+  await _initLocalNotifications();
+  await _createNotificationChannel();
+
+  _setupForegroundListener();
+  _setupOnMessageOpenedAppListener();
+  await _handleInitialMessageIfAny();
+
+  debugPrint('🔥 FirebaseNotificationService.init() done');
+}
+
+
 
   /// =============================================================
   /// PUBLIC: Initialize Local Notifications AFTER runApp
@@ -101,21 +110,33 @@ class FirebaseNotificationService {
     }
   }
 
-  /// =============================================================
-  /// LOCAL NOTIFICATION INITIALIZATION
-  /// =============================================================
-  static Future<void> _initLocalNotifications() async {
-    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+ /// =============================================================
+/// LOCAL NOTIFICATION INITIALIZATION (iOS + Android SAFE)
+/// =============================================================
+static Future<void> _initLocalNotifications() async {
+  const androidInit =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    final initSettings = InitializationSettings(android: androidInit);
+  const iosInit = DarwinInitializationSettings(
+    requestAlertPermission: true,
+    requestBadgePermission: true,
+    requestSoundPermission: true,
+  );
 
-    await _local.initialize(
-      initSettings,
-      onDidReceiveNotificationResponse: (response) {
-        _handlePayloadTap(response.payload);
-      },
-    );
-  }
+  const initSettings = InitializationSettings(
+    android: androidInit,
+    iOS: iosInit, // 🔥 REQUIRED
+  );
+
+  await _local.initialize(
+    initSettings,
+    onDidReceiveNotificationResponse: (response) {
+      _handlePayloadTap(response.payload);
+    },
+  );
+}
+
+
 
   /// =============================================================
   /// ANDROID NOTIFICATION CHANNEL
@@ -143,8 +164,13 @@ class FirebaseNotificationService {
   /// =============================================================
   static void _setupForegroundListener() {
     FirebaseMessaging.onMessage.listen((message) async {
-      print("📩 Foreground: ${message.messageId}");
-
+     
+    // ✅ ADD THESE PRINTS
+    print("📩 FOREGROUND FCM RECEIVED");
+    print("📌 Message ID → ${message.messageId}");
+    print("📌 Title → ${message.notification?.title}");
+    print("📌 Body → ${message.notification?.body}");
+    print("📌 Data → ${message.data}");
       await _showLocalNotification(message);
       _showInAppBanner(message);
     });

@@ -20,6 +20,13 @@ class CustomPopup extends StatelessWidget {
   final RxInt? totalCount;
   final bool showProgress;
 
+  /// Whether tapping outside the popup dismisses it
+  final bool barrierDismissible;
+
+  /// Custom button colors
+  final Color? cancelButtonColor;
+  final Color? confirmButtonColor;
+
   const CustomPopup({
     super.key,
     required this.title,
@@ -32,6 +39,9 @@ class CustomPopup extends StatelessWidget {
     this.savedCount,
     this.totalCount,
     this.showProgress = false,
+    this.barrierDismissible = true,
+    this.cancelButtonColor,
+    this.confirmButtonColor,
   }) : assert(
          message != null || messageWidget != null,
          "Provide either message or messageWidget",
@@ -46,9 +56,12 @@ class CustomPopup extends StatelessWidget {
       data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
       child: Stack(
         children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Get.back(),
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: barrierDismissible ? () => Get.back() : null,
+              child: Container(color: Colors.black54),
+            ),
           ),
 
           Center(
@@ -145,7 +158,7 @@ class CustomPopup extends StatelessWidget {
                                 OutlinedButton(
                                   onPressed: () => Get.back(),
                                   style: OutlinedButton.styleFrom(
-                                    side: BorderSide(color: AppColors.error),
+                                    side: BorderSide(color: cancelButtonColor ?? AppColors.error),
                                     padding: EdgeInsets.symmetric(
                                       horizontal: 20,
                                       vertical: 12,
@@ -158,7 +171,7 @@ class CustomPopup extends StatelessWidget {
                                     cancelText!,
                                     style: customBoldText.copyWith(
                                       fontSize: size.width * 0.035,
-                                      color: AppColors.error,
+                                      color: cancelButtonColor ?? AppColors.error,
                                     ),
                                   ),
                                 ),
@@ -170,7 +183,7 @@ class CustomPopup extends StatelessWidget {
                                 onPressed:
                                     isProcessing.value ? null : onConfirm,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryColor,
+                                  backgroundColor: confirmButtonColor ?? AppColors.primaryColor,
                                   padding: EdgeInsets.symmetric(
                                     horizontal: 22,
                                     vertical: 12,

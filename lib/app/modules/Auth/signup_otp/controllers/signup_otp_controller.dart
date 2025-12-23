@@ -1,12 +1,17 @@
 // ignore_for_file: deprecated_member_use, unused_field, avoid_print
 
 import 'dart:async';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../Controllers/oauth.dart';
+import '../../../../Controllers/deviceinfo_controller.dart';
+import '../../../../api/PublicApiService.dart';
+import '../../../../core/services/deep_link_service.dart';
 import '../../../../core/utils/helpers/validation_utils.dart';
+import '../../../../core/utils/storage/preference.dart';
 import '../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
-import '../../login/views/login_view.dart';
+import '../../../../routes/app_pages.dart';
 
 class SignupOtpController extends GetxController {
   // Controllers & State
@@ -44,34 +49,103 @@ class SignupOtpController extends GetxController {
     isLoading.value = true;
 
     try {
+      // ✅ Get device info
+      final deviceInfo = await DeviceController.getDeviceInfoStatic();
+      print("📱 Device Info: ${deviceInfo.toJson()}");
+
       final response = await AuthService().verifySignupOtp(
         email: email,
         otp: otp,
+        deviceId: deviceInfo.deviceId,
+        deviceModel: deviceInfo.deviceModel,
+        deviceBrand: deviceInfo.deviceBrand,
+        deviceOS: deviceInfo.deviceOS,
+        deviceType: deviceInfo.deviceType,
       );
 
       final status = response['status'] ?? false;
       final message = response['message'] ?? "Something went wrong";
 
       if (status) {
-        showCustomSnackBar(message, SnackbarState.success);
-        FocusManager.instance.primaryFocus?.unfocus();
+        // ✅ Check if backend returns token & user data
+        final data = response['data'];
+        if (data != null && data['accessToken'] != null) {
+          // ✅ Save user data to local storage
+          Preference.token = data['accessToken'] ?? '';
+          Preference.userId = data['userId'] ?? 0;
+          Preference.email = data['email'] ?? email;
+          Preference.userName = data['name'] ?? data['fullName'] ?? '';
+          Preference.profileImage = data['profilePhoto'] ?? data['profileImageUrl'] ?? '';
+          Preference.isLoggedIn = true;
 
-        // Delay a little to let SnackBar appear, then navigate
-        await Future.delayed(const Duration(milliseconds: 300));
+          // ✅ Log device info (optional)
+          final deviceInfo = data['device'];
+          if (deviceInfo != null) {
+            print("📱 Device registered: ${deviceInfo['deviceModel']} (${deviceInfo['deviceOS']})");
+          }
 
-        // ✅ Use Get.offAll to go to Login and remove OTP screen from stack
-        Get.offAll(
-          () => LoginView(),
-          transition: Transition.leftToRight,
-          duration: const Duration(milliseconds: 300),
-        );
+          // ✅ Fetch full profile from API
+          try {
+            final profileResult = await PublicApiService().getProfileById(
+              Preference.userId,
+            );
+            if (profileResult["data"] != null) {
+              final profileData = profileResult["data"];
+              if (profileData["fullName"] != null) {
+                Preference.userName = profileData["fullName"];
+              }
+              if (profileData["bio"] != null) {
+                Preference.bio = profileData["bio"];
+              }
+              if (profileData["profileImageUrl"] != null) {
+                Preference.profileImage = profileData["profileImageUrl"];
+              }
+              if (profileData["phone"] != null) {
+                Preference.phone = profileData["phone"];
+              }
+              if (profileData["address"] != null) {
+                Preference.address = profileData["address"];
+              }
+            }
+          } catch (e) {
+            print("⚠️ Failed to fetch profile after OTP verification: $e");
+          }
+
+          // ✅ Upload FCM token
+          try {
+            final fcmToken = await FirebaseMessaging.instance.getToken();
+            if (fcmToken != null) {
+              Preference.fcmToken = fcmToken;
+              await PublicApiService().updateFcmToken(fcmToken);
+            }
+          } catch (e) {
+            print("⚠️ FCM token error (non-blocking): $e");
+          }
+
+          showCustomSnackBar(message, SnackbarState.success);
+          FocusManager.instance.primaryFocus?.unfocus();
+
+          await Future.delayed(const Duration(milliseconds: 300));
+
+          // ✅ Go directly to Dashboard
+          Get.offAllNamed(Routes.DASHBOARD);
+
+          // Process any pending deep link
+          DeepLinkService.processPendingDeepLink();
+        } else {
+          // ❌ Backend doesn't return token - fallback to login
+          showCustomSnackBar("Please login to continue", SnackbarState.success);
+          FocusManager.instance.primaryFocus?.unfocus();
+
+          await Future.delayed(const Duration(milliseconds: 300));
+          Get.offAllNamed(Routes.LOGIN);
+        }
       } else {
+        // Show error as inline text only, no snackbar
         otpError.value = message;
-        showCustomSnackBar(message, SnackbarState.error);
       }
-    } catch (e, st) {
+    } catch (e) {
       otpError.value = "Unexpected error occurred.";
-      showCustomSnackBar(otpError.value, SnackbarState.error);
     } finally {
       isLoading.value = false;
     }
@@ -100,13 +174,7 @@ class SignupOtpController extends GetxController {
 
       if (code == 200 && status == "success") {
         showCustomSnackBar(message, SnackbarState.success);
-        // Close keyboard safely and navigate directly
-        FocusManager.instance.primaryFocus?.unfocus();
-        Get.to(
-          () => LoginView(),
-          transition: Transition.leftToRight,
-          duration: const Duration(milliseconds: 300),
-        );
+        // Stay on OTP screen - user will enter new OTP
       } else {
         otpError.value = message;
         showCustomSnackBar(message, SnackbarState.error);

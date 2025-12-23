@@ -1,7 +1,9 @@
 import 'package:get/get.dart';
 import '../../../../../api/PublicApiService.dart';
+import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_texts.dart';
 import '../../../../../database/models/InvitedEventModel.dart';
+import '../../../../../global_widgets/CustomPopup/CustomPopup.dart';
 import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../../../routes/app_pages.dart';
 
@@ -11,6 +13,10 @@ class EventInvitationsController extends GetxController {
 
   /// Shimmer loading state
   RxBool isLoading = true.obs;
+
+  /// Processing state for popups
+  RxBool isProcessing = false.obs;
+  RxBool isDenyProcessing = false.obs;
 
   @override
   void onInit() {
@@ -72,13 +78,29 @@ class EventInvitationsController extends GetxController {
   }
 
   /// ======================= ACCEPT INVITATION =======================
-  Future<void> acceptInvitation(InvitedEventModel event) async {
+  void showAcceptConfirmation(InvitedEventModel event) {
+    Get.dialog(
+      CustomPopup(
+        title: AppTexts.ACCEPT_EVENT_POPUP_TITLE,
+        message: AppTexts.ACCEPT_EVENT_POPUP_SUBTITLE,
+        confirmText: AppTexts.ACCEPT,
+        cancelText: AppTexts.CANCEL,
+        isProcessing: isProcessing,
+        onConfirm: () => _acceptInvitation(event),
+      ),
+    );
+  }
+
+  Future<void> _acceptInvitation(InvitedEventModel event) async {
+    isProcessing.value = true;
     try {
       final res = await PublicApiService().acceptInvitedEvent(event.eventId);
 
       if (res['message'] == "Event Accepted Successfully") {
         event.status = "ACCEPTED"; // Instant UI change
         invitedEvents.refresh(); // Notify GetX UI
+
+        Get.back(); // Close the popup
 
         showCustomSnackBar(
           "${AppTexts.EVENT_ACCEPTED} ${event.title}",
@@ -89,16 +111,38 @@ class EventInvitationsController extends GetxController {
       }
     } catch (e) {
       showCustomSnackBar(AppTexts.SOMETHING_WENT_WRONG, SnackbarState.error);
+    } finally {
+      isProcessing.value = false;
     }
   }
 
   /// ======================= DENY INVITATION =======================
-  Future<void> denyInvitation(InvitedEventModel event) async {
+  void showDenyConfirmation(InvitedEventModel event) {
+    Get.dialog(
+      CustomPopup(
+        title: AppTexts.DENY_EVENT_POPUP_TITLE,
+        message: AppTexts.DENY_EVENT_POPUP_SUBTITLE,
+        confirmText: AppTexts.DENY,
+        cancelText: AppTexts.CANCEL,
+        isProcessing: isDenyProcessing,
+        onConfirm: () => _denyInvitation(event),
+          // 🔥 Same styling pattern as Delete Account
+        confirmButtonColor: AppColors.error,
+    cancelButtonColor: AppColors.primaryColor,
+      ),
+    );
+  }
+
+  Future<void> _denyInvitation(InvitedEventModel event) async {
+    isDenyProcessing.value = true;
     try {
       final res = await PublicApiService().denyInvitedEvent(event.eventId);
 
-      if (res['message'] == "Event Denied") {
-        invitedEvents.remove(event); // Instant removal
+      if (res['message'] == "Event Denied Successfully") {
+      invitedEvents.remove(event); // remove from list
+ invitedEvents.refresh(); // Notify GetX UI
+
+        Get.back(); // Close the popup
 
         showCustomSnackBar("${AppTexts.EVENT_DENIED} ${event.title}", SnackbarState.error);
       } else {
@@ -106,6 +150,8 @@ class EventInvitationsController extends GetxController {
       }
     } catch (e) {
       showCustomSnackBar(AppTexts.UNABLE_TO_PROCESS_REQUEST, SnackbarState.error);
+    } finally {
+      isDenyProcessing.value = false;
     }
   }
 

@@ -1,5 +1,6 @@
 // ignore_for_file: unused_import, deprecated_member_use, unused_field, curly_braces_in_flow_control_structures, avoid_print
 
+import 'dart:async';
 import 'dart:io';
 import 'package:bellybutton/app/Controllers/oauth.dart';
 import 'package:bellybutton/app/core/constants/app_colors.dart';
@@ -15,6 +16,7 @@ import '../../../../../api/PublicApiService.dart';
 import '../../../../../core/services/local_notification_service.dart';
 import '../../../../../core/utils/helpers/validation_utils.dart';
 import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
+import '../../../../../global_widgets/CustomPopup/CustomPopup.dart';
 import '../../../../../core/utils/storage/preference.dart';
 import '../../../controllers/profile_controller.dart';
 
@@ -23,6 +25,10 @@ class AccountDetailsController extends GetxController {
   final emailController = TextEditingController();
   final bioController = TextEditingController();
 
+  /// ---------------- FOCUS NODES ----------------
+  final nameFocusNode = FocusNode();
+  final bioFocusNode = FocusNode();
+
   final isLoading = false.obs;
   final nameError = RxnString();
 
@@ -30,6 +36,42 @@ class AccountDetailsController extends GetxController {
 
   final Rx<XFile?> pickedImage = Rx<XFile?>(null);
   final ImagePicker picker = ImagePicker();
+
+  /// ---------------- ROTATING BIO SUGGESTIONS ----------------
+  var currentBioSuggestionIndex = 0.obs;
+  var isBioEmpty = true.obs;
+  Timer? _suggestionTimer;
+
+  /// ---------------- EDIT MODE STATES ----------------
+  var isNameEditing = false.obs;
+  var isBioEditing = false.obs;
+
+  void toggleNameEdit() {
+    isNameEditing.value = !isNameEditing.value;
+    if (isNameEditing.value) {
+      isBioEditing.value = false;
+      Future.delayed(const Duration(milliseconds: 100), () {
+        nameFocusNode.requestFocus();
+      });
+    } else {
+      nameFocusNode.unfocus();
+    }
+  }
+
+  void toggleBioEdit() {
+    isBioEditing.value = !isBioEditing.value;
+    if (isBioEditing.value) {
+      isNameEditing.value = false;
+      Future.delayed(const Duration(milliseconds: 100), () {
+        bioFocusNode.requestFocus();
+      });
+    } else {
+      bioFocusNode.unfocus();
+    }
+  }
+
+  String get currentBioSuggestion =>
+      AppTexts.BIO_SUGGESTIONS[currentBioSuggestionIndex.value];
 
   @override
   void onInit() {
@@ -76,12 +118,33 @@ class AccountDetailsController extends GetxController {
     print("🔍 AccountDetails - Final name: '${nameController.text}'");
     print("🔍 AccountDetails - Final bio: '${bioController.text}'");
 
+    // Set initial bio empty state
+    isBioEmpty.value = bioController.text.isEmpty;
+
     nameController.addListener(checkForChanges);
-    bioController.addListener(checkForChanges);
+    bioController.addListener(() {
+      checkForChanges();
+      isBioEmpty.value = bioController.text.isEmpty;
+    });
+
+    _startSuggestionTimer();
+  }
+
+  void _startSuggestionTimer() {
+    _suggestionTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      // Only rotate if bio field is empty
+      if (bioController.text.isEmpty) {
+        currentBioSuggestionIndex.value =
+            (currentBioSuggestionIndex.value + 1) % AppTexts.BIO_SUGGESTIONS.length;
+      }
+    });
   }
 
   void checkForChanges() {
-    final profile = Get.find<ProfileController>().userProfile;
+    Map<String, dynamic> profile = {};
+    if (Get.isRegistered<ProfileController>()) {
+      profile = Get.find<ProfileController>().userProfile;
+    }
 
     final nameChanged =
         nameController.text.trim() != (profile['fullName'] ?? '');
@@ -168,16 +231,85 @@ class AccountDetailsController extends GetxController {
     }
 
     checkForChanges();
-
-    showCustomSnackBar(
-      AppTexts.PROFILE_PHOTO_UPDATED_SUCCESSFULLY,
-      SnackbarState.success,
-    );
   }
 
   void validateName(String v) {
     nameError.value = Validation.validateName(v.trim());
     checkForChanges();
+  }
+
+  /// Discard all unsaved changes and restore original values
+  void discardChanges() {
+    if (!hasChanges.value) {
+      Get.back();
+      return;
+    }
+
+    Get.dialog(
+      CustomPopup(
+        title: AppTexts.DISCARD_CHANGES_TITLE,
+        message: AppTexts.DISCARD_CHANGES_SUBTITLE,
+        confirmText: AppTexts.DISCARD,
+        cancelText: AppTexts.CANCEL,
+        isProcessing: false.obs,
+        onConfirm: () {
+          _resetToOriginalValues();
+          Get.back(); // Close dialog
+          Get.back(); // Go back to profile
+        },
+      ),
+    );
+  }
+
+  /// Reset all fields to original values
+  void _resetToOriginalValues() {
+    final user = AuthService().currentUser;
+    Map<String, dynamic> profile = {};
+    if (Get.isRegistered<ProfileController>()) {
+      profile = Get.find<ProfileController>().userProfile;
+    }
+
+    final profileName = profile['fullName']?.toString().trim() ?? '';
+    final profileBio = profile['bio']?.toString().trim() ?? '';
+    final profileEmail = profile['email']?.toString().trim() ?? '';
+
+    nameController.text = profileName.isNotEmpty
+        ? profileName
+        : Preference.userName.isNotEmpty
+            ? Preference.userName
+            : (user?.displayName ?? "");
+
+    bioController.text = profileBio.isNotEmpty
+        ? profileBio
+        : Preference.bio.isNotEmpty
+            ? Preference.bio
+            : "";
+
+    emailController.text = profileEmail.isNotEmpty
+        ? profileEmail
+        : Preference.email.isNotEmpty
+            ? Preference.email
+            : (user?.email ?? "");
+
+    // Clear picked image
+    pickedImage.value = null;
+
+    // Reset ProfileController picked image if it was changed
+    if (Get.isRegistered<ProfileController>()) {
+      Get.find<ProfileController>().pickedImage.value = null;
+    }
+
+    hasChanges.value = false;
+    nameError.value = null;
+  }
+
+  /// Handle back button press - show discard popup if there are unsaved changes
+  Future<bool> onWillPop() async {
+    if (hasChanges.value) {
+      discardChanges();
+      return false;
+    }
+    return true;
   }
 
   Future<void> saveChanges() async {
@@ -278,5 +410,16 @@ class AccountDetailsController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  @override
+  void onClose() {
+    _suggestionTimer?.cancel();
+    nameController.dispose();
+    emailController.dispose();
+    bioController.dispose();
+    nameFocusNode.dispose();
+    bioFocusNode.dispose();
+    super.onClose();
   }
 }

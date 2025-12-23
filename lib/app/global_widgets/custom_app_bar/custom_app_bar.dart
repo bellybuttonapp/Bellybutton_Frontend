@@ -6,8 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:showcaseview/showcaseview.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_images.dart';
+import '../../core/constants/app_texts.dart';
+import '../../core/services/showcase_service.dart';
 import 'package:bellybutton/app/core/utils/index.dart';
 
 import '../../routes/app_pages.dart';
@@ -24,6 +27,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Color? backgroundColor;
   final Widget? titleWidget;
   final double toolbarHeight;
+  final VoidCallback? onBackPressed;
+  final GlobalKey? profileKey; // For showcase
 
   const CustomAppBar({
     super.key,
@@ -38,6 +43,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.backgroundColor,
     this.titleWidget,
     this.toolbarHeight = 70,
+    this.onBackPressed,
+    this.profileKey,
   }) : assert(
          !(showProfileSection && showBackButton),
          'Cannot show both profile section and back button at the same time.',
@@ -65,11 +72,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
     Widget? leadingWidget;
     if (showProfileSection) {
-      leadingWidget = _buildProfileSection(context, textColor, size, isDark);
+      leadingWidget = _buildProfileSection(context, textColor, size, isDark, profileKey);
     } else if (showBackButton) {
       leadingWidget =
           Platform.isIOS
-              ? const BackButton()
+              ? BackButton(
+                onPressed: onBackPressed ?? () => Get.back(),
+              )
               : IconButton(
                 tooltip: 'Back',
                 icon: SvgPicture.asset(
@@ -80,7 +89,11 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 padding: EdgeInsets.all(size.width * 0.02),
                 onPressed: () {
                   HapticFeedback.mediumImpact();
-                  Get.back();
+                  if (onBackPressed != null) {
+                    onBackPressed!();
+                  } else {
+                    Get.back();
+                  }
                 },
               );
     }
@@ -175,6 +188,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     Color textColor,
     Size size,
     bool isDark,
+    GlobalKey? showcaseKey,
   ) {
     return Obx(() {
       String prefName = Preference.userNameRx.value;
@@ -205,7 +219,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         imageProvider = NetworkImage(firebaseUser!.photoURL!);
       }
 
-      return Padding(
+      final profileWidget = Padding(
         padding: EdgeInsets.only(left: size.width * 0.02),
         child: GestureDetector(
           onTap: () {
@@ -311,6 +325,22 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         ),
       );
+
+      // Wrap with Showcase if key is provided
+      if (showcaseKey != null) {
+        return Showcase(
+          key: showcaseKey,
+          title: AppTexts.SHOWCASE_DASHBOARD_PROFILE_TITLE,
+          description: AppTexts.SHOWCASE_DASHBOARD_PROFILE_DESC,
+          tooltipBackgroundColor: ShowcaseService.tooltipBackgroundColor,
+          textColor: ShowcaseService.textColor,
+          titleTextStyle: ShowcaseService.titleStyle,
+          descTextStyle: ShowcaseService.descriptionStyle,
+          child: profileWidget,
+        );
+      }
+
+      return profileWidget;
     });
   }
 }

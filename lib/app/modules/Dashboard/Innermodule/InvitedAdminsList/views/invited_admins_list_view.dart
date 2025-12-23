@@ -12,7 +12,7 @@ class InvitedAdminsListView extends GetView<InvitedAdminsListController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const CustomAppBar(
-        title: AppTexts.INVITED_ADMINS_LIST,
+        title: AppTexts.EVENT_DIRECTORS,
       ), // Same styling
       body: MembersListWidget(controller: controller), // ⭐ Reusable widget
     );

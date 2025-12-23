@@ -245,6 +245,7 @@ class CustomBottomSheet extends StatelessWidget {
                         padding: EdgeInsets.symmetric(horizontal: width * 0.05),
                         child: footer!,
                       ),
+                      SizedBox(height: height * 0.025),
                     ],
                   ],
                 ),

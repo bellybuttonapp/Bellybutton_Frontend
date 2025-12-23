@@ -120,8 +120,8 @@ class EventInvitationsView extends GetView<EventInvitationsController> {
                   event: invitedEvent,
                   isDarkMode: isDarkMode,
                   onTap: () => controller.openInvitedGallery(invitedEvent),
-                  onAcceptTap: () => controller.acceptInvitation(invitedEvent),
-                  onDenyTap: () => controller.denyInvitation(invitedEvent),
+                  onAcceptTap: () => controller.showAcceptConfirmation(invitedEvent),
+                  onDenyTap: () => controller.showDenyConfirmation(invitedEvent),
                 );
               },
             ),
