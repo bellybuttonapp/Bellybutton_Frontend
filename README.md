@@ -1,145 +1,167 @@
----
+# BellyButton
 
-# 🧿 BellyButton
+A modern event management and photo-sharing app built with Flutter and GetX. BellyButton helps users create, manage, and share events with friends and family through an intuitive mobile experience.
 
-> *"Great apps aren’t built in a day — they’re crafted with passion, purpose, and persistence."* 💡
+## Features
 
-**BellyButton** is a modern **event management and social engagement app** built using **Flutter** and **GetX**.
-It helps users create, manage, and explore events effortlessly with a clean design and seamless navigation experience.
+### Authentication
+- Phone number login with OTP verification
+- Profile setup for new users
+- Secure session management
 
----
+### Event Management
+- Create and manage events with date, time, and location
+- Upcoming and past event views with smart sorting
+- Event invitations system
+- Invite users via contacts or manual entry
 
-## 🌟 About the Project
+### Photo Gallery
+- Event-specific photo galleries
+- Shared event gallery for invited users
+- Photo preview with zoom and share functionality
+- Cached image loading for performance
 
-BellyButton was designed to simplify how people handle event activities — from creating invitations to tracking past and upcoming events.
-It combines elegant UI, fast performance, and modular architecture for a smooth mobile experience on both Android and iOS.
+### Notifications
+- Push notifications via Firebase Cloud Messaging
+- In-app notification center
+- Real-time event updates
 
----
+### Profile & Settings
+- Account details management
+- Terms and conditions
+- Premium features
 
-## 🚀 Features
+## Tech Stack
 
-* 🔐 **Authentication**
+| Component | Technology |
+|-----------|------------|
+| Framework | Flutter 3.7+ (Dart) |
+| State Management | GetX |
+| Networking | Dio with interceptors |
+| Backend | Firebase (Auth, Messaging, Crashlytics) |
+| Local Storage | Hive |
+| Image Handling | cached_network_image, photo_manager, wechat_assets_picker |
+| Deep Linking | app_links |
 
-  * Login, Signup, Forgot Password, Set New Password
-* 🏠 **Dashboard**
-
-  * Manage upcoming, past, and created events
-  * Invite users and explore event galleries
-* 👤 **Profile**
-
-  * Update account details and reset password easily
-* 💎 **Premium**
-
-  * Unlock exclusive event features and perks
-* 🔔 **Notifications**
-
-  * Stay informed with real-time alerts
-
----
-
-## 🧩 Tech Stack
-
-| Layer                | Tools / Packages                         |
-| -------------------- | ---------------------------------------- |
-| **Framework**        | Flutter (Dart)                           |
-| **State Management** | GetX                                     |
-| **Networking**       | Dio                                      |
-| **Backend**          | Firebase Authentication                  |
-| **UI Components**    | Custom Widgets, Shimmers, and Animations |
-| **Routing**          | GetX Routes with smooth transitions      |
-
----
-
-## 📁 Folder Structure
+## Project Structure
 
 ```
 lib/
 ├── app/
-│   ├── api/
+│   ├── api/                    # API services and endpoints
+│   ├── Controllers/            # Global controllers (OAuth, device info)
 │   ├── core/
-│   ├── global_widgets/
+│   │   ├── constants/          # App colors, images, texts
+│   │   ├── network/            # Dio client, auth interceptor
+│   │   ├── services/           # Notifications, deep links, showcase
+│   │   └── utils/              # Helpers, storage, initializers
+│   ├── database/models/        # Data models (Event, Notification, etc.)
+│   ├── global_widgets/         # Reusable UI components
 │   ├── modules/
-│   │   ├── auth/
-│   │   ├── dashboard/
-│   │   ├── profile/
-│   │   ├── premium/
-│   │   ├── notifications/
-│   │   ├── home/
+│   │   ├── Auth/               # phone_login, login_otp, profile_setup
+│   │   ├── Dashboard/          # Events, galleries, invitations
+│   │   ├── Notifications/
+│   │   ├── Profile/
+│   │   ├── Premium/
+│   │   ├── SharedEventGallery/
 │   │   └── onboarding/
-│   └── routes/
-│
+│   └── routes/                 # App navigation
 └── main.dart
 ```
 
-Each module follows the **GetX pattern**:
+### Module Pattern
 
+Each feature module follows GetX conventions:
 ```
-feature_name/
- ├── bindings/
- ├── controllers/
- ├── models/
- └── views/
+module_name/
+├── bindings/       # Dependency injection
+├── controllers/    # Business logic
+├── models/         # Module-specific models
+└── views/          # UI screens
 ```
 
----
+## Setup
 
-## ⚙️ Setup Instructions
+### Prerequisites
+- Flutter SDK 3.7.2 or higher
+- Dart SDK
+- Android Studio / VS Code
+- Firebase project configured
 
-1. **Clone the repository**
+### Installation
 
+1. Clone the repository
    ```bash
-   git clone https://github.com/your-username/bellybutton.git
+   git clone https://github.com/bellybuttonapp/Bellybutton_Frontend.git
+   cd bellybutton
    ```
-2. **Install dependencies**
 
+2. Install dependencies
    ```bash
    flutter pub get
    ```
-3. **Run the app**
 
+3. Configure Firebase
+   - Add `google-services.json` to `android/app/`
+   - Add `GoogleService-Info.plist` to `ios/Runner/`
+
+4. Run the app
    ```bash
    flutter run
    ```
 
----
+### Build
 
-## 🧠 Architecture Overview
+```bash
+# Android
+flutter build apk --release
 
-This project follows a **Clean + GetX Architecture**, ensuring:
+# iOS
+flutter build ios --release
+```
 
-* Clear module separation
-* Efficient dependency injection
-* Reactive state updates
-* Easy maintenance and scalability
+## Key Dependencies
 
----
+- **get** - State management and routing
+- **dio** - HTTP client with interceptors
+- **firebase_core/messaging/crashlytics** - Firebase services
+- **cached_network_image** - Image caching
+- **hive_flutter** - Local database
+- **table_calendar** - Calendar widget for events
+- **photo_manager/wechat_assets_picker** - Photo selection
+- **shimmer** - Loading placeholders
+- **country_picker** - Phone number country codes
+- **showcaseview** - Feature onboarding
 
-## 🎨 UI / UX Highlights
+## Architecture
 
-* Minimal and user-friendly design
-* Smooth page transitions
-* Dynamic theme and consistent typography
-* Responsive layouts for all screen sizes
+The app follows Clean Architecture principles with GetX:
 
----
+- **Presentation Layer**: Views and Controllers handle UI and user interactions
+- **Domain Layer**: Models define business entities
+- **Data Layer**: API services and local storage manage data operations
 
-## 👨‍💻 Developer
+Key architectural decisions:
+- Reactive state management with GetX observables
+- Dependency injection via GetX bindings
+- Centralized error handling through interceptors
+- Modular feature organization for scalability
+
+## Platforms
+
+- Android (API 21+)
+- iOS (12.0+)
+- macOS (desktop support available)
+
+## Developer
 
 **Aravinth Kannan**
-*Flutter Mobile Application Developer | UI/UX Designer*
+Flutter Mobile Application Developer
 
-> *“I don’t follow the rules of development — I redefine them.”* ⚡
-> *— Built different, coded smarter 🧠💻*
+- Email: [flutterdev.aravinth@gmail.com](mailto:flutterdev.aravinth@gmail.com)
+- Portfolio: [aravinth-codes.netlify.app](https://aravinth-codes.netlify.app)
+- LinkedIn: [arvindhkannan](https://www.linkedin.com/in/arvindhkannan/)
 
-📧 **[flutterdev.aravinth@gmail.com](mailto:flutterdev.aravinth@gmail.com)**
-🌐 [**Portfolio**](https://aravinth-codes.netlify.app)
-🔗 [**LinkedIn**](https://www.linkedin.com/in/arvindhkannan/)
+## License
 
----
-
-## 📜 License
-
-This project is licensed under the **MIT License**.
-Feel free to use, modify, and distribute responsibly.
-
----
+This project is proprietary software. All rights reserved.
