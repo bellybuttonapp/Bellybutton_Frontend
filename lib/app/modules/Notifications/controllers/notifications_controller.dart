@@ -30,7 +30,10 @@ class NotificationsController extends GetxController {
   void onInit() {
     super.onInit();
     // Refresh notifications when entering the view
-    _service.fetchNotifications();
+    _service.fetchNotifications().then((_) {
+      // Mark all notifications as read when user enters the view
+      _service.markAllAsRead();
+    });
   }
 
   void goToBack() async {

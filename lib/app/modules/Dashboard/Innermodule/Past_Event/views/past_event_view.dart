@@ -7,10 +7,10 @@ import 'package:adaptive_scrollbar/adaptive_scrollbar.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_images.dart';
 import '../../../../../core/constants/app_texts.dart';
-import '../../../../../database/models/EventModel.dart';
 import '../../../../../global_widgets/EmptyJobsPlaceholder/EmptyJobsPlaceholder.dart';
 import '../../../../../global_widgets/Shimmers/EventCardShimmer.dart';
 import '../../../../../global_widgets/EventCard/EventCard.dart';
+import '../../../../../global_widgets/eventCard/InvitedEventCard/InvitedEventCard.dart';
 import '../controllers/past_event_controller.dart';
 import '../../Event_gallery/views/event_gallery_view.dart';
 
@@ -42,15 +42,15 @@ class PastEventView extends GetView<PastEventController> {
               padding: const EdgeInsets.only(top: 10),
               child: EventCardShimmer(
                 itemCount:
-                    controller.pastEvents.isNotEmpty
-                        ? controller.pastEvents.length
+                    controller.unifiedEvents.isNotEmpty
+                        ? controller.unifiedEvents.length
                         : 6,
               ),
             );
           }
 
-          // ✅ Empty state
-          if (controller.pastEvents.isEmpty) {
+          // ✅ Empty state - use unifiedEvents
+          if (controller.unifiedEvents.isEmpty) {
             return SmartRefresher(
               controller: _refreshController,
               enablePullDown: true,
@@ -76,7 +76,7 @@ class PastEventView extends GetView<PastEventController> {
             );
           }
 
-          // ✅ Main Scroll List
+          // ✅ Main Scroll List - now uses unifiedEvents
           return AdaptiveScrollbar(
             controller: _scrollController,
             position: ScrollbarPosition.right,
@@ -103,21 +103,33 @@ class PastEventView extends GetView<PastEventController> {
                   horizontal: size.width * 0.07,
                   vertical: size.height * 0.015,
                 ),
-                itemCount: controller.pastEvents.length,
+                itemCount: controller.unifiedEvents.length,
                 separatorBuilder:
                     (_, __) => SizedBox(height: size.height * 0.015),
                 itemBuilder: (context, index) {
-                  final EventModel event = controller.pastEvents[index];
-                  return EventCard(
-                    showViewPhotosInitially: true, // 🔥
-                    event: event,
-                    isDarkMode: isDarkMode,
-                    onTap:
-                        () =>
-                            Get.to(() => EventGalleryView(), arguments: event),
-                    onEditTap: () => controller.editEvent(event),
-                    onDeleteTap: () => controller.confirmDelete(event),
-                  );
+                  final unifiedEvent = controller.unifiedEvents[index];
+
+                  // ✅ Render different cards based on event type
+                  if (unifiedEvent.isOwned) {
+                    final event = unifiedEvent.ownedEvent!;
+                    return EventCard(
+                      showViewPhotosInitially: true,
+                      event: event,
+                      isDarkMode: isDarkMode,
+                      onTap: () => Get.to(() => EventGalleryView(), arguments: event),
+                      onEditTap: () => controller.editEvent(event),
+                      onDeleteTap: () => controller.confirmDelete(event),
+                    );
+                  } else {
+                    final invitedEvent = unifiedEvent.invitedEvent!;
+                    return InvitedEventCard(
+                      event: invitedEvent,
+                      isDarkMode: isDarkMode,
+                      onTap: () => controller.openInvitedGallery(invitedEvent),
+                      onAcceptTap: () => controller.showAcceptConfirmation(invitedEvent),
+                      onDenyTap: () => controller.showDenyConfirmation(invitedEvent),
+                    );
+                  }
                 },
               ),
             ),

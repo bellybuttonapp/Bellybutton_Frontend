@@ -13,9 +13,8 @@ import '../../../../../global_widgets/eventCard/InvitedEventCard/InvitedEventCar
 import '../controllers/event_invitations_controller.dart';
 
 class EventInvitationsView extends GetView<EventInvitationsController> {
-  final EventInvitationsController controller = Get.put(
-    EventInvitationsController(),
-  );
+  // Note: GetView already provides controller via Get.find()
+  // The binding handles controller creation via Get.lazyPut()
 
   final RefreshController _refreshController = RefreshController();
 
@@ -39,7 +38,7 @@ class EventInvitationsView extends GetView<EventInvitationsController> {
               ? AppTheme.darkTheme.scaffoldBackgroundColor
               : AppTheme.lightTheme.scaffoldBackgroundColor,
 
-      appBar: const CustomAppBar(title: AppTexts.INVITED_EVENTS),
+      appBar: const CustomAppBar(title: AppTexts.INVITED_SHOOTS),
 
       body: Obx(() {
         // shimmer while loading
@@ -78,7 +77,7 @@ class EventInvitationsView extends GetView<EventInvitationsController> {
                     hasScrollBody: false,
                     child: Center(
                       child: EmptyJobsPlaceholder(
-                        description: AppTexts.NO_INVITED_EVENTS_FOUND,
+                        description: AppTexts.NO_INVITED_SHOOTS_FOUND,
                       ),
                     ),
                   ),

@@ -5,16 +5,15 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../core/services/notification_service.dart';
 import '../../Notifications/views/notifications_view.dart';
-import '../Innermodule/EventInvitations/views/event_invitations_view.dart';
 import '../Innermodule/create_event/views/create_event_view.dart';
 
 class DashboardController extends GetxController {
   final isLoading = false.obs;
 
-  // Timer for periodic notification refresh
-  Timer? _notificationRefreshTimer;
+  // Timer for periodic refresh
+  Timer? _refreshTimer;
 
-  // Access the shared notification service
+  // Access the shared services (use Get.find with null safety for race conditions)
   NotificationService get _notificationService => NotificationService.to;
 
   // Expose unread count from the shared service
@@ -24,25 +23,27 @@ class DashboardController extends GetxController {
   void onInit() {
     super.onInit();
     // Fetch notifications when entering Dashboard
-    _fetchNotifications();
+    _fetchData();
     // Set up periodic refresh every 30 seconds
     _startPeriodicRefresh();
   }
 
   @override
   void onClose() {
-    _notificationRefreshTimer?.cancel();
+    _refreshTimer?.cancel();
     super.onClose();
   }
 
-  void _fetchNotifications() {
+  void _fetchData() {
     _notificationService.fetchNotifications();
   }
 
   void _startPeriodicRefresh() {
-    _notificationRefreshTimer = Timer.periodic(
+    _refreshTimer = Timer.periodic(
       const Duration(seconds: 30),
-      (_) => _notificationService.fetchNotifications(),
+      (_) {
+        _notificationService.fetchNotifications();
+      },
     );
   }
 
@@ -54,19 +55,6 @@ class DashboardController extends GetxController {
       transition: Transition.fade,
       duration: const Duration(milliseconds: 300),
     );
-  }
-
-  void goToEventInvitationsView() {
-    HapticFeedback.mediumImpact();
-
-    Get.to(
-      () => EventInvitationsView(),
-      transition: Transition.fade,
-      duration: const Duration(milliseconds: 300),
-    );
-
-    // 🔥 Notify GetBuilder widgets (if any part depends on this)
-    update();
   }
 
   Future<void> CreateEvent() async {

@@ -49,41 +49,76 @@ class NotificationService extends GetxService {
     _badgeService.updateBadge(unreadCount);
   }
 
+  /// Groups notifications by date using LOCAL timezone
+  /// This ensures "Today" and "Yesterday" are accurate for the user's timezone
   void _groupNotificationsByDate() {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
 
+    // Use localCreatedAt for proper timezone-aware date grouping
     todayNotifications.value = notifications.where((n) {
-      final date = DateTime(n.createdAt.year, n.createdAt.month, n.createdAt.day);
+      final localDate = n.localCreatedAt;
+      final date = DateTime(localDate.year, localDate.month, localDate.day);
       return date == today;
     }).toList();
 
     yesterdayNotifications.value = notifications.where((n) {
-      final date = DateTime(n.createdAt.year, n.createdAt.month, n.createdAt.day);
+      final localDate = n.localCreatedAt;
+      final date = DateTime(localDate.year, localDate.month, localDate.day);
       return date == yesterday;
     }).toList();
 
     olderNotifications.value = notifications.where((n) {
-      final date = DateTime(n.createdAt.year, n.createdAt.month, n.createdAt.day);
+      final localDate = n.localCreatedAt;
+      final date = DateTime(localDate.year, localDate.month, localDate.day);
       return date.isBefore(yesterday);
     }).toList();
   }
 
-  void markAsRead(int notificationId) {
+  Future<void> markAsRead(int notificationId) async {
     final index = notifications.indexWhere((n) => n.id == notificationId);
     if (index != -1) {
+      // Optimistically update UI
       final notification = notifications[index];
       notifications[index] = notification.copyWith(read: true);
       _groupNotificationsByDate();
       _syncBadgeCount();
+
+      // Call API to persist the change
+      try {
+        final response = await _apiService.markNotificationAsRead(notificationId);
+        print('📬 Mark as read response: $response');
+      } catch (e) {
+        print('❌ Error marking notification as read: $e');
+        // Revert on failure
+        notifications[index] = notification;
+        _groupNotificationsByDate();
+        _syncBadgeCount();
+      }
     }
   }
 
-  void markAllAsRead() {
+  /// Mark all unread notifications as read (calls API for each)
+  Future<void> markAllAsRead() async {
+    final unreadNotifications = notifications.where((n) => !n.read).toList();
+
+    if (unreadNotifications.isEmpty) return;
+
+    // Optimistically update UI first
     notifications.value = notifications.map((n) => n.copyWith(read: true)).toList();
     _groupNotificationsByDate();
     _badgeService.clearBadge();
+
+    // Call API for each unread notification
+    for (final notification in unreadNotifications) {
+      try {
+        await _apiService.markNotificationAsRead(notification.id);
+        print('📬 Marked notification ${notification.id} as read');
+      } catch (e) {
+        print('❌ Error marking notification ${notification.id} as read: $e');
+      }
+    }
   }
 
   Future<void> refresh() async {

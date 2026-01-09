@@ -59,6 +59,8 @@ class PublicApiService {
     required String startTime,
     required String endTime,
     required List<dynamic> invitedPeople,
+    String? timezone,
+    String? timezoneOffset,
   }) async {
     return await _handleApiCall(
       DioClient().postRequest(
@@ -70,6 +72,8 @@ class PublicApiService {
           "startTime": startTime,
           "endTime": endTime,
           "invitedPeople": invitedPeople, // MUST be list of objects
+          "timezone": timezone,           // Creator's timezone (e.g., "Asia/Kolkata")
+          "timezoneOffset": timezoneOffset, // Creator's offset (e.g., "+05:30")
         },
       ),
     );
@@ -82,6 +86,25 @@ class PublicApiService {
     return await _handleApiCall(
       DioClient().getRequest('${Endpoints.VIEW_EVENT}/$id'),
     );
+  }
+
+  // ==========================
+  // 2️⃣.1 Get Event by ID (returns EventModel)
+  // ==========================
+  Future<EventModel?> getEventById(int eventId) async {
+    final response = await viewEventById(eventId);
+
+    try {
+      if (response["data"] != null) {
+        print("📦 Event fetched: ${response["data"]}");
+        return EventModel.fromJson(response["data"]);
+      }
+      print("❌ No event data found");
+      return null;
+    } catch (e) {
+      print("❌ Error parsing event: $e");
+      return null;
+    }
   }
 
   Future<List<EventModel>> getAllEvents() async {
@@ -141,9 +164,11 @@ class PublicApiService {
     required int id,
     required String title,
     required String description,
-    required String eventDate, // format: YYYY-MM-DD
-    required String startTime, // format: HH:MM:SS
-    required String endTime, // format: HH:MM:SS
+    required String eventDate, // format: YYYY-MM-DD (UTC)
+    required String startTime, // format: HH:MM:SS (UTC)
+    required String endTime, // format: HH:MM:SS (UTC)
+    String? timezone,
+    String? timezoneOffset,
   }) async {
     final endpoint = Endpoints.UPDATE_EVENT.replaceFirst('{id}', id.toString());
     print("✏️ Sending PUT request → $endpoint");
@@ -157,6 +182,8 @@ class PublicApiService {
           "eventDate": eventDate,
           "startTime": startTime,
           "endTime": endTime,
+          "timezone": timezone,           // Creator's timezone (e.g., "Asia/Kolkata")
+          "timezoneOffset": timezoneOffset, // Creator's offset (e.g., "+05:30")
         },
       ),
     );
@@ -325,13 +352,18 @@ class PublicApiService {
     required int eventId,
     required List<File> files,
   }) async {
-    final endpoint = Endpoints.UPLOAD_EVENT_PHOTOS.replaceFirst(
-      "{id}",
-      eventId.toString(),
-    );
+    final endpoint = Endpoints.UPLOAD_EVENT_PHOTOS;
 
+    // Clean token - remove any newlines or extra whitespace
+    final cleanToken = Preference.token.replaceAll('\n', '').replaceAll('\r', '').trim();
+
+    // Debug logging
+    print("🔍 Upload Debug - Token length: ${cleanToken.length}");
+    print("🔍 Upload Debug - Token preview: ${cleanToken.substring(0, 50)}...");
+
+    // Backend expects: @RequestParam("eventId") - pass as query parameter
+    // Backend expects: @RequestPart("files") - pass as multipart file
     final formData = FormData.fromMap({
-      "eventId": eventId,
       "files": [
         for (var f in files)
           await MultipartFile.fromFile(
@@ -340,12 +372,15 @@ class PublicApiService {
           ),
       ],
     });
+
     return await _handleApiCall(
       _dio.post(
         endpoint,
         data: formData,
+        queryParameters: {"eventId": eventId},
         options: Options(
-          headers: {"Authorization": "Bearer ${Preference.token}"},
+          headers: {"Authorization": "Bearer $cleanToken"},
+          extra: {"skipAuth": true}, // Skip AuthInterceptor to avoid double-setting
         ),
       ),
     );
@@ -431,6 +466,38 @@ class PublicApiService {
         ),
       ),
     );
+  }
+
+  // ==================================
+  // 9️⃣ FETCH ALL Invitations (PENDING + ACCEPTED)
+  // ==================================
+  /// Fetches all invitations for an event (both PENDING and ACCEPTED status)
+  /// Returns list of invited people with their status and role
+  Future<List<Map<String, dynamic>>> getAllInvitations(int eventId) async {
+    final endpoint = Endpoints.GET_ALL_INVITATIONS.replaceFirst(
+      "{eventId}",
+      eventId.toString(),
+    );
+
+    print("📋 Fetching ALL invitations → $endpoint");
+
+    final response = await _handleApiCall(
+      _dio.get(
+        endpoint,
+        options: Options(
+          headers: {"Authorization": "Bearer ${Preference.token}"},
+        ),
+      ),
+    );
+
+    try {
+      final List<dynamic> data = response["data"] ?? [];
+      print("📋 Fetched ${data.length} invitations");
+      return data.map((e) => Map<String, dynamic>.from(e)).toList();
+    } catch (e) {
+      print("❌ Error parsing invitations: $e");
+      return [];
+    }
   }
 
   // ===============================
@@ -615,6 +682,171 @@ class PublicApiService {
     } catch (e) {
       print("❌ Error parsing notifications: $e");
       return [];
+    }
+  }
+
+  /// Mark a notification as read
+  Future<Map<String, dynamic>> markNotificationAsRead(int notificationId) async {
+    final endpoint = Endpoints.MARK_NOTIFICATION_READ.replaceFirst(
+      "{notificationId}",
+      notificationId.toString(),
+    );
+
+    print("📬 Mark notification as read → $endpoint");
+
+    return await _handleApiCall(DioClient().putRequest(endpoint));
+  }
+
+  // ===============================================
+  // 📸 PUBLIC EVENT GALLERY (No Auth Required)
+  // ===============================================
+
+  /// Fetch public event gallery photos by token or event ID
+  /// Uses PUBLIC_EVENT_GALLERY endpoint - NO authentication required
+  /// [tokenOrId] can be a share token (string) or event ID (will be converted to string)
+  Future<Map<String, dynamic>> fetchPublicEventGallery(dynamic tokenOrId) async {
+    final identifier = tokenOrId.toString();
+    print("📸 Fetching PUBLIC gallery for token/id: $identifier");
+
+    try {
+      // Always use PUBLIC_EVENT_GALLERY endpoint (accepts both token and eventId)
+      final endpoint = Endpoints.PUBLIC_EVENT_GALLERY.replaceFirst("{eventId}", identifier);
+
+      print("📸 Using PUBLIC endpoint: $endpoint");
+
+      // Make request WITHOUT authentication headers
+      // Use text/html to bypass backend auth check (server returns HTML for browser, requires auth for JSON)
+      final response = await _dio.get(
+        endpoint,
+        options: Options(
+          headers: {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          },
+        ),
+      );
+
+      if (response.data == null) {
+        return {"success": false, "message": "No response"};
+      }
+
+      final data = response.data;
+
+      // Check if response is HTML (String)
+      if (data is String) {
+        print("📸 Response is HTML, parsing image URLs...");
+
+        // Extract title from HTML <title> tag or <h1>
+        String title = "";
+        final titleMatch = RegExp(r'<title>(.*?)</title>', caseSensitive: false, dotAll: true).firstMatch(data);
+        if (titleMatch != null) {
+          title = titleMatch.group(1) ?? "";
+          // Remove any emoji, extra formatting, and whitespace/newlines
+          title = title.replaceAll(RegExp(r'\s+'), ' ').trim();
+        }
+
+        // Extract all image URLs from <img> tags
+        // Match both single and double quotes
+        final imgRegex = RegExp(r'<img[^>]+src="([^"]+)"', caseSensitive: false);
+        final imgRegex2 = RegExp(r"<img[^>]+src='([^']+)'", caseSensitive: false);
+
+        List<String> imageUrls = [];
+
+        // Find matches with double quotes
+        for (var match in imgRegex.allMatches(data)) {
+          final url = match.group(1)?.trim();
+          if (url != null && url.isNotEmpty) {
+            imageUrls.add(url);
+          }
+        }
+
+        // Find matches with single quotes
+        for (var match in imgRegex2.allMatches(data)) {
+          final url = match.group(1)?.trim();
+          if (url != null && url.isNotEmpty) {
+            imageUrls.add(url);
+          }
+        }
+
+        print("📸 Found ${imageUrls.length} images in HTML");
+
+        return {
+          "success": true,
+          "title": title,
+          "data": imageUrls,
+          "event": {
+            "title": title,
+          },
+        };
+      }
+
+      // Handle JSON response format
+      if (data is Map<String, dynamic>) {
+        // Extract photos from response
+        List<dynamic> photos = [];
+        if (data["data"] != null) {
+          photos = data["data"] is List ? data["data"] : [];
+        } else if (data["photos"] != null) {
+          photos = data["photos"] is List ? data["photos"] : [];
+        }
+
+        // Extract URLs from photo objects
+        List<String> imageUrls = [];
+        for (var photo in photos) {
+          if (photo is String) {
+            imageUrls.add(photo);
+          } else if (photo is Map) {
+            final url = photo["fileUrl"] ?? photo["url"] ?? photo["photo"];
+            if (url != null) {
+              imageUrls.add(url.toString());
+            }
+          }
+        }
+
+        print("📸 Found ${imageUrls.length} images");
+
+        return {
+          "success": true,
+          "title": data["title"] ?? "",
+          "data": imageUrls,
+        };
+      }
+
+      // If response is a list directly
+      if (data is List) {
+        List<String> imageUrls = [];
+        for (var photo in data) {
+          if (photo is String) {
+            imageUrls.add(photo);
+          } else if (photo is Map) {
+            final url = photo["fileUrl"] ?? photo["url"] ?? photo["photo"];
+            if (url != null) {
+              imageUrls.add(url.toString());
+            }
+          }
+        }
+
+        print("📸 Found ${imageUrls.length} images (list response)");
+
+        return {
+          "success": true,
+          "title": "",
+          "data": imageUrls,
+        };
+      }
+
+      return {"success": false, "message": "Invalid response format"};
+    } on DioException catch (e) {
+      print("❌ DioException fetching gallery: ${e.message}");
+      if (e.response?.statusCode == 404) {
+        return {"success": false, "message": "Gallery not found"};
+      }
+      if (e.response?.statusCode == 403) {
+        return {"success": false, "message": "Access denied"};
+      }
+      return {"success": false, "message": "Failed to load gallery"};
+    } catch (e) {
+      print("❌ Error fetching gallery: $e");
+      return {"success": false, "message": "Failed to load gallery"};
     }
   }
 }

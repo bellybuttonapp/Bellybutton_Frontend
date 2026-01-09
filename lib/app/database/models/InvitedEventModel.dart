@@ -3,9 +3,9 @@
 class InvitedEventModel {
   final int eventId;
   final String title;
-  final String eventDate; // yyyy-MM-dd
-  final String startTime; // HH:mm or 07:30 PM
-  final String endTime; // HH:mm or 09:00 PM
+  final String eventDate; // yyyy-MM-dd (UTC date)
+  final String startTime; // HH:mm:ss (UTC time)
+  final String endTime; // HH:mm:ss (UTC time)
 
   /// Optional event description
   String? description;
@@ -16,6 +16,12 @@ class InvitedEventModel {
   /// Event banner / poster image
   String? imagePath;
 
+  /// Creator's timezone name (e.g., "Asia/Kolkata")
+  String? timezone;
+
+  /// Creator's timezone offset (e.g., "+05:30")
+  String? timezoneOffset;
+
   InvitedEventModel({
     required this.eventId,
     required this.title,
@@ -25,6 +31,8 @@ class InvitedEventModel {
     required this.status,
     this.description,
     this.imagePath,
+    this.timezone,
+    this.timezoneOffset,
   });
 
   // ------------------- JSON CONVERTORS ------------------- //
@@ -39,6 +47,8 @@ class InvitedEventModel {
       status: json["status"] ?? "",
       description: json["description"],
       imagePath: json["imagePath"],
+      timezone: json["timezone"],
+      timezoneOffset: json["timezoneOffset"],
     );
   }
 
@@ -52,6 +62,8 @@ class InvitedEventModel {
       "status": status,
       "description": description,
       "imagePath": imagePath,
+      "timezone": timezone,
+      "timezoneOffset": timezoneOffset,
     };
   }
 
@@ -63,23 +75,68 @@ class InvitedEventModel {
 
   // ---------------- DATE + TIME COMBINATIONS -------------- //
 
-  /// Full Start DateTime = 2025-02-12 19:30:00
+  /// Full Start DateTime (UTC) = 2025-02-12 19:30:00 UTC
   DateTime get eventStartDateTime {
-    return _combine(eventDate, startTime);
+    return _combineAsUtc(eventDate, startTime);
   }
 
-  /// Full End DateTime = 2025-02-12 21:00:00
+  /// Full End DateTime (UTC) = 2025-02-12 21:00:00 UTC
   DateTime get eventEndDateTime {
-    return _combine(eventDate, endTime);
+    return _combineAsUtc(eventDate, endTime);
   }
 
   /// Example Result → "07:30 PM - 09:00 PM"
   String get formattedTimeRange => "$startTime - $endTime";
 
+  // ============================
+  // 🌍 TIMEZONE HANDLING (GLOBAL SUPPORT)
+  // Backend stores UTC times
+  // Flutter converts UTC → Local for display
+  // ============================
+
+  /// Get start DateTime in viewer's local timezone
+  /// Converts UTC (stored) → viewer's local timezone
+  DateTime get localStartDateTime {
+    try {
+      final utcDateTime = _combineAsUtc(eventDate, startTime);
+      return utcDateTime.toLocal();
+    } catch (e) {
+      // Fallback: return current time if parsing fails
+      return DateTime.now();
+    }
+  }
+
+  /// Get end DateTime in viewer's local timezone
+  /// Converts UTC (stored) → viewer's local timezone
+  DateTime get localEndDateTime {
+    try {
+      final utcDateTime = _combineAsUtc(eventDate, endTime);
+      return utcDateTime.toLocal();
+    } catch (e) {
+      // Fallback: return current time + 1 hour if parsing fails
+      return DateTime.now().add(const Duration(hours: 1));
+    }
+  }
+
+  /// Get creator's timezone info for display
+  /// Example: "Created in IST (+05:30)"
+  String get creatorTimezoneInfo {
+    if (timezone != null && timezoneOffset != null) {
+      return "$timezone ($timezoneOffset)";
+    } else if (timezone != null) {
+      return timezone!;
+    } else if (timezoneOffset != null) {
+      return "UTC$timezoneOffset";
+    }
+    return "";
+  }
+
   // ---------------- SAFE DATETIME BUILDER ----------------- //
 
-  DateTime _combine(String d, String t) {
-    // Support: "09:20", "7:30 PM", "7PM", "7:15am"
+  /// Combines date and time into a UTC DateTime object
+  /// Server stores UTC times, so we return UTC DateTime
+  DateTime _combineAsUtc(String d, String t) {
+    // Support: "09:20", "7:30 PM", "7PM", "7:15am", "HH:mm:ss"
     var time = t.trim().toUpperCase();
 
     // Detect AM/PM
@@ -99,6 +156,7 @@ class InvitedEventModel {
 
     final date = DateTime.parse(d);
 
-    return DateTime(date.year, date.month, date.day, hour, minute, second);
+    // Return as UTC DateTime since server stores UTC times
+    return DateTime.utc(date.year, date.month, date.day, hour, minute, second);
   }
 }

@@ -2,11 +2,11 @@
 
 class Endpoints {
   // ═══════════════════════════════════════════════════════════════════════════
-  // TOTAL ENDPOINTS: 33
+  // TOTAL ENDPOINTS: 34
   // ═══════════════════════════════════════════════════════════════════════════
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // AUTHENTICATION (7)
+  // AUTHENTICATION (9)
   // ═══════════════════════════════════════════════════════════════════════════
   static const String LOGIN = "/userresource/login"; // POST: User login
   static const String GOOGLE_LOGIN = "/userresource/google/login"; // POST: Google OAuth login
@@ -15,6 +15,11 @@ class Endpoints {
   static const String LOGOUT = "/userresource/logout"; // POST: User logout
   static const String REFRESH_TOKEN = "/userresource/token/refresh"; // POST: Refresh JWT token
   static const String SAVE_FCM_TOKEN = "/userresource/auth/save-fcm-token"; // POST: Save Firebase token
+
+  // Phone OTP Login
+  static const String SEND_LOGIN_OTP = "/userresource/auth/send-otp"; // POST: Send OTP to phone
+  static const String VERIFY_LOGIN_OTP = "/userresource/auth/verify-otp"; // POST: Verify phone OTP & login
+  static const String RESEND_LOGIN_OTP = "/userresource/auth/resend-otp"; // POST: Resend OTP to phone
 
   // ═══════════════════════════════════════════════════════════════════════════
   // USER MANAGEMENT (6)
@@ -65,16 +70,18 @@ class Endpoints {
   static const String GET_MEDIA_INFO = "/userresource/media/{id}"; // GET: Fetch single media info by ID
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // EVENT SHARING (2) - permission: view-only | view-sync
+  // EVENT SHARING (3) - permission: view-only | view-sync
   // ═══════════════════════════════════════════════════════════════════════════
   static const String SHARE_EVENT = "/eventresource/share/event/{eventId}"; // GET: Generate share link
   static const String OPEN_SHARED_EVENT = "/eventresource/share/event/open/{eventId}"; // GET: Open shared event
+  static const String PUBLIC_EVENT_GALLERY = "/public/event/gallery/{eventId}"; // GET: Fetch public event gallery (no auth)
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // EVENT PARTICIPANTS (2)
+  // EVENT PARTICIPANTS (3)
   // ═══════════════════════════════════════════════════════════════════════════
-  static const String GET_JOINED_USERS = "/eventresource/event/joined/{eventId}"; // GET: Fetch all participants
+  static const String GET_JOINED_USERS = "/eventresource/event/joined/{eventId}"; // GET: Fetch accepted participants only
   static const String GET_JOINED_ADMINS = "/eventresource/event/userview/{eventId}"; // GET: Fetch event admins
+  static const String GET_ALL_INVITATIONS = "/eventresource/event/invitations/{eventId}"; // GET: Fetch ALL invitations (PENDING + ACCEPTED)
 
   // ═══════════════════════════════════════════════════════════════════════════
   // TERMS & CONDITIONS (1)
@@ -82,7 +89,8 @@ class Endpoints {
   static const String TERMS_LATEST = "/terms/latest"; // GET: Fetch latest T&C
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // NOTIFICATIONS (1)
+  // NOTIFICATIONS (2)
   // ═══════════════════════════════════════════════════════════════════════════
   static const String LIST_NOTIFICATIONS = "/notifications/list"; // GET: Fetch all notifications
+  static const String MARK_NOTIFICATION_READ = "/notifications/read/{notificationId}"; // PUT: Mark notification as read
 }

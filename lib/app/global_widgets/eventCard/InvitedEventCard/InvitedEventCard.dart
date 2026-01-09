@@ -25,13 +25,23 @@ class InvitedEventCard extends StatelessWidget {
     this.onTap,
   });
 
-  String formatEventDate(String date, String time) {
+  /// Formats event date and time in user's LOCAL timezone
+  /// Converts from UTC (stored) to local time for display
+  String formatEventDateTime() {
     try {
-      return DateFormat(
-        "EEE, d MMMM - hh:mm a",
-      ).format(DateTime.parse("$date $time"));
+      // Use InvitedEventModel's built-in local time conversion
+      // This converts UTC stored time to user's local timezone
+      final localDateTime = event.localStartDateTime;
+      return DateFormat("EEE, d MMMM - hh:mm a").format(localDateTime);
     } catch (_) {
-      return "$date $time";
+      // Fallback to raw display if conversion fails
+      try {
+        return DateFormat(
+          "EEE, d MMMM - hh:mm a",
+        ).format(DateTime.parse("${event.eventDate} ${event.startTime}"));
+      } catch (_) {
+        return "${event.eventDate} ${event.startTime}";
+      }
     }
   }
 
@@ -50,6 +60,9 @@ class InvitedEventCard extends StatelessWidget {
     final borderColor =
         isDarkMode ? Colors.white10 : AppColors.primaryColor.withOpacity(.2);
 
+    // Accent color for invited events - uses pending blue
+    final accentColor = AppColors.pending;
+
     return Padding(
       padding: EdgeInsets.only(bottom: h * .015),
       child: Material(
@@ -63,7 +76,23 @@ class InvitedEventCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(w * .035),
           splashColor: AppColors.primaryColor.withOpacity(0.15),
           onTap: () {},
-          child: Padding(
+          child: IntrinsicHeight(
+            child: Row(
+              children: [
+                // Left accent bar for invited events
+                Container(
+                  width: w * 0.012,
+                  decoration: BoxDecoration(
+                    color: accentColor,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(w * .035),
+                      bottomLeft: Radius.circular(w * .035),
+                    ),
+                  ),
+                ),
+                // Main content
+                Expanded(
+                  child: Padding(
             padding: EdgeInsets.all(w * .04),
             child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,7 +136,7 @@ class InvitedEventCard extends StatelessWidget {
 
                 /// DATE
                 Text(
-                  formatEventDate(event.eventDate, event.startTime),
+                  formatEventDateTime(),
                   style: customBoldText.copyWith(
                     fontSize: w * .036,
                     fontWeight: FontWeight.w600,
@@ -202,6 +231,10 @@ class InvitedEventCard extends StatelessWidget {
           ),
         ],
       ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -15,12 +15,12 @@ import 'package:bellybutton/app/core/utils/index.dart';
 import '../../../../../global_widgets/Button/global_button.dart';
 import '../../../../../global_widgets/CustomPopup/CustomPopup.dart';
 import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
-import '../../../../../global_widgets/EmptyJobsPlaceholder/EmptyJobsPlaceholder.dart';
 import '../../../../../global_widgets/GlobalTextField/GlobalTextField.dart';
 import '../../../../../global_widgets/custom_app_bar/custom_app_bar.dart';
 import '../../../../../global_widgets/loader/global_loader.dart';
 import '../../../../../global_widgets/Shimmers/ContactsListShimmer.dart';
 import '../controllers/inviteuser_controller.dart' show InviteuserController, SafeContact;
+import '../../../../../global_widgets/CountryPickerDialog/CountryPickerDialog.dart';
 
 class InviteuserView extends GetView<InviteuserController> {
   InviteuserView({super.key});
@@ -62,12 +62,17 @@ class InviteuserView extends GetView<InviteuserController> {
       }
     });
 
+    // Determine title based on flow
+    final title = controller.isReinviteFlow.value
+        ? AppTexts.REINVITE_CREW
+        : AppTexts.INVITE;
+
     return Scaffold(
       backgroundColor: isDark
           ? AppTheme.darkTheme.scaffoldBackgroundColor
           : AppTheme.lightTheme.scaffoldBackgroundColor,
       appBar: CustomAppBar(
-        title: AppTexts.INVITE,
+        title: title,
         bottom: _buildInviteLimitIndicator(context),
       ),
       body: SafeArea(
@@ -78,6 +83,19 @@ class InviteuserView extends GetView<InviteuserController> {
           ),
           child: Column(
             children: [
+              // Event context header (show event details for update flow)
+              Obx(() {
+                if (controller.isUpdateFlow.value) {
+                  return Column(
+                    children: [
+                      _buildEventContextHeader(context, isDark),
+                      SizedBox(height: isSmallScreen ? 8 : 12),
+                    ],
+                  );
+                }
+                return const SizedBox.shrink();
+              }),
+
               // Search field stays outside the scrollable area
               _buildSearchField(context),
               SizedBox(height: isSmallScreen ? 8 : 12),
@@ -133,6 +151,10 @@ class InviteuserView extends GetView<InviteuserController> {
                         SliverToBoxAdapter(
                           child: _buildSelectedUsers(context),
                         ),
+                        // Available Contacts Section Header
+                        SliverToBoxAdapter(
+                          child: _buildAvailableContactsHeader(context, isDark),
+                        ),
                         // Search results
                         _buildSearchResultsSliver(context, isDark),
                       ],
@@ -150,49 +172,196 @@ class InviteuserView extends GetView<InviteuserController> {
     );
   }
 
-  /// Invite limit indicator
+  /// Invite limit indicator - Simple, compact design
   Widget _buildInviteLimitIndicator(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isSmallScreen = size.width < 360;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Obx(() {
       final total = controller.alreadyInvitedCount + controller.selectedUsers.length;
-      final remaining = 4 - total;
-      final isLimitReached = remaining <= 0;
+      final progress = total / 4.0;
+      final isLimitReached = total >= 4;
+
+      // Color coding
+      Color progressColor;
+      if (isLimitReached) {
+        progressColor = Colors.red;
+      } else if (progress >= 0.75) {
+        progressColor = Colors.orange;
+      } else if (progress >= 0.5) {
+        progressColor = Colors.amber;
+      } else {
+        progressColor = AppColors.primaryColor;
+      }
 
       return Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: isSmallScreen ? 8 : 12,
-          vertical: isSmallScreen ? 6 : 8,
-        ),
+        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isLimitReached
-              ? Colors.red.withOpacity(0.1)
-              : AppColors.primaryColor.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
+          color: isDark ? Colors.grey[900] : Colors.white,
+          border: Border(
+            bottom: BorderSide(
+              color: progressColor.withOpacity(0.3),
+              width: 2,
+            ),
+          ),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              isLimitReached ? Icons.warning_amber_rounded : Icons.people_outline,
-              size: 18,
-              color: isLimitReached ? Colors.red : AppColors.primaryColor,
+              Icons.people_alt_outlined,
+              size: 14,
+              color: progressColor,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Stack(
+                children: [
+                  Container(
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.grey[800] : Colors.grey[200],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  FractionallySizedBox(
+                    widthFactor: progress > 1.0 ? 1.0 : progress,
+                    child: Container(
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: progressColor,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(width: 8),
             Text(
-              isLimitReached
-                  ? AppTexts.LIMIT_REACHED.split('\n').first
-                  : "Slots: $total/4 ($remaining remaining)",
-              style: customBoldText.copyWith(
-                fontSize: Dimensions.fontSizeSmall,
-                color: isLimitReached ? Colors.red : AppColors.primaryColor,
+              "$total/4",
+              style: TextStyle(
+                fontFamily: 'DM_Sans',
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: progressColor,
               ),
             ),
+            if (isLimitReached) ...[
+              const SizedBox(width: 6),
+              Icon(
+                Icons.warning_rounded,
+                size: 14,
+                color: Colors.red,
+              ),
+            ],
           ],
         ),
       );
     });
+  }
+
+  /// Event context header - shows event details when updating/reinviting
+  Widget _buildEventContextHeader(BuildContext context, bool isDark) {
+    final event = controller.eventData;
+    final size = MediaQuery.of(context).size;
+    final isSmallScreen = size.width < 360;
+
+    // Determine badge text and icon based on flow
+    final badgeText = controller.isReinviteFlow.value
+        ? "Reinviting Crew"
+        : AppTexts.UPDATING_SHOOT_BADGE;
+    final badgeIcon = controller.isReinviteFlow.value
+        ? Icons.group_add_outlined
+        : Icons.edit_outlined;
+
+    return Container(
+      padding: EdgeInsets.all(isSmallScreen ? 10 : 12),
+      decoration: BoxDecoration(
+        color: isDark
+            ? AppColors.primaryColor.withOpacity(0.15)
+            : AppColors.primaryColor.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.primaryColor.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryColor,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  badgeText,
+                  style: customBoldText.copyWith(
+                    fontSize: 11,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Icon(
+                badgeIcon,
+                size: 18,
+                color: AppColors.primaryColor,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            event.title,
+            style: customBoldText.copyWith(
+              fontSize: isSmallScreen ? 14 : 16,
+              color: isDark ? Colors.white : AppColors.textColor,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (event.description.isNotEmpty &&
+              event.description.toLowerCase() != 'active' &&
+              event.description.toLowerCase() != 'inactive') ...[
+            const SizedBox(height: 4),
+            Text(
+              event.description,
+              style: customTextNormal.copyWith(
+                fontSize: isSmallScreen ? 12 : 13,
+                color: isDark ? Colors.white70 : AppColors.textColor.withOpacity(0.7),
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(
+                Icons.calendar_today,
+                size: 14,
+                color: isDark ? Colors.white60 : AppColors.textColor.withOpacity(0.6),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  "${event.getLocalDateString()} • ${event.getLocalTimeRangeString()}",
+                  style: customTextNormal.copyWith(
+                    fontSize: 12,
+                    color: isDark ? Colors.white60 : AppColors.textColor.withOpacity(0.6),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   /// Search input field
@@ -224,17 +393,49 @@ class InviteuserView extends GetView<InviteuserController> {
         return const SizedBox.shrink();
       }
 
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            AppTexts.ALREADY_INVITED,
-            style: customBoldText.copyWith(
-              fontSize: Dimensions.fontSizeSmall,
-              color: Colors.grey,
+          // Simple section header
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.groups_outlined,
+                  size: 18,
+                  color: isDark ? Colors.white70 : Colors.grey[700],
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  "Camera Crew",
+                  style: customBoldText.copyWith(
+                    fontSize: Dimensions.fontSizeDefault,
+                    color: isDark ? Colors.white : Colors.grey[800],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.grey[700] : Colors.grey[300],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    controller.alreadyInvitedUsers.length.toString(),
+                    style: TextStyle(
+                      fontFamily: 'DM_Sans',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white : Colors.grey[800],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -331,6 +532,55 @@ class InviteuserView extends GetView<InviteuserController> {
     );
   }
 
+  /// Available contacts section header
+  Widget _buildAvailableContactsHeader(BuildContext context, bool isDark) {
+    return Obx(() {
+      // Only show if we have contacts and they're not all selected
+      if (controller.filteredContacts.isEmpty && !controller.isLoadingContacts.value) {
+        return const SizedBox.shrink();
+      }
+
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12, top: 4),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withOpacity(0.1)
+                    : AppColors.primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.contacts_outlined,
+                size: 16,
+                color: isDark ? Colors.white70 : AppColors.primaryColor,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              "Available Contacts",
+              style: customBoldText.copyWith(
+                fontSize: Dimensions.fontSizeLarge,
+                color: isDark ? Colors.white70 : AppColors.textColor,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Container(
+                height: 1,
+                color: isDark
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.grey[300],
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
   /// Selected users chips
   Widget _buildSelectedUsers(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -341,17 +591,49 @@ class InviteuserView extends GetView<InviteuserController> {
         return const SizedBox.shrink();
       }
 
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            AppTexts.NEW_INVITES,
-            style: customBoldText.copyWith(
-              fontSize: Dimensions.fontSizeSmall,
-              color: AppColors.primaryColor,
+          // Simple section header
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.person_add_alt_outlined,
+                  size: 18,
+                  color: AppColors.primaryColor,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  "Add to Crew",
+                  style: customBoldText.copyWith(
+                    fontSize: Dimensions.fontSizeDefault,
+                    color: isDark ? Colors.white : AppColors.textColor,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryColor,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    controller.selectedUsers.length.toString(),
+                    style: const TextStyle(
+                      fontFamily: 'DM_Sans',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
           Wrap(
             spacing: isSmallScreen ? 6 : 8,
             runSpacing: isSmallScreen ? 6 : 8,
@@ -423,11 +705,70 @@ class InviteuserView extends GetView<InviteuserController> {
 
       // No results state
       if (controller.filteredContacts.isEmpty) {
-        return const SliverFillRemaining(
+        return SliverFillRemaining(
           hasScrollBody: false,
           child: Center(
-            child: EmptyJobsPlaceholder(
-              description: AppTexts.NO_MATCHING_CONTACTS,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.grey[800]
+                          : AppColors.primaryColor.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.person_search_outlined,
+                      size: 60,
+                      color: isDark
+                          ? Colors.grey[600]
+                          : AppColors.primaryColor.withOpacity(0.6),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    controller.searchQuery.value.isEmpty
+                        ? "No Contacts Yet"
+                        : "No Matching Contacts",
+                    style: customBoldText.copyWith(
+                      fontSize: Dimensions.fontSizeOverLarge,
+                      color: isDark ? Colors.white : AppColors.textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    controller.searchQuery.value.isEmpty
+                        ? "Add contacts to your phone to build\nyour camera crew for shoots."
+                        : "No contacts found matching\n\"${controller.searchQuery.value}\"",
+                    style: customTextNormal.copyWith(
+                      fontSize: Dimensions.fontSizeDefault,
+                      color: isDark
+                          ? Colors.white60
+                          : AppColors.textColor.withOpacity(0.7),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  if (controller.searchQuery.value.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    TextButton.icon(
+                      onPressed: () {
+                        controller.searchController.clear();
+                        controller.searchQuery.value = '';
+                        controller.filterContacts();
+                      },
+                      icon: const Icon(Icons.clear_all),
+                      label: const Text("Clear Search"),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.primaryColor,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
         );
@@ -446,6 +787,47 @@ class InviteuserView extends GetView<InviteuserController> {
     });
   }
 
+  /// Handle contact tap - shows country picker for ambiguous numbers
+  Future<void> _handleContactTap(SafeContact contact, bool isSelected) async {
+    // Check limit first
+    if (!isSelected && controller.selectedUsers.length >= 4) {
+      showCustomSnackBar(AppTexts.LIMIT_REACHED, SnackbarState.error);
+      return;
+    }
+
+    // If already selected, just deselect
+    if (isSelected) {
+      controller.toggleUserSelection(contact);
+      return;
+    }
+
+    // Check if phone number is ambiguous (valid for both US and India)
+    if (contact.phones.isNotEmpty) {
+      final rawPhone = contact.phones.first.number;
+      debugPrint('📞 [UI] Contact: ${contact.safeName}, Phone: $rawPhone');
+      debugPrint('📞 [UI] Is ambiguous: ${controller.isAmbiguousPhoneNumber(rawPhone)}');
+
+      if (controller.isAmbiguousPhoneNumber(rawPhone)) {
+        debugPrint('📞 [UI] Showing country picker dialog...');
+        // Show country picker dialog
+        final selectedCountry = await showCountryPickerDialog(
+          context: Get.context!,
+          contactName: contact.safeName,
+          phoneNumber: rawPhone,
+        );
+
+        // If user cancelled, don't add contact
+        if (selectedCountry == null) return;
+
+        // Store the selected country code for this contact
+        controller.setSelectedCountryCode(contact.id, selectedCountry);
+      }
+    }
+
+    // Add contact to selection
+    controller.toggleUserSelection(contact);
+  }
+
   /// Single contact list item
   Widget _buildContactListItem(SafeContact contact, {bool isFirst = false}) {
     final displayName = contact.safeName;
@@ -458,13 +840,7 @@ class InviteuserView extends GetView<InviteuserController> {
       final hasPhoto = contact.photo != null;
 
       final listTile = ListTile(
-        onTap: () {
-          if (!isSelected && controller.selectedUsers.length >= 4) {
-            showCustomSnackBar(AppTexts.LIMIT_REACHED, SnackbarState.error);
-            return;
-          }
-          controller.toggleUserSelection(contact);
-        },
+        onTap: () => _handleContactTap(contact, isSelected),
         leading: CircleAvatar(
           backgroundColor: AppColors.primaryColor.withOpacity(0.12),
           backgroundImage: hasPhoto ? MemoryImage(contact.photo!) : null,
@@ -479,7 +855,7 @@ class InviteuserView extends GetView<InviteuserController> {
         trailing: Checkbox(
           value: isSelected,
           activeColor: AppColors.primaryColor,
-          onChanged: (_) => controller.toggleUserSelection(contact),
+          onChanged: (_) => _handleContactTap(contact, isSelected),
         ),
       );
 

@@ -10,7 +10,7 @@ class AppConstants {
   static const String BASE_URL_PRODUCTION = 'https://mobapi.bellybutton.global/api'; // Live production server
   static const String BASE_URL_TESTING = 'https://mobapitest.bellybutton.global/api'; // QA testing server
   static const String BASE_URL_DEVELOPMENT = 'https://mobapidev.bellybutton.global/api'; // Dev server
-  static const String BASE_URL_NGROK = 'http://192.168.1.35:8080/api'; // Ngrok tunnel for external testing
+  static const String BASE_URL_NGROK = 'https://foraminiferal-unprismatically-britta.ngrok-free.dev/api'; // Ngrok tunnel for external testing
 
   // ═══════════════════════════════════════════════════════════════════════════
   // ACTIVE ENVIRONMENT (Change this to switch environments)
@@ -70,6 +70,15 @@ class AppConstants {
   static const String UNIVERSAL_LINK_PREFIX = 'https://bellybutton.global'; // HTTPS prefix for sharing
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // PUBLIC GALLERY URL (for sharing event gallery as web page)
+  // ═══════════════════════════════════════════════════════════════════════════
+  static String get publicGalleryBaseUrl {
+    // Remove /api suffix and add /api/public/event/gallery path
+    final baseWithoutApi = BASE_URL.replaceAll('/api', '');
+    return '$baseWithoutApi/api/public/event/gallery';
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // LOCAL STORAGE KEYS (for Hive/SharedPreferences)
   // ═══════════════════════════════════════════════════════════════════════════
   static const String STORAGE_KEY_AUTH_TOKEN = 'auth_token'; // JWT access token
@@ -111,6 +120,11 @@ class AppConstants {
   static const String NOTIFICATION_CHANNEL_NAME = 'BellyButton Notifications'; // Default channel name
   static const String NOTIFICATION_CHANNEL_HIGH_ID = 'bellybutton_high'; // High priority channel ID
   static const String NOTIFICATION_CHANNEL_HIGH_NAME = 'Important Notifications'; // High priority name
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BLOCKED COUNTRIES (country codes to exclude from picker)
+  // ═══════════════════════════════════════════════════════════════════════════
+  static const List<String> BLOCKED_COUNTRY_CODES = ['CN']; // China
 
   // ═══════════════════════════════════════════════════════════════════════════
   // UI CONSTANTS

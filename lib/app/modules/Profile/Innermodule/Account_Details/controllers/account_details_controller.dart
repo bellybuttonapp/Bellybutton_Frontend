@@ -18,11 +18,11 @@ import '../../../../../core/utils/helpers/validation_utils.dart';
 import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../../../global_widgets/CustomPopup/CustomPopup.dart';
 import '../../../../../core/utils/storage/preference.dart';
+import '../../../../../routes/app_pages.dart';
 import '../../../controllers/profile_controller.dart';
 
 class AccountDetailsController extends GetxController {
   final nameController = TextEditingController();
-  final emailController = TextEditingController();
   final bioController = TextEditingController();
 
   /// ---------------- FOCUS NODES ----------------
@@ -77,8 +77,6 @@ class AccountDetailsController extends GetxController {
   void onInit() {
     super.onInit();
 
-    final user = AuthService().currentUser;
-
     // Get data from ProfileController if available (most recent from API)
     Map<String, dynamic> profile = {};
     if (Get.isRegistered<ProfileController>()) {
@@ -90,30 +88,22 @@ class AccountDetailsController extends GetxController {
     print("🔍 AccountDetails - Preference.userName: '${Preference.userName}'");
     print("🔍 AccountDetails - Preference.bio: '${Preference.bio}'");
     print("🔍 AccountDetails - Preference.profileImage: '${Preference.profileImage}'");
-    print("🔍 AccountDetails - Firebase user: ${user?.displayName}");
 
-    // Priority: ProfileController data > Preference > Firebase user > default
+    // Priority: ProfileController data > Preference > default
     final profileName = profile['fullName']?.toString().trim() ?? '';
     final profileBio = profile['bio']?.toString().trim() ?? '';
-    final profileEmail = profile['email']?.toString().trim() ?? '';
 
     nameController.text = profileName.isNotEmpty
         ? profileName
         : Preference.userName.isNotEmpty
             ? Preference.userName
-            : (user?.displayName ?? "");
+            : "";
 
     bioController.text = profileBio.isNotEmpty
         ? profileBio
         : Preference.bio.isNotEmpty
             ? Preference.bio
             : "";
-
-    emailController.text = profileEmail.isNotEmpty
-        ? profileEmail
-        : Preference.email.isNotEmpty
-            ? Preference.email
-            : (user?.email ?? "");
 
     print("🔍 AccountDetails - Final name: '${nameController.text}'");
     print("🔍 AccountDetails - Final bio: '${bioController.text}'");
@@ -263,7 +253,6 @@ class AccountDetailsController extends GetxController {
 
   /// Reset all fields to original values
   void _resetToOriginalValues() {
-    final user = AuthService().currentUser;
     Map<String, dynamic> profile = {};
     if (Get.isRegistered<ProfileController>()) {
       profile = Get.find<ProfileController>().userProfile;
@@ -271,25 +260,18 @@ class AccountDetailsController extends GetxController {
 
     final profileName = profile['fullName']?.toString().trim() ?? '';
     final profileBio = profile['bio']?.toString().trim() ?? '';
-    final profileEmail = profile['email']?.toString().trim() ?? '';
 
     nameController.text = profileName.isNotEmpty
         ? profileName
         : Preference.userName.isNotEmpty
             ? Preference.userName
-            : (user?.displayName ?? "");
+            : "";
 
     bioController.text = profileBio.isNotEmpty
         ? profileBio
         : Preference.bio.isNotEmpty
             ? Preference.bio
             : "";
-
-    emailController.text = profileEmail.isNotEmpty
-        ? profileEmail
-        : Preference.email.isNotEmpty
-            ? Preference.email
-            : (user?.email ?? "");
 
     // Clear picked image
     pickedImage.value = null;
@@ -314,15 +296,9 @@ class AccountDetailsController extends GetxController {
 
   Future<void> saveChanges() async {
     nameError.value = Validation.validateName(nameController.text.trim());
-    final emailErr = Validation.validateEmail(emailController.text.trim());
 
     if (nameError.value != null) {
       showCustomSnackBar(nameError.value!, SnackbarState.error);
-      return;
-    }
-
-    if (emailErr != null) {
-      showCustomSnackBar(emailErr, SnackbarState.error);
       return;
     }
 
@@ -330,7 +306,6 @@ class AccountDetailsController extends GetxController {
 
     final name = nameController.text.trim();
     final bio = bioController.text.trim();
-    final email = emailController.text.trim();
 
     File? imageFile;
     if (pickedImage.value != null) {
@@ -340,7 +315,7 @@ class AccountDetailsController extends GetxController {
     try {
       final resp = await PublicApiService().updateProfile(
         userId: Preference.userId,
-        email: email,
+        email: Preference.email,
         fullName: name,
         bio: bio,
         phone: Preference.phone,
@@ -349,8 +324,12 @@ class AccountDetailsController extends GetxController {
       );
 
       final msg = (resp["message"] ?? "").toString().toLowerCase();
-      if (msg.contains("profile updated successfully")) {
-        final data = resp["data"];
+      final isSuccess = msg.contains("success") ||
+                        msg.contains("updated") ||
+                        resp["data"] != null;
+
+      if (isSuccess) {
+        final data = resp["data"] ?? {};
 
         // Update local storage
         Preference.userName = data["fullName"] ?? Preference.userName;
@@ -392,10 +371,9 @@ class AccountDetailsController extends GetxController {
           body: AppTexts.NOTIFY_PROFILE_UPDATED_BODY,
         );
 
-        Future.delayed(const Duration(milliseconds: 600), () {
-          hideKeyboard();
-          Get.back();
-        });
+        // Navigate back to profile immediately
+        hideKeyboard();
+        Get.offNamed(Routes.PROFILE);
       } else {
         showCustomSnackBar(
           AppTexts.FAILED_TO_UPDATE_PROFILE,
@@ -416,7 +394,6 @@ class AccountDetailsController extends GetxController {
   void onClose() {
     _suggestionTimer?.cancel();
     nameController.dispose();
-    emailController.dispose();
     bioController.dispose();
     nameFocusNode.dispose();
     bioFocusNode.dispose();

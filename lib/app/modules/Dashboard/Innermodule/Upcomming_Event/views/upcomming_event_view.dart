@@ -10,6 +10,7 @@ import '../../../../../core/constants/app_texts.dart';
 import '../../../../../global_widgets/EmptyJobsPlaceholder/EmptyJobsPlaceholder.dart';
 import '../../../../../global_widgets/Shimmers/EventCardShimmer.dart';
 import '../../../../../global_widgets/eventCard/EventCard.dart';
+import '../../../../../global_widgets/eventCard/InvitedEventCard/InvitedEventCard.dart';
 import '../controllers/upcomming_event_controller.dart';
 import '../../Event_gallery/views/event_gallery_view.dart';
 
@@ -40,15 +41,15 @@ class UpcommingEventView extends GetView<UpcommingEventController> {
             padding: const EdgeInsets.only(top: 10),
             child: EventCardShimmer(
               itemCount:
-                  controller.eventData.isNotEmpty
-                      ? controller.eventData.length
+                  controller.unifiedEvents.isNotEmpty
+                      ? controller.unifiedEvents.length
                       : 6,
             ),
           );
         }
 
-        // ✅ Add pull-to-refresh to EmptyJobsPlaceholder
-        if (controller.eventData.isEmpty) {
+        // ✅ Use unifiedEvents for empty check
+        if (controller.unifiedEvents.isEmpty) {
           return SmartRefresher(
             controller: _refreshController,
             enablePullDown: true,
@@ -74,7 +75,7 @@ class UpcommingEventView extends GetView<UpcommingEventController> {
           );
         }
 
-        // ✅ Main list view with scrollbar
+        // ✅ Main list view with scrollbar - now uses unifiedEvents
         return AdaptiveScrollbar(
           controller: _scrollController,
           position: ScrollbarPosition.right,
@@ -101,20 +102,33 @@ class UpcommingEventView extends GetView<UpcommingEventController> {
                 horizontal: size.width * 0.07,
                 vertical: size.height * 0.015,
               ),
-              itemCount: controller.eventData.length,
+              itemCount: controller.unifiedEvents.length,
               separatorBuilder:
                   (_, __) => SizedBox(height: size.height * 0.015),
               itemBuilder: (context, index) {
-                final event = controller.eventData[index];
-                return EventCard(
-                  showViewPhotosInitially: true,
-                  event: event,
-                  isDarkMode: isDarkMode,
-                  onTap:
-                      () => Get.to(() => EventGalleryView(), arguments: event),
-                  onEditTap: () => controller.editEvent(event),
-                  onDeleteTap: () => controller.confirmDelete(event),
-                );
+                final unifiedEvent = controller.unifiedEvents[index];
+
+                // ✅ Render different cards based on event type
+                if (unifiedEvent.isOwned) {
+                  final event = unifiedEvent.ownedEvent!;
+                  return EventCard(
+                    showViewPhotosInitially: true,
+                    event: event,
+                    isDarkMode: isDarkMode,
+                    onTap: () => Get.to(() => EventGalleryView(), arguments: event),
+                    onEditTap: () => controller.editEvent(event),
+                    onDeleteTap: () => controller.confirmDelete(event),
+                  );
+                } else {
+                  final invitedEvent = unifiedEvent.invitedEvent!;
+                  return InvitedEventCard(
+                    event: invitedEvent,
+                    isDarkMode: isDarkMode,
+                    onTap: () => controller.openInvitedGallery(invitedEvent),
+                    onAcceptTap: () => controller.showAcceptConfirmation(invitedEvent),
+                    onDenyTap: () => controller.showDenyConfirmation(invitedEvent),
+                  );
+                }
               },
             ),
           ),

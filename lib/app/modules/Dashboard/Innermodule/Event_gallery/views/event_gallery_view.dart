@@ -11,7 +11,6 @@ import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_images.dart';
 import '../../../../../core/constants/app_texts.dart';
 import '../../../../../core/services/showcase_service.dart';
-import '../../../../../core/utils/storage/preference.dart';
 import '../../../../../global_widgets/AppFloatingButton/AppFloatingButton.dart';
 import '../../../../../global_widgets/Button/global_button.dart';
 import '../../../../../global_widgets/EmptyJobsPlaceholder/EmptyJobsPlaceholder.dart';
@@ -31,8 +30,9 @@ class EventGalleryView extends GetView<EventGalleryController> {
   final GlobalKey _shareKey = GlobalKey();
   final GlobalKey _syncKey = GlobalKey();
 
-  // Flag to prevent showcase from starting multiple times
-  bool _showcaseStarted = false;
+  // Static flag to prevent showcase from starting multiple times per session
+  // (persists across widget rebuilds)
+  static bool _showcaseStarted = false;
 
   @override
   Widget build(BuildContext context) {
@@ -65,8 +65,14 @@ class EventGalleryView extends GetView<EventGalleryController> {
     // ------------------------------------------------------
     // 🖼 MAIN LAYOUT WRAPPER
     // ------------------------------------------------------
-    return ReusableEventGalleryLayout(
-      appBarTitle: AppTexts.EVENT_GALLERY,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        c.handleBackNavigation();
+      },
+      child: ReusableEventGalleryLayout(
+      appBarTitle: AppTexts.SHOOT_GALLERY,
       title: c.event.title,
       description: c.event.description,
 
@@ -82,8 +88,11 @@ class EventGalleryView extends GetView<EventGalleryController> {
         titleTextStyle: ShowcaseService.titleStyle,
         descTextStyle: ShowcaseService.descriptionStyle,
         child: Obx(() {
+          final currentMembers = controller.invitedCount.value;
+          final maxCapacity = controller.totalCapacity.value;
+
           return buildSuffixWidget(
-            count: "${controller.invitedCount.value.toString().padLeft(2, '0')}/01",
+            count: "${currentMembers.toString().padLeft(2, '0')}/${maxCapacity.toString().padLeft(2, '0')}",
             iconPath: AppImages.USERS_COUNT,
             onTap: controller.onInvitedUsersTap,
             screenWidth: width,
@@ -117,8 +126,8 @@ class EventGalleryView extends GetView<EventGalleryController> {
                   hasScrollBody: false,
                   child: Center(
                     child: EmptyJobsPlaceholder(
-                      title: AppTexts.EVENT_GALLERY_NOT_STARTED_TITLE,
-                      description: AppTexts.EVENT_GALLERY_NOT_STARTED_DESC,
+                      title: AppTexts.SHOOT_GALLERY_NOT_STARTED_TITLE,
+                      description: AppTexts.SHOOT_GALLERY_NOT_STARTED_DESC,
                     ),
                   ),
                 ),
@@ -143,8 +152,8 @@ class EventGalleryView extends GetView<EventGalleryController> {
                   hasScrollBody: false,
                   child: Center(
                     child: EmptyJobsPlaceholder(
-                      title: AppTexts.EVENT_GALLERY_ENDED_EMPTY_TITLE,
-                      description: AppTexts.EVENT_GALLERY_ENDED_EMPTY_DESC,
+                      title: AppTexts.SHOOT_GALLERY_ENDED_EMPTY_TITLE,
+                      description: AppTexts.SHOOT_GALLERY_ENDED_EMPTY_DESC,
                     ),
                   ),
                 ),
@@ -169,8 +178,8 @@ class EventGalleryView extends GetView<EventGalleryController> {
                   hasScrollBody: false,
                   child: Center(
                     child: EmptyJobsPlaceholder(
-                      title: AppTexts.EVENT_GALLERY_ALL_SYNCED_TITLE,
-                      description: AppTexts.EVENT_GALLERY_ALL_SYNCED_DESC,
+                      title: AppTexts.SHOOT_GALLERY_ALL_SYNCED_TITLE,
+                      description: AppTexts.SHOOT_GALLERY_ALL_SYNCED_DESC,
                     ),
                   ),
                 ),
@@ -195,8 +204,8 @@ class EventGalleryView extends GetView<EventGalleryController> {
                   hasScrollBody: false,
                   child: Center(
                     child: EmptyJobsPlaceholder(
-                      title: AppTexts.EVENT_GALLERY_LIVE_EMPTY_TITLE,
-                      description: AppTexts.EVENT_GALLERY_LIVE_EMPTY_DESC,
+                      title: AppTexts.SHOOT_GALLERY_LIVE_EMPTY_TITLE,
+                      description: AppTexts.SHOOT_GALLERY_LIVE_EMPTY_DESC,
                     ),
                   ),
                 ),
@@ -221,8 +230,8 @@ class EventGalleryView extends GetView<EventGalleryController> {
                   hasScrollBody: false,
                   child: Center(
                     child: EmptyJobsPlaceholder(
-                      title: AppTexts.NO_EVENT_PHOTOS_TITLE,
-                      description: AppTexts.NO_EVENT_PHOTOS_DESCRIPTION,
+                      title: AppTexts.NO_SHOOT_PHOTOS_TITLE,
+                      description: AppTexts.NO_SHOOT_PHOTOS_DESCRIPTION,
                     ),
                   ),
                 ),
@@ -243,7 +252,8 @@ class EventGalleryView extends GetView<EventGalleryController> {
             padding: const EdgeInsets.all(8),
             child: MasonryGridView.count(
               controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
+              shrinkWrap: false,
+              physics: const ClampingScrollPhysics(),
               crossAxisCount: 3,
               mainAxisSpacing: 6,
               crossAxisSpacing: 6,
@@ -310,6 +320,7 @@ class EventGalleryView extends GetView<EventGalleryController> {
 
       // ------------------------------------------------------
       // 🔄 BOTTOM SYNC BUTTON (FINAL WORKING LOGIC)
+      // Show only when auto-sync is OFF, otherwise auto-sync handles it
       // ------------------------------------------------------
       bottomButton: Showcase(
         key: _syncKey,
@@ -320,18 +331,46 @@ class EventGalleryView extends GetView<EventGalleryController> {
         titleTextStyle: ShowcaseService.titleStyle,
         descTextStyle: ShowcaseService.descriptionStyle,
         child: Obx(() {
-          // Check permanent sync completion saved in Hive
-          bool syncedOnce = Preference.box.get(Preference.EVENT_SYNC_DONE) == true;
+          // Check permanent sync completion saved in Hive (event-specific)
+          bool syncedOnce = c.allSynced;
 
           // Also check live runtime values
           bool fullySynced =
               c.savedCount.value == c.totalToSave.value && c.totalToSave.value != 0;
 
+          // Check if auto-sync is enabled
+          bool isAutoSyncOn = c.isAutoSyncEnabled.value;
+          bool isCurrentlySyncing = c.isAutoSyncing.value;
+
+          // If auto-sync is ON and already synced, show completed status
+          if (isAutoSyncOn && (syncedOnce || fullySynced)) {
+            return global_button(
+              title: AppTexts.AUTO_SYNC_COMPLETED,
+              backgroundColor: AppColors.success,
+              loaderWhite: true,
+              onTap: null,
+            );
+          }
+
+          // If auto-sync is ON and currently syncing (includes initial state)
+          if (isAutoSyncOn && isCurrentlySyncing) {
+            return global_button(
+              title: c.savedCount.value > 0
+                  ? "${AppTexts.AUTO_SYNCING} (${c.savedCount}/${c.totalToSave})"
+                  : AppTexts.AUTO_SYNCING,
+              backgroundColor: AppColors.primaryColor,
+              loaderWhite: true,
+              isLoading: true,
+              onTap: null,
+            );
+          }
+
+          // If auto-sync is OFF, show manual Sync Now button
           return global_button(
             title: (syncedOnce || fullySynced)
-                ? "Completed (${c.savedCount}/${c.totalToSave})"
-                : "Sync Now",
-            backgroundColor: AppColors.primaryColor,
+                ? "${AppTexts.SYNC_COMPLETED} (${c.savedCount}/${c.totalToSave})"
+                : AppTexts.SYNC_NOW,
+            backgroundColor: (syncedOnce || fullySynced) ? AppColors.success : AppColors.primaryColor,
             loaderWhite: true,
             isLoading: !c.enableOK.value &&
                 c.savedCount.value > 0 &&
@@ -375,6 +414,7 @@ class EventGalleryView extends GetView<EventGalleryController> {
           ),
         ),
       ],
+    ),
     );
   }
 }

@@ -15,6 +15,22 @@
       },
       "oauth_client": [
         {
+          "client_id": "480572814025-8a55job7pdd2q41nubicd7oej2luomvt.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bellybutton.dev.bellybutton",
+            "certificate_hash": "76ecc9339677b1ebbd5239c270b45cb2029f08ec"
+          }
+        },
+        {
+          "client_id": "480572814025-fkkofv9t54rko057k7g82dqlhv1a3fja.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bellybutton.dev.bellybutton",
+            "certificate_hash": "638cc5d5a0b1816bd941d7ef5e85aa56033ff3a8"
+          }
+        },
+        {
           "client_id": "480572814025-r9r3egt280f60l1l507ic7vvb8hp3ejc.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

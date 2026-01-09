@@ -4,8 +4,6 @@ import 'dart:io';
 import 'package:bellybutton/app/core/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:bellybutton/app/Controllers/oauth.dart';
-import 'package:bellybutton/app/modules/Profile/Innermodule/Reset_password/views/reset_password_view.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import '../../../api/PublicApiService.dart';
 import '../../../core/network/dio_client.dart';
@@ -24,7 +22,6 @@ class ProfileController extends GetxController {
   RxBool isProcessing = false.obs; //--for delete account
   RxBool autoSync = false.obs; //--For auto sync
   RxBool isSigningOut = false.obs; //--for sign out button loader
-  Rx<User?> currentUser = AuthService().currentUser.obs;
   RxMap<String, dynamic> userProfile = <String, dynamic>{}.obs;
   Rx<File?> pickedImage = Rx<File?>(null);
 
@@ -34,14 +31,12 @@ class ProfileController extends GetxController {
   void onInit() {
     super.onInit();
 
-    if (Preference.userId != null) {
-      fetchProfileById(Preference.userId!);
-    }
+    // Load autoSync setting from Preference
+    autoSync.value = Preference.autoSync;
 
-    // Listen for Firebase Auth changes
-    AuthService().authStateChanges.listen((user) {
-      currentUser.value = user;
-    });
+    if (Preference.userId > 0) {
+      fetchProfileById(Preference.userId);
+    }
   }
 
   Future<void> fetchProfileById(int userId) async {
@@ -88,7 +83,10 @@ class ProfileController extends GetxController {
     }
   }
 
-  void onAutoSyncChanged(bool value) => autoSync.value = value;
+  void onAutoSyncChanged(bool value) {
+    autoSync.value = value;
+    Preference.autoSync = value; // Persist to storage
+  }
 
   void onEditProfile() async {
     // Wait for profile data to be loaded before opening AccountDetails
@@ -108,13 +106,7 @@ class ProfileController extends GetxController {
     }
   }
 
-  void ResetPassword() {
-    Get.to(
-      () => ResetPasswordView(),
-      transition: Transition.rightToLeft,
-      duration: const Duration(milliseconds: 300),
-    );
-  }
+  // Reset password functionality removed - using OTP login now
 
   void onPrivacyTap() {
     Get.to(
@@ -182,7 +174,7 @@ void onDeleteAccountTap() {
         Get.deleteAll(force: true);
 
         Get.back();
-        Get.offAllNamed(Routes.LOGIN);
+        Get.offAllNamed(Routes.PHONE_LOGIN);
 
         showCustomSnackBar(
           AppTexts.ACCOUNT_DELETED_SUCCESS,
@@ -231,7 +223,7 @@ void onDeleteAccountTap() {
         // Clear controllers
         Get.deleteAll(force: true);
 
-        Get.offAllNamed(Routes.LOGIN);
+        Get.offAllNamed(Routes.PHONE_LOGIN);
 
         showCustomSnackBar(
           AppTexts.LOGOUT_SUCCESS,

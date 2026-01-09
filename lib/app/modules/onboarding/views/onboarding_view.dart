@@ -17,9 +17,8 @@ class OnboardingView extends GetView<OnboardingController> {
     final size = MediaQuery.of(context).size;
     // System UI Styling
     SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        // statusBarColor: AppTheme.lightTheme.scaffoldBackgroundColor,
-        statusBarColor: Colors.transparent, // ✅ Transparent status bar
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
       ),
     );
@@ -66,7 +65,7 @@ class OnboardingView extends GetView<OnboardingController> {
                       ),
                       child: Obx(
                         () => global_button(
-                          isLoading: controller.isLoading.value, // ✅ Reactive
+                          isLoading: controller.isLoading.value,
                           title: AppTexts.ONBOARDING_BUTTON,
                           backgroundColor: AppColors.textColor3,
                           textColor: AppColors.primaryColor,

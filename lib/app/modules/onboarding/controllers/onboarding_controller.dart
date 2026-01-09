@@ -1,15 +1,21 @@
 import 'package:get/get.dart';
-
+import '../../../core/utils/storage/preference.dart';
 import '../../../routes/app_pages.dart';
 
 class OnboardingController extends GetxController {
-  var isLoading = false.obs;
+  final isLoading = false.obs;
 
-  void goToNext() async {
+  /// Navigate to Phone Login and mark onboarding as complete
+  Future<void> goToNext() async {
     isLoading.value = true;
-    await Future.delayed(Duration(seconds: 2));
-    isLoading.value = false;
-    Get.offNamed(Routes.LOGIN); // ✅ Cannot go back to onboarding
-    update();
+
+    // Small delay for button animation
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    // Mark onboarding as complete
+    Preference.onboardingComplete = true;
+
+    // Navigate to Phone Login
+    Get.offAllNamed(Routes.PHONE_LOGIN);
   }
 }

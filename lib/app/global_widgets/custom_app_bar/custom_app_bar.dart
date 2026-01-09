@@ -1,7 +1,7 @@
 // ignore_for_file: avoid_print, deprecated_member_use, duplicate_ignore
 
 import 'dart:io';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -12,6 +12,7 @@ import '../../core/constants/app_images.dart';
 import '../../core/constants/app_texts.dart';
 import '../../core/services/showcase_service.dart';
 import 'package:bellybutton/app/core/utils/index.dart';
+import '../loader/global_loader.dart';
 
 import '../../routes/app_pages.dart';
 
@@ -194,29 +195,86 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       String prefName = Preference.userNameRx.value;
       String? prefPhoto = Preference.profileImageRx.value;
 
-      final firebaseUser = FirebaseAuth.instance.currentUser;
+      // Use Preference data (from API)
+      String displayName = prefName.isNotEmpty ? prefName : 'User';
 
-      // Priority: Preference (API data) > Firebase Auth
-      String displayName = prefName.isNotEmpty
-          ? prefName
-          : (firebaseUser?.displayName?.isNotEmpty == true
-              ? firebaseUser!.displayName!
-              : 'User');
+      // Get the image URL from Preference
+      String? imageUrl;
+      bool isLocalFile = false;
 
-      ImageProvider? imageProvider;
-
-      // Priority: Preference photo (API data) > Firebase photo
       if (prefPhoto != null && prefPhoto.isNotEmpty) {
-        if (prefPhoto.startsWith('http')) {
-          imageProvider = NetworkImage(prefPhoto);
-        } else {
-          final file = File(prefPhoto);
-          if (file.existsSync()) {
-            imageProvider = FileImage(file);
-          }
+        imageUrl = prefPhoto;
+        isLocalFile = !prefPhoto.startsWith('http');
+      }
+
+      // Build the profile image widget with caching
+      Widget buildProfileImage() {
+        final radius = size.width * 0.045;
+        final iconSize = size.width * 0.055;
+
+        // No image
+        if (imageUrl == null || imageUrl.isEmpty) {
+          return CircleAvatar(
+            radius: radius,
+            backgroundColor: Colors.grey.shade200,
+            child: SvgPicture.asset(
+              AppImages.PERSON,
+              height: iconSize,
+              width: iconSize,
+              color: textColor,
+            ),
+          );
         }
-      } else if (firebaseUser?.photoURL != null) {
-        imageProvider = NetworkImage(firebaseUser!.photoURL!);
+
+        // Local file image
+        if (isLocalFile) {
+          final file = File(imageUrl);
+          if (file.existsSync()) {
+            return CircleAvatar(
+              radius: radius,
+              backgroundColor: Colors.grey.shade200,
+              backgroundImage: FileImage(file),
+            );
+          }
+          return CircleAvatar(
+            radius: radius,
+            backgroundColor: Colors.grey.shade200,
+            child: SvgPicture.asset(
+              AppImages.PERSON,
+              height: iconSize,
+              width: iconSize,
+              color: textColor,
+            ),
+          );
+        }
+
+        // Network image with caching
+        return CachedNetworkImage(
+          imageUrl: imageUrl,
+          imageBuilder: (context, imageProvider) => CircleAvatar(
+            radius: radius,
+            backgroundColor: Colors.grey.shade200,
+            backgroundImage: imageProvider,
+          ),
+          placeholder: (context, url) => CircleAvatar(
+            radius: radius,
+            backgroundColor: Colors.grey.shade200,
+            child: Global_Loader(
+              size: iconSize * 0.6,
+              strokeWidth: 2,
+            ),
+          ),
+          errorWidget: (context, url, error) => CircleAvatar(
+            radius: radius,
+            backgroundColor: Colors.grey.shade200,
+            child: SvgPicture.asset(
+              AppImages.PERSON,
+              height: iconSize,
+              width: iconSize,
+              color: textColor,
+            ),
+          ),
+        );
       }
 
       final profileWidget = Padding(
@@ -263,33 +321,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               children: [
                 Hero(
                   tag: 'profile-photo',
-                  child: CircleAvatar(
-                    radius: size.width * 0.045,
-                    backgroundColor: Colors.grey.shade200,
-                    child: ClipOval(
-                      child: imageProvider != null
-                          ? Image(
-                              image: imageProvider,
-                              width: size.width * 0.09,
-                              height: size.width * 0.09,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return SvgPicture.asset(
-                                  AppImages.PERSON,
-                                  height: size.width * 0.055,
-                                  width: size.width * 0.055,
-                                  color: textColor,
-                                );
-                              },
-                            )
-                          : SvgPicture.asset(
-                              AppImages.PERSON,
-                              height: size.width * 0.055,
-                              width: size.width * 0.055,
-                              color: textColor,
-                            ),
-                    ),
-                  ),
+                  child: buildProfileImage(),
                 ),
                 SizedBox(width: size.width * 0.02),
                 Flexible(
@@ -313,9 +345,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                             ),
                           ],
                         ),
-                        softWrap: true,
-                        overflow: TextOverflow.visible,
-                        maxLines: null,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ),
                   ),

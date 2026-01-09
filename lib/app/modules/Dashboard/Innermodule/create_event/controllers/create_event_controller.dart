@@ -8,14 +8,33 @@ import 'package:table_calendar/table_calendar.dart';
 import '../../../../../api/PublicApiService.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_texts.dart';
-import '../../../../../core/services/local_notification_service.dart';
 import '../../../../../core/utils/helpers/validation_utils.dart';
 import '../../../../../database/models/EventModel.dart';
 import '../../../../../global_widgets/CustomPopup/CustomPopup.dart';
 import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../../../core/utils/helpers/date_converter.dart';
 import '../../inviteuser/controllers/inviteuser_controller.dart';
+import '../../inviteuser/models/invite_user_arguments.dart';
 import '../../inviteuser/views/inviteuser_view.dart';
+
+/// Helper class for device locale settings
+class DeviceLocaleHelper {
+  /// Check if device uses 24-hour format
+  static bool is24HourFormat(BuildContext context) {
+    return MediaQuery.of(context).alwaysUse24HourFormat;
+  }
+
+  /// Get device locale
+  static Locale getDeviceLocale(BuildContext context) {
+    return Localizations.localeOf(context);
+  }
+
+  /// Get locale string (e.g., "en_US", "hi_IN")
+  static String getLocaleString(BuildContext context) {
+    final locale = getDeviceLocale(context);
+    return '${locale.languageCode}_${locale.countryCode ?? ''}';
+  }
+}
 
 class CreateEventController extends GetxController {
   final _apiService = PublicApiService();
@@ -41,6 +60,11 @@ class CreateEventController extends GetxController {
   var dateError = ''.obs;
   var startTimeError = ''.obs;
   var endTimeError = ''.obs;
+
+  /// Track when times were selected to avoid showing "time passed" errors
+  /// while user stays on page (time was valid when selected)
+  DateTime? _startTimeSelectedAt;
+  DateTime? _endTimeSelectedAt;
 
   /// ---------------- CALENDAR ----------------
   var showCalendar = false.obs;
@@ -139,6 +163,7 @@ class CreateEventController extends GetxController {
   }
 
   /// Load data safely when editing
+  /// Converts UTC stored times to user's local timezone for display
   void _loadEventData() {
     _isInitializing = true;
     final args = Get.arguments;
@@ -147,11 +172,18 @@ class CreateEventController extends GetxController {
       isEditMode.value = true;
       editingEvent = args;
 
-      titleController.text = args.title ?? '';
-      descriptionController.text = args.description ?? '';
-      dateController.text = DateFormat('dd MMM yyyy').format(args.eventDate);
-      startTimeController.text = args.startTime ?? '';
-      endTimeController.text = args.endTime ?? '';
+      titleController.text = args.title;
+      descriptionController.text = args.description;
+
+      // Convert UTC date/time to local timezone for display
+      // This ensures users see times in their local timezone
+      dateController.text = args.getLocalDateString();
+      startTimeController.text = args.getLocalStartTimeString();
+      endTimeController.text = args.getLocalEndTimeString();
+
+      // Update selected day to local date
+      selectedDay.value = args.localEventDate;
+      focusedDay.value = args.localEventDate;
     } else {
       clearForm();
     }
@@ -166,6 +198,11 @@ class CreateEventController extends GetxController {
     validateTitle(titleController.text);
     validateDescription(descriptionController.text);
     validateDate(dateController.text);
+
+    // For final submission, force fresh validation (reset selection timestamps)
+    // This ensures we catch any times that became invalid while user was on page
+    _startTimeSelectedAt = null;
+    _endTimeSelectedAt = null;
     validateStartTime(startTimeController.text);
     validateEndTime(endTimeController.text);
 
@@ -188,95 +225,200 @@ class CreateEventController extends GetxController {
     dateError.value = Validation.validateEventDate(value) ?? '';
   }
 
-  void validateStartTime(String value) {
-    startTimeError.value = Validation.validateEventStart(value) ?? '';
-  }
+  void validateStartTime(String value, {bool isFromTimePicker = false}) {
+    // Basic empty check
+    final basicError = Validation.validateEventStart(value);
+    if (basicError != null) {
+      startTimeError.value = basicError;
+      return;
+    }
 
-  void validateEndTime(String value) {
-    // basic check moved to Validation
-    endTimeError.value = Validation.validateEventEnd(value) ?? '';
+    // Skip past-time validation in edit mode (existing events may have past start times)
+    if (isEditMode.value) {
+      startTimeError.value = '';
+      return;
+    }
 
-    // *** keep your existing advanced logic ***
-    if (endTimeError.value.isNotEmpty) return;
-
-    if (startTimeController.text.isNotEmpty && dateController.text.isNotEmpty) {
-      try {
-        final start = _parseTime(startTimeController.text, dateController.text);
-        final end = _parseTime(value, dateController.text);
-
-        final now = DateTime.now();
-
-        if (start.isBefore(now)) {
-          endTimeError.value = AppTexts.EVENT_TIME_IN_PAST;
-          return;
-        }
-
-        final diff = end.difference(start).inMinutes;
-
-        if (diff <= 0) {
-          endTimeError.value = AppTexts.END_AFTER_START;
-        } else if (diff > 120) {
-          endTimeError.value = AppTexts.EVENT_DURATION_LIMIT;
-        } else {
-          endTimeError.value = '';
-        }
-      } catch (_) {
-        endTimeError.value = AppTexts.INVALID_TIME;
+    // Skip past-time validation if time was recently selected (within 10 minutes)
+    // This prevents "time passed" errors while user stays on page
+    if (_startTimeSelectedAt != null && !isFromTimePicker) {
+      final timeSinceSelection = DateTime.now().difference(_startTimeSelectedAt!);
+      if (timeSinceSelection.inMinutes < 10) {
+        // Time was valid when selected, don't show past-time errors while user is on page
+        startTimeError.value = '';
+        return;
       }
+    }
+
+    // If called from time picker, update the selection timestamp
+    if (isFromTimePicker) {
+      _startTimeSelectedAt = DateTime.now();
+    }
+
+    // Comprehensive validation with date context
+    if (dateController.text.isNotEmpty) {
+      final error = Validation.validateStartTimeWithContext(
+        startTime: value,
+        eventDate: dateController.text,
+        bufferMinutes: 0,
+      );
+      startTimeError.value = error ?? '';
+
+      // Re-validate end time if it exists (start time change may affect end time validity)
+      if (endTimeController.text.isNotEmpty && error == null) {
+        _validateEndTimeOnly(endTimeController.text);
+      }
+    } else {
+      startTimeError.value = '';
     }
   }
 
-  DateTime _parseTime(String time, String date) {
-    final datePart = DateFormat('dd MMM yyyy').parse(date);
-    final timeParts = time.split(RegExp(r'[:\s]'));
-    int hour = int.parse(timeParts[0]);
-    final minute = int.parse(timeParts[1]);
-    final isPM = time.toLowerCase().contains('pm');
+  void validateEndTime(String value, {bool isFromTimePicker = false}) {
+    _validateEndTimeOnly(value, isFromTimePicker: isFromTimePicker);
+  }
 
-    if (isPM && hour != 12) hour += 12;
-    if (!isPM && hour == 12) hour = 0;
+  void _validateEndTimeOnly(String value, {bool isFromTimePicker = false}) {
+    // Basic empty check
+    final basicError = Validation.validateEventEnd(value);
+    if (basicError != null) {
+      endTimeError.value = basicError;
+      return;
+    }
 
-    return DateTime(datePart.year, datePart.month, datePart.day, hour, minute);
+    // Need both start time and date for comprehensive validation
+    if (startTimeController.text.isEmpty || dateController.text.isEmpty) {
+      endTimeError.value = '';
+      return;
+    }
+
+    // Skip past-time validation if times were recently selected (within 10 minutes)
+    // This prevents "time passed" errors while user stays on page
+    final hasRecentStartSelection = _startTimeSelectedAt != null &&
+        DateTime.now().difference(_startTimeSelectedAt!).inMinutes < 10;
+    final hasRecentEndSelection = _endTimeSelectedAt != null &&
+        DateTime.now().difference(_endTimeSelectedAt!).inMinutes < 10;
+
+    // If called from time picker, update the selection timestamp
+    if (isFromTimePicker) {
+      _endTimeSelectedAt = DateTime.now();
+    }
+
+    // Comprehensive validation with context
+    // Skip past-time check if time was recently selected OR in edit mode
+    final error = Validation.validateEndTimeWithContext(
+      endTime: value,
+      startTime: startTimeController.text,
+      eventDate: dateController.text,
+      minDurationMinutes: 15,
+      maxDurationMinutes: 120,
+      skipPastCheck: isEditMode.value || hasRecentStartSelection || hasRecentEndSelection,
+    );
+    endTimeError.value = error ?? '';
   }
 
   void selectDay(DateTime selected, DateTime focused) {
     selectedDay.value = selected;
     focusedDay.value = focused;
-    dateController.text = DateFormat('dd MMM yyyy').format(selected);
+    // Use locale-aware date formatting for display
+    dateController.text = DateConverter.formatDateLocale(selected);
+
+    // Re-validate times when date changes (affects past-time validation)
+    if (startTimeController.text.isNotEmpty) {
+      validateStartTime(startTimeController.text);
+    }
+    if (endTimeController.text.isNotEmpty) {
+      validateEndTime(endTimeController.text);
+    }
   }
 
   Future<void> createEvent() async {
     isLoading.value = true;
 
     try {
-      final start = DateConverter.convertTo24Hour(startTimeController.text);
-      final end = DateConverter.convertTo24Hour(endTimeController.text);
-      final eventDate = DateFormat('dd MMM yyyy').parse(dateController.text);
+      // Parse date from locale-aware format
+      final localDate = DateConverter.parseDate(dateController.text);
+
+      if (localDate == null) {
+        showCustomSnackBar(AppTexts.INVALID_DATE_FORMAT, SnackbarState.error);
+        return;
+      }
+
+      // Convert local times to UTC for global timezone support
+      // This ensures events work correctly across all countries
+      final startUtcData = DateConverter.getUtcDateTimeForStorage(
+        dateController.text,
+        startTimeController.text,
+      );
+      final endUtcData = DateConverter.getUtcDateTimeForStorage(
+        dateController.text,
+        endTimeController.text,
+      );
+
+      if (startUtcData == null || endUtcData == null) {
+        showCustomSnackBar(AppTexts.INVALID_DATE_FORMAT, SnackbarState.error);
+        return;
+      }
+
+      // Store in UTC - this will be converted to local time when displayed
+      final utcEventDate = startUtcData['utcDate'] as DateTime;
+      final utcStartTime = startUtcData['utcTime'] as String;
+      final utcEndTime = endUtcData['utcTime'] as String;
+
+      // Store creator's timezone info
+      final timezoneName = startUtcData['creatorTimezone'] as String;
+      final timezoneOffset = startUtcData['creatorOffset'] as String;
+
+      // 🔍 DEBUG: Print timezone conversion details
+      print('═══════════════════════════════════════════════════════');
+      print('🌍 TIMEZONE CONVERSION DEBUG:');
+      print('───────────────────────────────────────────────────────');
+      print('📝 User Input:');
+      print('   Date: ${dateController.text}');
+      print('   Start Time: ${startTimeController.text}');
+      print('   End Time: ${endTimeController.text}');
+      print('───────────────────────────────────────────────────────');
+      print('🌐 Device Timezone:');
+      print('   Name: $timezoneName');
+      print('   Offset: $timezoneOffset');
+      print('───────────────────────────────────────────────────────');
+      print('✅ Converted to UTC:');
+      print('   UTC Date: ${DateFormat('yyyy-MM-dd').format(utcEventDate)}');
+      print('   UTC Start Time: $utcStartTime');
+      print('   UTC End Time: $utcEndTime');
+      print('───────────────────────────────────────────────────────');
+      print('📤 Sending to Backend:');
+      print('   eventDate: "${DateFormat('yyyy-MM-dd').format(utcEventDate)}"');
+      print('   startTime: "$utcStartTime"');
+      print('   endTime: "$utcEndTime"');
+      print('   timezone: "$timezoneName"');
+      print('   timezoneOffset: "$timezoneOffset"');
+      print('═══════════════════════════════════════════════════════');
 
       final newEvent = EventModel(
         id: null,
         title: titleController.text.trim(),
         description: descriptionController.text.trim(),
-        eventDate: eventDate,
-        startTime: start,
-        endTime: end,
+        eventDate: utcEventDate,
+        startTime: utcStartTime,
+        endTime: utcEndTime,
         invitedPeople: [],
+        timezone: timezoneName,
+        timezoneOffset: timezoneOffset,
       );
 
-      // await LocalNotificationService.show(
-      //   title: AppTexts.NOTIFY_EVENT_CREATED_TITLE,
-      //   body:
-      //       "Your event '${titleController.text}' has been scheduled successfully.",
-      // );
-
-      Get.off(() {
-        Get.delete<InviteuserController>();
-        Get.put(InviteuserController());
-        return  InviteuserView();
-      }, arguments: newEvent);
+      // Navigate to invite users screen with type-safe arguments
+      Get.off(
+        () {
+          // Initialize controller with fresh instance
+          Get.delete<InviteuserController>();
+          Get.put(InviteuserController());
+          return InviteuserView();
+        },
+        arguments: InviteUserArguments.create(newEvent),
+      );
     } catch (e) {
       showCustomSnackBar(
-        "${AppTexts.ERROR_PREPARING_EVENT} $e",
+        "${AppTexts.ERROR_PREPARING_SHOOT} $e",
         SnackbarState.error,
       );
     } finally {
@@ -290,18 +432,84 @@ class CreateEventController extends GetxController {
     isLoading.value = true;
 
     try {
-      final start = DateConverter.convertTo24Hour(startTimeController.text);
-      final end = DateConverter.convertTo24Hour(endTimeController.text);
+      // 🔥 IMPORTANT: Fetch ALL invitations (PENDING + ACCEPTED) BEFORE update
+      // The update API response returns empty invitedPeople, so we preserve the current list
+      List<Map<String, dynamic>> preservedInvitedPeople = [];
+      try {
+        preservedInvitedPeople = await _apiService.getAllInvitations(editingEvent!.id!);
+        print("📋 Preserved ${preservedInvitedPeople.length} invited users before update (PENDING + ACCEPTED)");
+      } catch (e) {
+        print("⚠️ Could not fetch current invited users: $e");
+      }
+
+      // Parse date from locale-aware format
+      final parsedDate = DateConverter.parseDate(dateController.text);
+
+      if (parsedDate == null) {
+        showCustomSnackBar(AppTexts.INVALID_DATE_FORMAT, SnackbarState.error);
+        return;
+      }
+
+      // Convert local times to UTC for global timezone support
+      final startUtcData = DateConverter.getUtcDateTimeForStorage(
+        dateController.text,
+        startTimeController.text,
+      );
+      final endUtcData = DateConverter.getUtcDateTimeForStorage(
+        dateController.text,
+        endTimeController.text,
+      );
+
+      if (startUtcData == null || endUtcData == null) {
+        showCustomSnackBar(AppTexts.INVALID_DATE_FORMAT, SnackbarState.error);
+        return;
+      }
+
+      // Get UTC values for API
+      final utcEventDate = startUtcData['utcDate'] as DateTime;
+      final utcStartTime = startUtcData['utcTime'] as String;
+      final utcEndTime = endUtcData['utcTime'] as String;
+      final timezoneName = startUtcData['creatorTimezone'] as String;
+      final timezoneOffset = startUtcData['creatorOffset'] as String;
+
+      // Format UTC date for API (ISO 8601 standard: yyyy-MM-dd)
+      final apiDateFormat = DateConverter.formatDateForApi(utcEventDate);
+
+      // 🔍 DEBUG: Print timezone conversion details for UPDATE
+      print('═══════════════════════════════════════════════════════');
+      print('🌍 UPDATE TIMEZONE CONVERSION DEBUG:');
+      print('───────────────────────────────────────────────────────');
+      print('📝 User Input:');
+      print('   Date: ${dateController.text}');
+      print('   Start Time: ${startTimeController.text}');
+      print('   End Time: ${endTimeController.text}');
+      print('───────────────────────────────────────────────────────');
+      print('🌐 Device Timezone:');
+      print('   Name: $timezoneName');
+      print('   Offset: $timezoneOffset');
+      print('───────────────────────────────────────────────────────');
+      print('✅ Converted to UTC:');
+      print('   UTC Date: $apiDateFormat');
+      print('   UTC Start Time: $utcStartTime');
+      print('   UTC End Time: $utcEndTime');
+      print('───────────────────────────────────────────────────────');
+      print('📤 Sending to Backend:');
+      print('   eventDate: "$apiDateFormat"');
+      print('   startTime: "$utcStartTime"');
+      print('   endTime: "$utcEndTime"');
+      print('   timezone: "$timezoneName"');
+      print('   timezoneOffset: "$timezoneOffset"');
+      print('═══════════════════════════════════════════════════════');
 
       final response = await _apiService.updateEvent(
         id: editingEvent!.id!,
         title: titleController.text.trim(),
         description: descriptionController.text.trim(),
-        eventDate: DateFormat(
-          'yyyy-MM-dd',
-        ).format(DateFormat('dd MMM yyyy').parse(dateController.text)),
-        startTime: start,
-        endTime: end,
+        eventDate: apiDateFormat,
+        startTime: utcStartTime,
+        endTime: utcEndTime,
+        timezone: timezoneName,           // Creator's timezone for global support
+        timezoneOffset: timezoneOffset,   // Creator's offset for global support
       );
 
       final headers = response["headers"];
@@ -309,16 +517,13 @@ class CreateEventController extends GetxController {
       final success = headers?["status"] == "success";
 
       if (success && data != null) {
-        showCustomSnackBar(
-          headers?["message"] ?? AppTexts.EVENT_UPDATED,
-          SnackbarState.success,
-        );
-        await LocalNotificationService.show(
-          title: AppTexts.NOTIFY_EVENT_UPDATED_TITLE,
-          body:
-              "Your event '${titleController.text}' has been updated successfully.",
-        );
+        // Don't show snackbar here - it will be shown after inviting users
 
+        // 🔥 Use the preserved invited people (fetched BEFORE update)
+        // The update API response returns empty invitedPeople, which is a backend limitation
+        print("✅ Using ${preservedInvitedPeople.length} preserved invited users after update");
+
+        // Create event model with preserved invited people
         final updatedEvent = EventModel(
           id: data["id"],
           title: data["title"],
@@ -326,25 +531,32 @@ class CreateEventController extends GetxController {
           eventDate: DateTime.parse(data["eventDate"]),
           startTime: data["startTime"],
           endTime: data["endTime"],
-          invitedPeople: data["invitedPeople"] ?? [],
+          invitedPeople: preservedInvitedPeople,
+          timezone: data["timezone"] ?? timezoneName,
+          timezoneOffset: data["timezoneOffset"] ?? timezoneOffset,
         );
 
         clearForm();
 
-        Get.off(() {
-          Get.delete<InviteuserController>();
-          Get.put(InviteuserController());
-          return  InviteuserView();
-        }, arguments: updatedEvent);
+        // Navigate to invite users screen for reinviting with type-safe arguments
+        Get.off(
+          () {
+            // Initialize controller with fresh instance
+            Get.delete<InviteuserController>();
+            Get.put(InviteuserController());
+            return InviteuserView();
+          },
+          arguments: InviteUserArguments.update(updatedEvent, showNotification: true),
+        );
       } else {
         showCustomSnackBar(
-          AppTexts.FAILED_TO_UPDATE_EVENT,
+          AppTexts.FAILED_TO_UPDATE_SHOOT,
           SnackbarState.error,
         );
       }
     } catch (e) {
       showCustomSnackBar(
-        "${AppTexts.ERROR_UPDATING_EVENT} $e",
+        "${AppTexts.ERROR_UPDATING_SHOOT} $e",
         SnackbarState.error,
       );
     } finally {
@@ -360,14 +572,17 @@ class CreateEventController extends GetxController {
     endTimeController.clear();
     editingEvent = null;
     isEditMode.value = false;
+    // Reset time selection timestamps
+    _startTimeSelectedAt = null;
+    _endTimeSelectedAt = null;
   }
 
   void showEventConfirmationDialog() {
     _showConfirmationDialog(
       title:
           isEditMode.value
-              ? AppTexts.CONFIRM_EVENT_UPDATE
-              : AppTexts.CONFIRM_EVENT_CREATION,
+              ? AppTexts.CONFIRM_SHOOT_UPDATE
+              : AppTexts.CONFIRM_SHOOT_CREATION,
       confirmText: AppTexts.OK,
       messageWidget: RichText(
         text: TextSpan(
@@ -376,8 +591,8 @@ class CreateEventController extends GetxController {
             TextSpan(
               text:
                   isEditMode.value
-                      ? AppTexts.CONFIRM_EVENT_UPDATE_MESSAGE
-                      : AppTexts.CONFIRM_EVENT_CREATION_MESSAGE,
+                      ? AppTexts.CONFIRM_SHOOT_UPDATE_MESSAGE
+                      : AppTexts.CONFIRM_SHOOT_CREATION_MESSAGE,
             ),
             TextSpan(
               text: titleController.text,
@@ -425,20 +640,51 @@ class CreateEventController extends GetxController {
     }
 
     final now = TimeOfDay.now();
-    DateTime selectedDate;
 
-    try {
-      selectedDate = DateFormat('dd MMM yyyy').parse(dateController.text);
-    } catch (e) {
+    // Parse date using locale-aware parser
+    final selectedDate = DateConverter.parseDate(dateController.text);
+    if (selectedDate == null) {
       showCustomSnackBar(AppTexts.INVALID_DATE_FORMAT, SnackbarState.error);
       return;
     }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Respect device's 24-hour format setting
+    final use24HourFormat = MediaQuery.of(context).alwaysUse24HourFormat;
+
+    // Use previously selected time if available, otherwise use current time
+    // For start time on today: use the later of (previous selection, current time)
+    TimeOfDay initialTime = now;
+    if (timeController.text.isNotEmpty) {
+      final time24 = DateConverter.convertTo24Hour(timeController.text);
+      final timeParts = time24.split(':');
+      if (timeParts.length >= 2) {
+        final hour = int.tryParse(timeParts[0]);
+        final minute = int.tryParse(timeParts[1]);
+        if (hour != null && minute != null) {
+          final previousTime = TimeOfDay(hour: hour, minute: minute);
+
+          // For start time: check if previous selection is in the past (today only)
+          final isToday = selectedDate.year == DateTime.now().year &&
+                          selectedDate.month == DateTime.now().month &&
+                          selectedDate.day == DateTime.now().day;
+
+          if (!isEndTime && isToday && !isEditMode.value) {
+            // Use the later time: previous selection or current time
+            final previousMinutes = previousTime.hour * 60 + previousTime.minute;
+            final nowMinutes = now.hour * 60 + now.minute;
+            initialTime = previousMinutes >= nowMinutes ? previousTime : now;
+          } else {
+            // For end time, future dates, or edit mode: use previous selection
+            initialTime = previousTime;
+          }
+        }
+      }
+    }
 
     TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: now,
+      initialTime: initialTime,
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -468,8 +714,9 @@ class CreateEventController extends GetxController {
               ),
             ),
           ),
+          // Respect user's device 24-hour format preference
           child: MediaQuery(
-            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: use24HourFormat),
             child: child!,
           ),
         );
@@ -477,7 +724,7 @@ class CreateEventController extends GetxController {
     );
 
     if (picked != null) {
-      final selectedDateTime = DateTime(
+      var selectedDateTime = DateTime(
         selectedDate.year,
         selectedDate.month,
         selectedDate.day,
@@ -485,24 +732,70 @@ class CreateEventController extends GetxController {
         picked.minute,
       );
 
-      if (!isEndTime && selectedDateTime.isBefore(DateTime.now())) {
-        await Get.dialog(
-          CustomPopup(
-            title: AppTexts.INVALID_TIME_POPUP_TITLE,
-            message: AppTexts.INVALID_TIME_POPUP_MESSAGE,
-            confirmText: AppTexts.OK,
-            cancelText: null,
-            isProcessing: false.obs,
-            onConfirm: () => Get.back(),
-          ),
-        );
-        return;
+      // Auto-correct start time if too soon (only for start time, not edit mode)
+      bool wasAutoCorrected = false;
+      if (!isEndTime && !isEditMode.value) {
+        final now = DateTime.now();
+        final minAllowedTime = now.add(const Duration(minutes: 1));
+
+        // Check if selected time is in the past or too soon
+        if (selectedDateTime.isBefore(minAllowedTime)) {
+          // Round up to nearest 5 minutes from minAllowedTime
+          final roundedDateTime = DateTime(
+            minAllowedTime.year,
+            minAllowedTime.month,
+            minAllowedTime.day,
+            minAllowedTime.hour,
+            ((minAllowedTime.minute / 5).ceil() * 5),
+          );
+
+          // If rounding pushed minutes to 60, DateTime automatically adjusts the hour
+          selectedDateTime = roundedDateTime;
+          picked = TimeOfDay(hour: selectedDateTime.hour, minute: selectedDateTime.minute);
+          wasAutoCorrected = true;
+        }
       }
 
-      final formattedTime = DateFormat('h:mm a').format(selectedDateTime);
-
+      // Use locale-aware time formatting based on device preference
+      final formattedTime = DateConverter.timeOfDayToLocaleString(
+        picked,
+        use24Hour: use24HourFormat,
+      );
       timeController.text = formattedTime;
-      errorObservable.value = '';
+
+      // Show snackbar if time was auto-corrected
+      if (wasAutoCorrected) {
+        showCustomSnackBar(
+          "Time adjusted to $formattedTime (earliest available)",
+          SnackbarState.warning,
+        );
+      }
+
+      // Validate and show error inline (no popup)
+      // Pass isFromTimePicker: true to record selection timestamp
+      if (isEndTime) {
+        validateEndTime(formattedTime, isFromTimePicker: true);
+      } else {
+        // Auto-fill end time ONLY if it's empty (don't overwrite user's selection)
+        if (endTimeController.text.isEmpty) {
+          final endDateTime = selectedDateTime.add(const Duration(hours: 2));
+          final endTimeOfDay = TimeOfDay(hour: endDateTime.hour, minute: endDateTime.minute);
+          final formattedEndTime = DateConverter.timeOfDayToLocaleString(
+            endTimeOfDay,
+            use24Hour: use24HourFormat,
+          );
+          endTimeController.text = formattedEndTime;
+          // Mark end time as selected via time picker (auto-filled counts as selected)
+          _endTimeSelectedAt = DateTime.now();
+          validateEndTime(formattedEndTime, isFromTimePicker: true);
+        } else {
+          // End time already set by user - just validate it with new start time
+          validateEndTime(endTimeController.text);
+        }
+
+        // Validate start time and record selection timestamp
+        validateStartTime(formattedTime, isFromTimePicker: true);
+      }
     }
   }
 

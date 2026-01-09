@@ -2,6 +2,7 @@
 
 import 'package:intl/intl.dart';
 import '../../constants/app_texts.dart';
+import 'date_converter.dart';
 
 class Validation {
   //----------------------------------------------------
@@ -259,6 +260,92 @@ class Validation {
     return null;
   }
 
+  /// Country-specific phone number length map
+  /// Returns (minLength, maxLength) for each country code
+  static (int, int) getPhoneLengthForCountry(String countryCode) {
+    final lengths = {
+      // South Asia
+      'IN': (10, 10), // India
+      'PK': (10, 10), // Pakistan
+      'BD': (10, 10), // Bangladesh
+      'LK': (9, 9),   // Sri Lanka
+      'NP': (10, 10), // Nepal
+
+      // North America
+      'US': (10, 10), // USA
+      'CA': (10, 10), // Canada
+      'MX': (10, 10), // Mexico
+
+      // Europe
+      'GB': (10, 10), // UK
+      'DE': (10, 11), // Germany
+      'FR': (9, 9),   // France
+      'IT': (9, 10),  // Italy
+      'ES': (9, 9),   // Spain
+      'NL': (9, 9),   // Netherlands
+      'BE': (9, 9),   // Belgium
+      'PT': (9, 9),   // Portugal
+      'AT': (10, 13), // Austria
+      'CH': (9, 9),   // Switzerland
+      'PL': (9, 9),   // Poland
+      'SE': (9, 9),   // Sweden
+      'NO': (8, 8),   // Norway
+      'DK': (8, 8),   // Denmark
+      'FI': (9, 10),  // Finland
+      'IE': (9, 9),   // Ireland
+      'GR': (10, 10), // Greece
+
+      // Middle East
+      'AE': (9, 9),   // UAE
+      'SA': (9, 9),   // Saudi Arabia
+      'QA': (8, 8),   // Qatar
+      'KW': (8, 8),   // Kuwait
+      'BH': (8, 8),   // Bahrain
+      'OM': (8, 8),   // Oman
+      'IL': (9, 9),   // Israel
+      'TR': (10, 10), // Turkey
+
+      // East Asia
+      'CN': (11, 11), // China
+      'JP': (10, 11), // Japan
+      'KR': (10, 11), // South Korea
+      'HK': (8, 8),   // Hong Kong
+      'TW': (9, 9),   // Taiwan
+      'SG': (8, 8),   // Singapore
+      'MY': (9, 10),  // Malaysia
+      'TH': (9, 9),   // Thailand
+      'VN': (9, 10),  // Vietnam
+      'ID': (10, 12), // Indonesia
+      'PH': (10, 10), // Philippines
+
+      // Oceania
+      'AU': (9, 9),   // Australia
+      'NZ': (9, 10),  // New Zealand
+
+      // Africa
+      'ZA': (9, 9),   // South Africa
+      'NG': (10, 10), // Nigeria
+      'EG': (10, 10), // Egypt
+      'KE': (9, 9),   // Kenya
+      'GH': (9, 9),   // Ghana
+
+      // South America
+      'BR': (10, 11), // Brazil
+      'AR': (10, 10), // Argentina
+      'CO': (10, 10), // Colombia
+      'CL': (9, 9),   // Chile
+      'PE': (9, 9),   // Peru
+    };
+
+    return lengths[countryCode.toUpperCase()] ?? (7, 15);
+  }
+
+  /// Validate phone with country-specific length
+  static String? validatePhoneForCountry(String value, String countryCode) {
+    final (minLen, maxLen) = getPhoneLengthForCountry(countryCode);
+    return validatePhone(value, minLength: minLen, maxLength: maxLen);
+  }
+
   // Indian specific phone validation
   static String? validateIndianPhone(String value) {
     final trimmed = value.trim();
@@ -299,6 +386,97 @@ class Validation {
   static String? validateEventEnd(String value) {
     final trimmed = value.trim();
     return trimmed.isEmpty ? "Please select end time" : null;
+  }
+
+  /// Comprehensive start time validation with date context
+  /// Returns null if valid, error message if invalid
+  static String? validateStartTimeWithContext({
+    required String startTime,
+    required String eventDate,
+    int bufferMinutes = 5,
+  }) {
+    if (startTime.trim().isEmpty) return "Select start time";
+    if (eventDate.trim().isEmpty) return "Select date first";
+
+    try {
+      final eventDateTime = _parseTimeWithDate(startTime, eventDate);
+      final now = DateTime.now();
+      final minAllowedTime = now.add(Duration(minutes: bufferMinutes));
+
+      if (eventDateTime.isBefore(minAllowedTime)) {
+        return "Time too soon";
+      }
+
+      return null;
+    } catch (_) {
+      return "Invalid time";
+    }
+  }
+
+  /// Comprehensive end time validation with start time context
+  /// Returns null if valid, error message if invalid
+  static String? validateEndTimeWithContext({
+    required String endTime,
+    required String startTime,
+    required String eventDate,
+    int minDurationMinutes = 15,
+    int maxDurationMinutes = 120,
+    bool skipPastCheck = false,
+  }) {
+    if (endTime.trim().isEmpty) return "Select end time";
+    if (startTime.trim().isEmpty) return "Set start time first";
+    if (eventDate.trim().isEmpty) return "Select date first";
+
+    try {
+      final start = _parseTimeWithDate(startTime, eventDate);
+      var end = _parseTimeWithDate(endTime, eventDate);
+      final now = DateTime.now();
+
+      // Check if start time is in the past (skip in edit mode)
+      if (!skipPastCheck && start.isBefore(now)) {
+        return "Start time passed";
+      }
+
+      // Handle overnight events (end time crosses midnight)
+      // If end appears before start, it means next day
+      if (end.isBefore(start) || end.isAtSameMomentAs(start)) {
+        end = end.add(const Duration(days: 1));
+      }
+
+      // Check duration
+      final durationMinutes = end.difference(start).inMinutes;
+
+      if (durationMinutes < minDurationMinutes) {
+        return "Min $minDurationMinutes min required";
+      }
+
+      if (durationMinutes > maxDurationMinutes) {
+        final hours = maxDurationMinutes ~/ 60;
+        return "Max $hours hr${hours > 1 ? 's' : ''} allowed";
+      }
+
+      return null;
+    } catch (_) {
+      return "Invalid time";
+    }
+  }
+
+  /// Helper to parse time string with date context
+  /// Supports multiple date formats globally using DateConverter
+  static DateTime _parseTimeWithDate(String time, String date) {
+    // Use DateConverter for locale-aware date parsing
+    final datePart = DateConverter.parseDate(date);
+    if (datePart == null) {
+      throw FormatException('Invalid date format: $date');
+    }
+
+    // Convert time to 24-hour format using DateConverter
+    final time24 = DateConverter.convertTo24Hour(time);
+    final timeParts = time24.split(':');
+    final hour = int.parse(timeParts[0]);
+    final minute = int.parse(timeParts[1]);
+
+    return DateTime(datePart.year, datePart.month, datePart.day, hour, minute);
   }
 
   static String? validateOtp(String value) {

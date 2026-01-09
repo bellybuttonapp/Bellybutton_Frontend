@@ -2,17 +2,21 @@ import 'package:get/get.dart';
 import '../../../../../api/PublicApiService.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_texts.dart';
+import '../../../../../core/services/event_invitations_service.dart';
 import '../../../../../database/models/InvitedEventModel.dart';
 import '../../../../../global_widgets/CustomPopup/CustomPopup.dart';
 import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../../../routes/app_pages.dart';
 
 class EventInvitationsController extends GetxController {
-  /// List of invitation events
-  RxList<InvitedEventModel> invitedEvents = <InvitedEventModel>[].obs;
+  /// Access to global invitations service
+  EventInvitationsService get _invitationsService => EventInvitationsService.to;
 
-  /// Shimmer loading state
-  RxBool isLoading = true.obs;
+  /// List of invitation events (from service)
+  RxList<InvitedEventModel> get invitedEvents => _invitationsService.invitations;
+
+  /// Shimmer loading state (from service)
+  RxBool get isLoading => _invitationsService.isLoading;
 
   /// Processing state for popups
   RxBool isProcessing = false.obs;
@@ -24,56 +28,12 @@ class EventInvitationsController extends GetxController {
     loadInvitedEvents();
   }
 
-  // 📅 SORT: PENDING first, then by date+time (upcoming first)
-  void _sortByDateTime() {
-    final now = DateTime.now();
-
-    invitedEvents.sort((a, b) {
-      // 1️⃣ PENDING events always come first
-      if (a.isPending && !b.isPending) return -1;
-      if (!a.isPending && b.isPending) return 1;
-
-      // 2️⃣ Parse date+time safely
-      DateTime dateA;
-      DateTime dateB;
-      try {
-        dateA = a.eventStartDateTime;
-      } catch (_) {
-        dateA = DateTime(2099); // fallback to far future
-      }
-      try {
-        dateB = b.eventStartDateTime;
-      } catch (_) {
-        dateB = DateTime(2099);
-      }
-
-      // 3️⃣ Upcoming events (future) come before past events
-      final aIsUpcoming = dateA.isAfter(now);
-      final bIsUpcoming = dateB.isAfter(now);
-
-      if (aIsUpcoming && !bIsUpcoming) return -1;
-      if (!aIsUpcoming && bIsUpcoming) return 1;
-
-      // 4️⃣ Within same category: nearest date first (ascending)
-      return dateA.compareTo(dateB);
-    });
-
-    invitedEvents.refresh();
-  }
-
   /// ======================= FETCH INVITATIONS =======================
   Future<void> loadInvitedEvents() async {
     try {
-      isLoading(true);
-      invitedEvents.clear();
-
-      final events = await PublicApiService().getInvitedEvents();
-      invitedEvents.assignAll(events);
-      _sortByDateTime();
+      await _invitationsService.fetchInvitations();
     } catch (e) {
-      showCustomSnackBar(AppTexts.UNABLE_TO_FETCH_INVITED_EVENTS, SnackbarState.error);
-    } finally {
-      isLoading(false);
+      showCustomSnackBar(AppTexts.UNABLE_TO_FETCH_INVITED_SHOOTS, SnackbarState.error);
     }
   }
 
@@ -81,8 +41,8 @@ class EventInvitationsController extends GetxController {
   void showAcceptConfirmation(InvitedEventModel event) {
     Get.dialog(
       CustomPopup(
-        title: AppTexts.ACCEPT_EVENT_POPUP_TITLE,
-        message: AppTexts.ACCEPT_EVENT_POPUP_SUBTITLE,
+        title: AppTexts.ACCEPT_SHOOT_POPUP_TITLE,
+        message: AppTexts.ACCEPT_SHOOT_POPUP_SUBTITLE,
         confirmText: AppTexts.ACCEPT,
         cancelText: AppTexts.CANCEL,
         isProcessing: isProcessing,
@@ -96,23 +56,30 @@ class EventInvitationsController extends GetxController {
     try {
       final res = await PublicApiService().acceptInvitedEvent(event.eventId);
 
-      if (res['message'] == "Event Accepted Successfully") {
-        event.status = "ACCEPTED"; // Instant UI change
-        invitedEvents.refresh(); // Notify GetX UI
+      // Check for success using headers.status (preferred) or message fallback
+      final status = res['headers']?['status'];
+      final isSuccess = status == "success" || res['message'] == "Event Accepted Successfully";
+
+      if (isSuccess) {
+        // Update via service (updates badge automatically)
+        _invitationsService.markAsAccepted(event.eventId);
+
+        // Set processing to false BEFORE closing dialog
+        isProcessing.value = false;
 
         Get.back(); // Close the popup
 
         showCustomSnackBar(
-          "${AppTexts.EVENT_ACCEPTED} ${event.title}",
+          "${AppTexts.SHOOT_ACCEPTED} ${event.title}",
           SnackbarState.success,
         );
       } else {
-        showCustomSnackBar(AppTexts.FAILED_TO_ACCEPT_EVENT, SnackbarState.error);
+        isProcessing.value = false;
+        showCustomSnackBar(AppTexts.FAILED_TO_ACCEPT_SHOOT, SnackbarState.error);
       }
     } catch (e) {
-      showCustomSnackBar(AppTexts.SOMETHING_WENT_WRONG, SnackbarState.error);
-    } finally {
       isProcessing.value = false;
+      showCustomSnackBar(AppTexts.SOMETHING_WENT_WRONG, SnackbarState.error);
     }
   }
 
@@ -120,15 +87,15 @@ class EventInvitationsController extends GetxController {
   void showDenyConfirmation(InvitedEventModel event) {
     Get.dialog(
       CustomPopup(
-        title: AppTexts.DENY_EVENT_POPUP_TITLE,
-        message: AppTexts.DENY_EVENT_POPUP_SUBTITLE,
+        title: AppTexts.DENY_SHOOT_POPUP_TITLE,
+        message: AppTexts.DENY_SHOOT_POPUP_SUBTITLE,
         confirmText: AppTexts.DENY,
         cancelText: AppTexts.CANCEL,
         isProcessing: isDenyProcessing,
         onConfirm: () => _denyInvitation(event),
-          // 🔥 Same styling pattern as Delete Account
+        // 🔥 Same styling pattern as Delete Account
         confirmButtonColor: AppColors.error,
-    cancelButtonColor: AppColors.primaryColor,
+        cancelButtonColor: AppColors.primaryColor,
       ),
     );
   }
@@ -138,20 +105,27 @@ class EventInvitationsController extends GetxController {
     try {
       final res = await PublicApiService().denyInvitedEvent(event.eventId);
 
-      if (res['message'] == "Event Denied Successfully") {
-      invitedEvents.remove(event); // remove from list
- invitedEvents.refresh(); // Notify GetX UI
+      // Check for success using headers.status (preferred) or message fallback
+      final status = res['headers']?['status'];
+      final isSuccess = status == "success" || res['message'] == "Event Denied Successfully";
+
+      if (isSuccess) {
+        // Remove via service (updates badge automatically)
+        _invitationsService.removeInvitation(event.eventId);
+
+        // Set processing to false BEFORE closing dialog
+        isDenyProcessing.value = false;
 
         Get.back(); // Close the popup
 
-        showCustomSnackBar("${AppTexts.EVENT_DENIED} ${event.title}", SnackbarState.error);
+        showCustomSnackBar("${AppTexts.SHOOT_DENIED} ${event.title}", SnackbarState.error);
       } else {
-        showCustomSnackBar(AppTexts.FAILED_TO_DENY_EVENT, SnackbarState.error);
+        isDenyProcessing.value = false;
+        showCustomSnackBar(AppTexts.FAILED_TO_DENY_SHOOT, SnackbarState.error);
       }
     } catch (e) {
-      showCustomSnackBar(AppTexts.UNABLE_TO_PROCESS_REQUEST, SnackbarState.error);
-    } finally {
       isDenyProcessing.value = false;
+      showCustomSnackBar(AppTexts.UNABLE_TO_PROCESS_REQUEST, SnackbarState.error);
     }
   }
 

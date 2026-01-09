@@ -1,7 +1,9 @@
 // ignore_for_file: annotate_overrides, deprecated_member_use
 
+import 'dart:io';
 import 'package:adaptive_scrollbar/adaptive_scrollbar.dart';
 import 'package:bellybutton/app/global_widgets/custom_app_bar/custom_app_bar.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -14,6 +16,7 @@ import '../../../core/utils/index.dart';
 import '../../../database/models/NotificationModel.dart';
 import '../../../global_widgets/EmptyJobsPlaceholder/EmptyJobsPlaceholder.dart';
 import '../../../global_widgets/Shimmers/NotificationShimmer.dart';
+import '../../../global_widgets/loader/global_loader.dart';
 import '../controllers/notifications_controller.dart';
 
 class NotificationsView extends GetView<NotificationsController> {
@@ -211,9 +214,9 @@ class NotificationsView extends GetView<NotificationsController> {
     Size size,
   ) {
     return Container(
-      margin: EdgeInsets.only(bottom: size.height * 0.015),
-      padding: EdgeInsets.all(size.width * 0.04),
-      decoration: BoxDecoration(
+        margin: EdgeInsets.only(bottom: size.height * 0.015),
+        padding: EdgeInsets.all(size.width * 0.04),
+        decoration: BoxDecoration(
         color:
             isDarkMode
                 ? Colors.white.withOpacity(0.05)
@@ -247,24 +250,8 @@ class NotificationsView extends GetView<NotificationsController> {
           else
             SizedBox(width: size.width * 0.055),
 
-          // Profile avatar
-          CircleAvatar(
-            radius: size.width * 0.065,
-            backgroundColor:
-                isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300,
-            backgroundImage: notification.profileImageUrl != null &&
-                    notification.profileImageUrl!.isNotEmpty
-                ? NetworkImage(notification.profileImageUrl!)
-                : null,
-            child: notification.profileImageUrl == null ||
-                    notification.profileImageUrl!.isEmpty
-                ? Icon(
-                    Icons.person,
-                    size: size.width * 0.07,
-                    color: isDarkMode ? Colors.white70 : Colors.grey.shade600,
-                  )
-                : null,
-          ),
+          // Profile avatar with caching
+          _buildProfileAvatar(notification, isDarkMode, size),
 
           SizedBox(width: size.width * 0.035),
 
@@ -282,7 +269,7 @@ class NotificationsView extends GetView<NotificationsController> {
                 ),
                 SizedBox(height: size.height * 0.008),
                 Text(
-                  _formatNotificationTime(notification.createdAt),
+                  _formatNotificationTime(notification),
                   style: customTextSmall.copyWith(
                     color: isDarkMode ? Colors.white54 : AppColors.textColor2,
                   ),
@@ -295,24 +282,102 @@ class NotificationsView extends GetView<NotificationsController> {
     );
   }
 
-  String _formatNotificationTime(DateTime dateTime) {
+  Widget _buildProfileAvatar(
+    NotificationModel notification,
+    bool isDarkMode,
+    Size size,
+  ) {
+    final radius = size.width * 0.065;
+    final iconSize = size.width * 0.07;
+    final bgColor = isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300;
+    final iconColor = isDarkMode ? Colors.white70 : Colors.grey.shade600;
+    final imageUrl = notification.profileImageUrl?.trim();
+
+    // No image URL
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return CircleAvatar(
+        radius: radius,
+        backgroundColor: bgColor,
+        child: Icon(
+          Icons.person,
+          size: iconSize,
+          color: iconColor,
+        ),
+      );
+    }
+
+    // Local file image
+    if (!imageUrl.startsWith('http')) {
+      final file = File(imageUrl);
+      if (file.existsSync()) {
+        return CircleAvatar(
+          radius: radius,
+          backgroundColor: bgColor,
+          backgroundImage: FileImage(file),
+        );
+      }
+      return CircleAvatar(
+        radius: radius,
+        backgroundColor: bgColor,
+        child: Icon(
+          Icons.person,
+          size: iconSize,
+          color: iconColor,
+        ),
+      );
+    }
+
+    // Network image with caching
+    return CachedNetworkImage(
+      imageUrl: imageUrl,
+      imageBuilder: (context, imageProvider) => CircleAvatar(
+        radius: radius,
+        backgroundColor: bgColor,
+        backgroundImage: imageProvider,
+      ),
+      placeholder: (context, url) => CircleAvatar(
+        radius: radius,
+        backgroundColor: bgColor,
+        child: Global_Loader(
+          size: iconSize * 0.6,
+          strokeWidth: 2,
+        ),
+      ),
+      errorWidget: (context, url, error) => CircleAvatar(
+        radius: radius,
+        backgroundColor: bgColor,
+        child: Icon(
+          Icons.person,
+          size: iconSize,
+          color: iconColor,
+        ),
+      ),
+    );
+  }
+
+  /// Formats notification time in user's LOCAL timezone
+  /// Uses localCreatedAt which converts UTC to local time
+  String _formatNotificationTime(NotificationModel notification) {
+    // Use localCreatedAt for proper timezone conversion
+    final localDateTime = notification.localCreatedAt;
+
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
     final notificationDate = DateTime(
-      dateTime.year,
-      dateTime.month,
-      dateTime.day,
+      localDateTime.year,
+      localDateTime.month,
+      localDateTime.day,
     );
 
     final timeFormat = DateFormat('h:mm a');
 
     if (notificationDate == today) {
-      return timeFormat.format(dateTime);
+      return timeFormat.format(localDateTime);
     } else if (notificationDate == yesterday) {
-      return timeFormat.format(dateTime);
+      return timeFormat.format(localDateTime);
     } else {
-      return '${DateFormat('MMMM dd/yyyy').format(dateTime)} at ${timeFormat.format(dateTime)}';
+      return '${DateFormat('MMMM dd/yyyy').format(localDateTime)} at ${timeFormat.format(localDateTime)}';
     }
   }
 }

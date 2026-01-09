@@ -44,17 +44,29 @@ class EventCard extends StatelessWidget {
     this.showViewPhotosInitially = false, // DEFAULT false
   });
 
-  String _formatEventDateTime(DateTime eventDate, String? rawTime) {
+  /// Formats event date and time in user's LOCAL timezone
+  /// Converts from UTC (stored) to local time for display
+  String _formatEventDateTime() {
     try {
-      final formattedDate = DateFormat('E, d MMMM').format(eventDate);
-      if (rawTime != null && rawTime.isNotEmpty) {
-        final time = DateFormat('HH:mm:ss').parse(rawTime);
-        final formattedTime = DateFormat('hh:mm a').format(time);
-        return "$formattedDate - $formattedTime";
+      // Use EventModel's built-in local time conversion
+      // This converts UTC stored time to user's local timezone
+      final localDateTime = event.localStartDateTime;
+      final formattedDate = DateFormat('E, d MMMM').format(localDateTime);
+      final formattedTime = DateFormat('hh:mm a').format(localDateTime);
+      return "$formattedDate - $formattedTime";
+    } catch (e) {
+      // Fallback to raw display if conversion fails
+      try {
+        final formattedDate = DateFormat('E, d MMMM').format(event.eventDate);
+        if (event.startTime.isNotEmpty) {
+          final time = DateFormat('HH:mm:ss').parse(event.startTime);
+          final formattedTime = DateFormat('hh:mm a').format(time);
+          return "$formattedDate - $formattedTime";
+        }
+        return formattedDate;
+      } catch (_) {
+        return '';
       }
-      return formattedDate;
-    } catch (_) {
-      return '';
     }
   }
 
@@ -236,7 +248,7 @@ class EventCard extends StatelessWidget {
   void _showBottomSheet(BuildContext context, double width) {
     CustomBottomSheet.show(
       title: event.title.isNotEmpty ? event.title : 'Untitled Event',
-      subtitle: _formatEventDateTime(event.eventDate, event.startTime),
+      subtitle: _formatEventDateTime(),
       showCloseButton: true,
       header: Column(
         mainAxisSize: MainAxisSize.min,
@@ -272,7 +284,7 @@ class EventCard extends StatelessWidget {
               BlendMode.srcIn,
             ),
           ),
-          label: AppTexts.EDIT_EVENT,
+          label: AppTexts.EDIT_SHOOT,
           onTap: () => onEditTap?.call(),
         ),
         SheetAction(
@@ -285,7 +297,7 @@ class EventCard extends StatelessWidget {
               BlendMode.srcIn,
             ),
           ),
-          label: AppTexts.DELETE_EVENT,
+          label: AppTexts.DELETE_SHOOT,
           destructive: true,
           onTap: () => onDeleteTap?.call(),
         ),
@@ -328,7 +340,7 @@ class EventCard extends StatelessWidget {
 
   Widget _buildDateTime(double width, double textScale) {
     return Text(
-      _formatEventDateTime(event.eventDate, event.startTime),
+      _formatEventDateTime(),
       style: customBoldText.copyWith(
         fontSize: Dimensions.fontSizeDefault * textScale,
         fontWeight: FontWeight.bold,
@@ -340,8 +352,6 @@ class EventCard extends StatelessWidget {
   Widget _buildDescription(double textScale, Color color) {
     return Text(
       event.description,
-      maxLines: 2,
-      overflow: TextOverflow.ellipsis,
       style: customBoldText.copyWith(
         fontSize: Dimensions.fontSizeDefault * textScale,
         fontWeight: FontWeight.w500,

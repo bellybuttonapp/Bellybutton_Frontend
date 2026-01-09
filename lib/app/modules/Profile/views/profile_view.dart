@@ -2,6 +2,7 @@
 
 import 'dart:io';
 import 'package:bellybutton/app/core/constants/app_images.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
@@ -12,10 +13,12 @@ import '../../../core/utils/storage/preference.dart';
 import '../../../global_widgets/Button/global_button.dart';
 import '../../../global_widgets/Shimmers/ProfileHeaderShimmer.dart';
 import '../../../global_widgets/custom_app_bar/custom_app_bar.dart';
+import '../../../global_widgets/loader/global_loader.dart';
 import '../controllers/profile_controller.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 
 class ProfileView extends GetView<ProfileController> {
+  
   ProfileView({super.key});
 
   @override
@@ -64,14 +67,14 @@ class ProfileView extends GetView<ProfileController> {
                                   ? profileName!
                                   : (prefName.isNotEmpty ? prefName : "-");
 
-                          // Get email with proper fallback (handle empty strings)
-                          final profileEmail =
-                              profile['email']?.toString().trim();
-                          final prefEmail = Preference.email;
-                          final email =
-                              (profileEmail?.isNotEmpty == true)
-                                  ? profileEmail!
-                                  : (prefEmail.isNotEmpty ? prefEmail : "-");
+                          // Get phone with proper fallback
+                          final profilePhone =
+                              profile['phone']?.toString().trim();
+                          final prefPhone = Preference.phone;
+                          final phone =
+                              (profilePhone?.isNotEmpty == true)
+                                  ? profilePhone!
+                                  : (prefPhone.isNotEmpty ? prefPhone : "-");
 
                           final networkImage =
                               profile['profileImageUrl']
@@ -82,55 +85,94 @@ class ProfileView extends GetView<ProfileController> {
                           final localImage = controller.pickedImage.value?.path;
                           final preferenceImage = Preference.profileImage;
 
-                          ImageProvider? profileImageProvider;
+                          // Determine the image URL to use (priority: Network > Preference > Local)
+                          String? imageUrl;
+                          bool isLocalFile = false;
 
-                          // Priority order: Network image > Preference stored image > Local picked image
                           if (networkImage != null && networkImage.isNotEmpty) {
-                            profileImageProvider = NetworkImage(networkImage);
-                          } else if (preferenceImage != null &&
-                              preferenceImage.isNotEmpty) {
-                            // Check if preference image is a URL or local path
-                            if (preferenceImage.startsWith('http')) {
-                              profileImageProvider = NetworkImage(
-                                preferenceImage,
+                            imageUrl = networkImage;
+                          } else if (preferenceImage != null && preferenceImage.isNotEmpty) {
+                            imageUrl = preferenceImage;
+                            isLocalFile = !preferenceImage.startsWith('http');
+                          } else if (localImage != null && localImage.isNotEmpty) {
+                            imageUrl = localImage;
+                            isLocalFile = true;
+                          }
+
+                          // Build profile image widget with caching
+                          Widget buildProfileImage() {
+                            final radius = screenWidth * 0.075;
+                            final iconSize = screenWidth * 0.055;
+                            final bgColor = const Color.fromARGB(255, 166, 216, 233).withOpacity(0.15);
+
+                            if (imageUrl == null || imageUrl.isEmpty) {
+                              return CircleAvatar(
+                                radius: radius,
+                                backgroundColor: bgColor,
+                                child: SvgPicture.asset(
+                                  AppImages.PERSON,
+                                  height: iconSize,
+                                  width: iconSize,
+                                  color: AppColors.textColor,
+                                ),
                               );
-                            } else {
-                              final file = File(preferenceImage);
+                            }
+
+                            if (isLocalFile) {
+                              final file = File(imageUrl);
                               if (file.existsSync()) {
-                                profileImageProvider = FileImage(file);
+                                return CircleAvatar(
+                                  radius: radius,
+                                  backgroundColor: bgColor,
+                                  backgroundImage: FileImage(file),
+                                );
                               }
+                              return CircleAvatar(
+                                radius: radius,
+                                backgroundColor: bgColor,
+                                child: SvgPicture.asset(
+                                  AppImages.PERSON,
+                                  height: iconSize,
+                                  width: iconSize,
+                                  color: AppColors.textColor,
+                                ),
+                              );
                             }
-                          } else if (localImage != null &&
-                              localImage.isNotEmpty) {
-                            final file = File(localImage);
-                            if (file.existsSync()) {
-                              profileImageProvider = FileImage(file);
-                            }
+
+                            // Network image with caching
+                            return CachedNetworkImage(
+                              imageUrl: imageUrl,
+                              imageBuilder: (context, imageProvider) => CircleAvatar(
+                                radius: radius,
+                                backgroundColor: bgColor,
+                                backgroundImage: imageProvider,
+                              ),
+                              placeholder: (context, url) => CircleAvatar(
+                                radius: radius,
+                                backgroundColor: bgColor,
+                                child: Global_Loader(
+                                  size: iconSize * 0.6,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                              errorWidget: (context, url, error) => CircleAvatar(
+                                radius: radius,
+                                backgroundColor: bgColor,
+                                child: SvgPicture.asset(
+                                  AppImages.PERSON,
+                                  height: iconSize,
+                                  width: iconSize,
+                                  color: AppColors.textColor,
+                                ),
+                              ),
+                            );
                           }
 
                           return ListTile(
                             contentPadding: EdgeInsets.zero,
                             leading: Hero(
                               tag: 'profile-photo',
-                              child: CircleAvatar(
-                                radius: screenWidth * 0.075,
-                                backgroundColor: const Color.fromARGB(
-                                  255,
-                                  166,
-                                  216,
-                                  233,
-                                ).withOpacity(0.15),
-                                backgroundImage: profileImageProvider,
-                                child:
-                                    profileImageProvider == null
-                                        ? SvgPicture.asset(
-                                          AppImages.PERSON,
-                                          height: screenWidth * 0.055,
-                                          width: screenWidth * 0.055,
-                                          color: AppColors.textColor,
-                                        )
-                                        : null,
-                              ),
+                              child: buildProfileImage(),
                             ),
                             title: Hero(
                               tag: 'profile-name-$displayName',
@@ -148,7 +190,7 @@ class ProfileView extends GetView<ProfileController> {
                               ),
                             ),
                             subtitle: Text(
-                              email.isNotEmpty ? email : "-",
+                              phone.isNotEmpty ? phone : "-",
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: customBoldText.copyWith(
@@ -208,22 +250,6 @@ class ProfileView extends GetView<ProfileController> {
                         title: AppTexts.PRIVACY_PERMISSIONS,
                         onTap: controller.onPrivacyTap,
                       ),
-
-                      const _SectionDivider(),
-
-                      _ProfileMenuTile(
-                        svgPath: AppImages.NEW_PSWRD,
-                        title: AppTexts.NEW_PSWD,
-                        onTap: controller.ResetPassword,
-                      ),
-
-                      // const _SectionDivider(),
-
-                      // _ProfileMenuTile(
-                      //   svgPath: AppImages.FAQ_ICON,
-                      //   title: AppTexts.FAQS,
-                      //   onTap: controller.onFaqsTap,
-                      // ),
 
                       const _SectionDivider(),
 

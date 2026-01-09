@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:showcaseview/showcaseview.dart';
+import '../../global_widgets/CustomPopup/CustomPopup.dart';
 import '../constants/app_colors.dart';
+import '../constants/app_texts.dart';
 import '../utils/index.dart';
 
 /// Service for managing showcase/tutorial tours throughout the app.
@@ -8,24 +11,96 @@ import '../utils/index.dart';
 class ShowcaseService {
   ShowcaseService._();
 
+  /// Flag to temporarily disable showcase when deep link navigation is pending
+  static bool hasPendingDeepLink = false;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // USER PREFERENCE FOR SHOWCASE
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Check if user has been asked about showcase
+  static bool get hasBeenAskedAboutTour => Preference.showcaseAsked;
+
+  /// Check if user wants to see the tour
+  static bool get userWantsTour => Preference.showcaseEnabled;
+
+  /// Mark that user has been asked about showcase
+  static void markAskedAboutTour() {
+    Preference.showcaseAsked = true;
+  }
+
+  /// Set user's preference for showcase
+  static void setShowcasePreference(bool enabled) {
+    Preference.showcaseEnabled = enabled;
+    Preference.showcaseAsked = true;
+
+    // If user doesn't want tour, mark all as shown
+    if (!enabled) {
+      skipAllTours();
+    }
+  }
+
+  /// Skip all tours (user chose not to see them)
+  static void skipAllTours() {
+    Preference.showcaseDashboardShown = true;
+    Preference.showcaseCreateEventShown = true;
+    Preference.showcaseEventGalleryShown = true;
+    Preference.showcaseInviteUsersShown = true;
+    Preference.showcaseInvitedGalleryShown = true;
+  }
+
+  /// Show popup asking user if they want to see the app tour
+  static Future<void> showTourPrompt(BuildContext context) async {
+    if (hasBeenAskedAboutTour) return;
+
+    final isProcessing = false.obs;
+    bool userConfirmed = false;
+
+    await Get.dialog(
+      CustomPopup(
+        title: AppTexts.SHOWCASE_TOUR_PROMPT_TITLE,
+        message: AppTexts.SHOWCASE_TOUR_PROMPT_MESSAGE,
+        confirmText: AppTexts.SHOWCASE_TOUR_PROMPT_CONFIRM,
+        cancelText: AppTexts.SHOWCASE_TOUR_PROMPT_SKIP,
+        isProcessing: isProcessing,
+        barrierDismissible: false,
+        cancelButtonColor: AppColors.tertiaryColor,
+        confirmButtonColor: AppColors.primaryColor,
+        onConfirm: () {
+          userConfirmed = true;
+          setShowcasePreference(true);
+          Get.back();
+        },
+      ),
+      barrierDismissible: false,
+    );
+
+    // If user tapped Skip (dialog closed without confirm)
+    if (!userConfirmed) {
+      setShowcasePreference(false);
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // SHOWCASE STATUS CHECKS
   // ═══════════════════════════════════════════════════════════════════════════
 
   /// Check if dashboard showcase should be shown
-  static bool get shouldShowDashboardTour => !Preference.showcaseDashboardShown;
+  /// Returns false if there's a pending deep link navigation or user opted out
+  static bool get shouldShowDashboardTour =>
+      userWantsTour && !Preference.showcaseDashboardShown && !hasPendingDeepLink;
 
   /// Check if create event showcase should be shown
-  static bool get shouldShowCreateEventTour => !Preference.showcaseCreateEventShown;
+  static bool get shouldShowCreateEventTour => userWantsTour && !Preference.showcaseCreateEventShown;
 
   /// Check if event gallery showcase should be shown
-  static bool get shouldShowEventGalleryTour => !Preference.showcaseEventGalleryShown;
+  static bool get shouldShowEventGalleryTour => userWantsTour && !Preference.showcaseEventGalleryShown;
 
   /// Check if invite users showcase should be shown
-  static bool get shouldShowInviteUsersTour => !Preference.showcaseInviteUsersShown;
+  static bool get shouldShowInviteUsersTour => userWantsTour && !Preference.showcaseInviteUsersShown;
 
   /// Check if invited event gallery showcase should be shown
-  static bool get shouldShowInvitedGalleryTour => !Preference.showcaseInvitedGalleryShown;
+  static bool get shouldShowInvitedGalleryTour => userWantsTour && !Preference.showcaseInvitedGalleryShown;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // MARK TOURS AS COMPLETED

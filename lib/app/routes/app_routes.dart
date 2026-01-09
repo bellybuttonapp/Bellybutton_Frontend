@@ -8,10 +8,6 @@ abstract class Routes {
 
   // 🌟 Main Screens
   static const HOME = _Paths.HOME;
-  static const ONBOARDING = _Paths.ONBOARDING;
-  static const LOGIN = _Paths.LOGIN;
-  static const SIGNUP = _Paths.SIGNUP;
-  static const FORGOT_PASSWORD = _Paths.FORGOT_PASSWORD;
   static const DASHBOARD = _Paths.DASHBOARD;
   static const NOTIFICATIONS = _Paths.NOTIFICATIONS;
 
@@ -25,22 +21,27 @@ abstract class Routes {
   // 👤 Profile Screens
   static const PROFILE = _Paths.PROFILE;
   static const ACCOUNT_DETAILS = _Paths.ACCOUNT_DETAILS;
-  static const RESET_PASSWORD = _Paths.RESET_PASSWORD;
 
-  // 💎 Premium & Auth
+  // 💎 Premium
   static const PREMIUM = _Paths.PREMIUM;
-  static const SET_NEW_PASSWORD_VIEW = _Paths.SET_NEW_PASSWORD_VIEW;
   static const INVITED_USERS_LIST =
       _Paths.DASHBOARD + _Paths.INVITED_USERS_LIST;
-  static const EVENT_INVITATIONS = _Paths.DASHBOARD + _Paths.EVENT_INVITATIONS;
-  static const INVITED_EVENT_GALLERY =
-      _Paths.DASHBOARD + _Paths.INVITED_EVENT_GALLERY;
+  // Top-level routes for deep link access
+  static const EVENT_INVITATIONS = _Paths.EVENT_INVITATIONS;
+  static const INVITED_EVENT_GALLERY = _Paths.INVITED_EVENT_GALLERY;
   static const PHOTO_PRE = _Paths.PHOTO_PRE;
   static const INVITED_ADMINS_LIST =
       _Paths.DASHBOARD + _Paths.INVITED_ADMINS_LIST;
-  static const SIGNUP_OTP = _Paths.SIGNUP_OTP;
   static const TERMS_AND_CONDITIONS = _Paths.TERMS_AND_CONDITIONS;
   static const SHARED_EVENT_GALLERY = _Paths.SHARED_EVENT_GALLERY;
+
+  // 📱 Phone OTP Login
+  static const PHONE_LOGIN = _Paths.PHONE_LOGIN;
+  static const LOGIN_OTP = _Paths.LOGIN_OTP;
+  static const PROFILE_SETUP = _Paths.PROFILE_SETUP;
+
+  // 🎯 Onboarding
+  static const ONBOARDING = _Paths.ONBOARDING;
 }
 
 // 🌐 PATHS
@@ -48,10 +49,6 @@ abstract class _Paths {
   _Paths._();
 
   static const HOME = '/home';
-  static const ONBOARDING = '/onboarding';
-  static const LOGIN = '/login';
-  static const SIGNUP = '/signup';
-  static const FORGOT_PASSWORD = '/forgot-password';
   static const DASHBOARD = '/dashboard';
   static const NOTIFICATIONS = '/notifications';
 
@@ -65,17 +62,22 @@ abstract class _Paths {
   // Profile
   static const PROFILE = '/profile';
   static const ACCOUNT_DETAILS = '/account-details';
-  static const RESET_PASSWORD = '/reset-password';
 
-  // Auth / Premium
+  // Premium
   static const PREMIUM = '/premium';
-  static const SET_NEW_PASSWORD_VIEW = '/set-new-password-view';
   static const INVITED_USERS_LIST = '/invited-users-list';
   static const EVENT_INVITATIONS = '/event-invitations';
   static const INVITED_EVENT_GALLERY = '/invited-event-gallery';
   static const PHOTO_PRE = '/photo-pre';
   static const INVITED_ADMINS_LIST = '/invited-admins-list';
-  static const SIGNUP_OTP = '/signup-otp';
   static const TERMS_AND_CONDITIONS = '/terms-and-conditions';
   static const SHARED_EVENT_GALLERY = '/shared-event-gallery';
+
+  // Phone OTP Login
+  static const PHONE_LOGIN = '/phone-login';
+  static const LOGIN_OTP = '/login-otp';
+  static const PROFILE_SETUP = '/profile-setup';
+
+  // Onboarding
+  static const ONBOARDING = '/onboarding';
 }

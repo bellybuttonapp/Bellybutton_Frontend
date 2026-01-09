@@ -32,11 +32,15 @@ class Preference {
   static RxString addressRx = ''.obs;
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // STORAGE KEYS - Authentication (3)
+  // STORAGE KEYS - Authentication (5)
   // ═══════════════════════════════════════════════════════════════════════════
   static const String TOKEN = 'token'; // JWT access token
   static const String IS_LOGGED_IN = 'is_logged_in'; // Login status flag
   static const String FCM_TOKEN = 'fcm_token'; // Firebase push token
+  static const String REMEMBER_ME = 'remember_me'; // Remember me checkbox
+  static const String REMEMBERED_EMAIL = 'remembered_email'; // Saved email for auto-fill
+  static const String IS_PROFILE_COMPLETE = 'is_profile_complete'; // Profile setup completed
+  static const String ONBOARDING_COMPLETE = 'onboarding_complete'; // Onboarding done flag
 
   // ═══════════════════════════════════════════════════════════════════════════
   // STORAGE KEYS - User Profile (7)
@@ -58,13 +62,16 @@ class Preference {
   static const String ANDROID_ID = 'android_id'; // Device identifier
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // STORAGE KEYS - App Settings (1)
+  // STORAGE KEYS - App Settings (2)
   // ═══════════════════════════════════════════════════════════════════════════
   static const String LANGUAGE_CODE = 'language_code'; // Locale (en, es, etc.)
+  static const String AUTO_SYNC = 'auto_sync'; // Auto-sync photos to gallery
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // STORAGE KEYS - Showcase Tour (5)
+  // STORAGE KEYS - Showcase Tour (7)
   // ═══════════════════════════════════════════════════════════════════════════
+  static const String SHOWCASE_ASKED = 'showcase_asked'; // User has been asked about tour
+  static const String SHOWCASE_ENABLED = 'showcase_enabled'; // User wants to see tour
   static const String SHOWCASE_DASHBOARD = 'showcase_dashboard_shown'; // Dashboard tour completed
   static const String SHOWCASE_CREATE_EVENT = 'showcase_create_event_shown'; // Create event tour completed
   static const String SHOWCASE_EVENT_GALLERY = 'showcase_event_gallery_shown'; // Event gallery tour completed
@@ -89,6 +96,24 @@ class Preference {
 
   static String get fcmToken => box.get(FCM_TOKEN, defaultValue: '');
   static set fcmToken(String value) => box.put(FCM_TOKEN, value);
+
+  static bool get rememberMe => box.get(REMEMBER_ME, defaultValue: false) ?? false;
+  static set rememberMe(bool value) => box.put(REMEMBER_ME, value);
+
+  static String? get rememberedEmail => box.get(REMEMBERED_EMAIL);
+  static set rememberedEmail(String? value) {
+    if (value != null) {
+      box.put(REMEMBERED_EMAIL, value);
+    } else {
+      box.delete(REMEMBERED_EMAIL);
+    }
+  }
+
+  static bool get isProfileComplete => box.get(IS_PROFILE_COMPLETE, defaultValue: false) ?? false;
+  static set isProfileComplete(bool value) => box.put(IS_PROFILE_COMPLETE, value);
+
+  static bool get onboardingComplete => box.get(ONBOARDING_COMPLETE, defaultValue: false) ?? false;
+  static set onboardingComplete(bool value) => box.put(ONBOARDING_COMPLETE, value);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // GETTERS & SETTERS - User Profile (reactive)
@@ -160,9 +185,18 @@ class Preference {
   static String get languageCode => box.get(LANGUAGE_CODE, defaultValue: 'en') ?? 'en';
   static set languageCode(String value) => box.put(LANGUAGE_CODE, value);
 
+  static bool get autoSync => box.get(AUTO_SYNC, defaultValue: false) ?? false;
+  static set autoSync(bool value) => box.put(AUTO_SYNC, value);
+
   // ═══════════════════════════════════════════════════════════════════════════
   // GETTERS & SETTERS - Showcase Tour
   // ═══════════════════════════════════════════════════════════════════════════
+  static bool get showcaseAsked => box.get(SHOWCASE_ASKED, defaultValue: false) ?? false;
+  static set showcaseAsked(bool value) => box.put(SHOWCASE_ASKED, value);
+
+  static bool get showcaseEnabled => box.get(SHOWCASE_ENABLED, defaultValue: true) ?? true;
+  static set showcaseEnabled(bool value) => box.put(SHOWCASE_ENABLED, value);
+
   static bool get showcaseDashboardShown => box.get(SHOWCASE_DASHBOARD, defaultValue: false) ?? false;
   static set showcaseDashboardShown(bool value) => box.put(SHOWCASE_DASHBOARD, value);
 
@@ -182,14 +216,24 @@ class Preference {
   // UTILITY METHODS
   // ═══════════════════════════════════════════════════════════════════════════
   static void clearAll() {
-    // Backup uploaded history before clearing
+    // Backup data that should persist across logout
     var uploadedHashes = box.get(Preference.EVENT_UPLOADED_HASHES);
+    var savedRememberMe = box.get(REMEMBER_ME);
+    var savedRememberedEmail = box.get(REMEMBERED_EMAIL);
 
     box.clear();
 
     // Restore uploaded list so images never come again
     if (uploadedHashes != null) {
       box.put(Preference.EVENT_UPLOADED_HASHES, uploadedHashes);
+    }
+
+    // Restore "Remember Me" data for user convenience
+    if (savedRememberMe != null) {
+      box.put(REMEMBER_ME, savedRememberMe);
+    }
+    if (savedRememberedEmail != null) {
+      box.put(REMEMBERED_EMAIL, savedRememberedEmail);
     }
 
     // Reset reactive variables

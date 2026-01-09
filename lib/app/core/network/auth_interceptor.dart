@@ -37,6 +37,10 @@ class AuthInterceptor extends Interceptor {
       Endpoints.VERIFY_OTP.toLowerCase(),
       Endpoints.RESET_PASSWORD.toLowerCase(),
       Endpoints.CHECK_EMAIL_AVAILABILITY.toLowerCase(),
+      '/public/event/gallery', // Public gallery endpoint - no auth required
+      Endpoints.SEND_LOGIN_OTP.toLowerCase(), // Phone OTP login - send OTP
+      Endpoints.VERIFY_LOGIN_OTP.toLowerCase(), // Phone OTP login - verify OTP
+      Endpoints.RESEND_LOGIN_OTP.toLowerCase(), // Phone OTP login - resend OTP
     ];
 
     // ✅ DO NOT REMOVE TOKEN FOR delete-account
@@ -114,7 +118,7 @@ class AuthInterceptor extends Interceptor {
     print("🚪 Session expired → Force logout");
     Preference.clearAll();
     _isShowingSessionExpired = false;
-    Get.offAllNamed(Routes.LOGIN);
+    Get.offAllNamed(Routes.PHONE_LOGIN);
   }
 
   /// Show user not found popup with OK button
@@ -151,6 +155,6 @@ class AuthInterceptor extends Interceptor {
     print("🚪 User not found → Force logout");
     Preference.clearAll();
     _isShowingUserNotFound = false;
-    Get.offAllNamed(Routes.LOGIN);
+    Get.offAllNamed(Routes.PHONE_LOGIN);
   }
 }

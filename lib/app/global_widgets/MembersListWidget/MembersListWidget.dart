@@ -14,6 +14,7 @@ import '../EmptyJobsPlaceholder/EmptyJobsPlaceholder.dart';
 import '../GlobalTextField/GlobalTextField.dart';
 import '../Shimmers/InvitedUsersShimmer.dart';
 import '../../core/constants/app_images.dart';
+import '../loader/global_loader.dart';
 
 class MembersListWidget<T extends GetxController> extends StatelessWidget {
   final T controller;
@@ -166,32 +167,29 @@ class MembersListWidget<T extends GetxController> extends StatelessWidget {
         children: [
           // Profile Image or Letter Avatar
           hasImage
-              ? ClipOval(
-                  child: CachedNetworkImage(
-                    imageUrl: profileImage!,
-                    width: w(.09),
-                    height: w(.09),
-                    fit: BoxFit.cover,
-                    placeholder: (_, __) => CircleAvatar(
-                      radius: w(.045),
-                      backgroundColor: AppColors.primaryColor,
-                      child: Text(
-                        letter,
-                        style: customBoldText.copyWith(
-                          color: Colors.white,
-                          fontSize: w(.04),
-                        ),
-                      ),
+              ? CachedNetworkImage(
+                  imageUrl: profileImage!,
+                  imageBuilder: (context, imageProvider) => CircleAvatar(
+                    radius: w(.045),
+                    backgroundColor: Colors.grey.shade200,
+                    backgroundImage: imageProvider,
+                  ),
+                  placeholder: (_, __) => CircleAvatar(
+                    radius: w(.045),
+                    backgroundColor: Colors.grey.shade200,
+                    child: Global_Loader(
+                      size: w(.04),
+                      strokeWidth: 2,
                     ),
-                    errorWidget: (_, __, ___) => CircleAvatar(
-                      radius: w(.045),
-                      backgroundColor: AppColors.primaryColor,
-                      child: Text(
-                        letter,
-                        style: customBoldText.copyWith(
-                          color: Colors.white,
-                          fontSize: w(.04),
-                        ),
+                  ),
+                  errorWidget: (_, __, ___) => CircleAvatar(
+                    radius: w(.045),
+                    backgroundColor: AppColors.primaryColor,
+                    child: Text(
+                      letter,
+                      style: customBoldText.copyWith(
+                        color: Colors.white,
+                        fontSize: w(.04),
                       ),
                     ),
                   ),
@@ -232,7 +230,7 @@ class MembersListWidget<T extends GetxController> extends StatelessWidget {
                 border: Border.all(color: Colors.orange, width: 1.1),
               ),
               child: Text(
-                AppTexts.EVENT_DIRECTOR,
+                AppTexts.SHOOT_DIRECTOR,
                 style: customBoldText.copyWith(
                   color: Colors.orange, 
                   fontSize: w(.032),

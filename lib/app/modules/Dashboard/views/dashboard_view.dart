@@ -25,7 +25,6 @@ class DashboardView extends GetView<DashboardController> {
 
   // Showcase GlobalKeys - Create unique keys per instance
   final GlobalKey _profileKey = GlobalKey();
-  final GlobalKey _invitationsKey = GlobalKey();
   final GlobalKey _notificationsKey = GlobalKey();
   final GlobalKey _tabsKey = GlobalKey();
   final GlobalKey _createEventKey = GlobalKey();
@@ -35,6 +34,11 @@ class DashboardView extends GetView<DashboardController> {
 
   @override
   Widget build(BuildContext context) {
+    // Skip ShowCaseWidget when there's a pending deep link to avoid navigation conflicts
+    if (ShowcaseService.hasPendingDeepLink) {
+      return _buildDashboard(context);
+    }
+
     return ShowCaseWidget(
       onComplete: (index, key) {
         // Mark tour as complete when last showcase is shown
@@ -61,14 +65,31 @@ class DashboardView extends GetView<DashboardController> {
     DateTime? lastPressedTime;
 
     // Start showcase tour if not shown before (only once per session)
+    // Use post-frame callback to ensure UI is fully rendered before showing showcase
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (ShowcaseService.shouldShowDashboardTour && !_showcaseStarted) {
-        _showcaseStarted = true;
-        ShowcaseService.startShowcase(
-          context,
-          [_profileKey, _invitationsKey, _notificationsKey, _tabsKey, _createEventKey],
-        );
-      }
+      // Short delay to ensure all widgets are rendered and stable
+      Future.delayed(const Duration(milliseconds: 800), () async {
+        // Check if context is still valid (widget not deactivated)
+        if (!context.mounted) return;
+
+        // First, ask user if they want to see the tour (only if not asked before)
+        if (!ShowcaseService.hasBeenAskedAboutTour) {
+          await ShowcaseService.showTourPrompt(context);
+        }
+
+        // Check context again after async call
+        if (!context.mounted) return;
+
+        // Then start showcase if user wants it and it hasn't been shown
+        if (ShowcaseService.shouldShowDashboardTour && !_showcaseStarted) {
+          _showcaseStarted = true;
+          ShowcaseService.startShowcase(
+            context,
+            [_profileKey, _notificationsKey, _tabsKey, _createEventKey],
+            delay: const Duration(milliseconds: 200),
+          );
+        }
+      });
     });
 
     return WillPopScope(
@@ -102,29 +123,6 @@ class DashboardView extends GetView<DashboardController> {
             profileImageNetwork: Preference.profileImage ?? '',
             profileKey: _profileKey,
             actions: [
-              // Invitations button with showcase
-              Showcase(
-                key: _invitationsKey,
-                title: AppTexts.SHOWCASE_DASHBOARD_INVITATIONS_TITLE,
-                description: AppTexts.SHOWCASE_DASHBOARD_INVITATIONS_DESC,
-                tooltipBackgroundColor: ShowcaseService.tooltipBackgroundColor,
-                textColor: ShowcaseService.textColor,
-                titleTextStyle: ShowcaseService.titleStyle,
-                descTextStyle: ShowcaseService.descriptionStyle,
-                child: IconButton(
-                  icon: SvgPicture.asset(
-                    AppImages.INVITATIONS_ICON,
-                    height: width * 0.065,
-                    width: width * 0.065,
-                    color: theme.iconTheme.color,
-                  ),
-                  onPressed: () {
-                    HapticFeedback.mediumImpact();
-                    controller.goToEventInvitationsView();
-                  },
-                  tooltip: "EventInvitations",
-                ),
-              ),
               // Notifications button with showcase
               Showcase(
                 key: _notificationsKey,
@@ -203,8 +201,8 @@ class DashboardView extends GetView<DashboardController> {
                   labelColor: Colors.white,
                   unselectedLabelColor: Colors.grey.shade600,
                   tabs: const [
-                    Tab(text: "Upcoming Event"),
-                    Tab(text: "Past Event"),
+                    Tab(text: AppTexts.UPCOMING_SHOOT),
+                    Tab(text: AppTexts.PAST_SHOOT),
                   ],
                 ),
               ),

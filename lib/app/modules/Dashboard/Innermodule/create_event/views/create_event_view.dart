@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
+import '../../../../../core/utils/helpers/date_converter.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../../../../core/constants/app_colors.dart';
@@ -34,35 +34,34 @@ class CreateEventView extends GetView<CreateEventController> {
 
   @override
   Widget build(BuildContext context) {
-    // Only show showcase for new event creation (not edit mode)
-    if (!controller.isEditMode.value) {
-      return ShowCaseWidget(
-        onFinish: () {
-          ShowcaseService.completeCreateEventTour();
-          _showcaseStarted = false;
-        },
-        builder: (context) => _buildCreateEventScreen(context),
-      );
-    }
-    return _buildCreateEventScreen(context);
+    // Always wrap with ShowCaseWidget (required for Showcase widgets inside)
+    // But we only START the showcase in new event mode, not edit mode
+    return ShowCaseWidget(
+      onFinish: () {
+        ShowcaseService.completeCreateEventTour();
+        _showcaseStarted = false;
+      },
+      builder: (context) => _buildCreateEventScreen(context),
+    );
   }
 
   Widget _buildCreateEventScreen(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final size = MediaQuery.of(context).size;
 
-    // Start showcase tour if not shown before (only once per session, only for new events)
-    if (!controller.isEditMode.value) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (ShowcaseService.shouldShowCreateEventTour && !_showcaseStarted) {
-          _showcaseStarted = true;
-          ShowcaseService.startShowcase(
-            context,
-            [_titleKey, _descriptionKey, _dateKey, _timeKey],
-          );
-        }
-      });
-    }
+    // Start showcase tour if not shown before (only once per session, only for NEW events)
+    // IMPORTANT: Never show showcase in edit/update mode
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!controller.isEditMode.value &&
+          ShowcaseService.shouldShowCreateEventTour &&
+          !_showcaseStarted) {
+        _showcaseStarted = true;
+        ShowcaseService.startShowcase(
+          context,
+          [_titleKey, _descriptionKey, _dateKey, _timeKey],
+        );
+      }
+    });
 
     return PopScope(
       canPop: false,
@@ -70,15 +69,16 @@ class CreateEventView extends GetView<CreateEventController> {
         if (didPop) return;
         controller.discardChanges();
       },
-      child: Scaffold(
-        backgroundColor:
-            isDarkMode
-                ? AppTheme.darkTheme.scaffoldBackgroundColor
-                : AppTheme.lightTheme.scaffoldBackgroundColor,
-        appBar: CustomAppBar(
-          title: AppTexts.CREATE_SHOOT,
-          onBackPressed: controller.discardChanges,
-        ),
+      child: Obx(
+        () => Scaffold(
+          backgroundColor:
+              isDarkMode
+                  ? AppTheme.darkTheme.scaffoldBackgroundColor
+                  : AppTheme.lightTheme.scaffoldBackgroundColor,
+          appBar: CustomAppBar(
+            title: controller.isEditMode.value ? AppTexts.UPDATE_SHOOT : AppTexts.CREATE_SHOOT,
+            onBackPressed: controller.discardChanges,
+          ),
         body: Padding(
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
@@ -91,9 +91,9 @@ class CreateEventView extends GetView<CreateEventController> {
                 const SizedBox(height: 12),
                 _buildDescriptionField(),
                 const SizedBox(height: 12),
-                _buildDatePicker(size),
+                _buildDatePicker(size, isDarkMode),
                 const SizedBox(height: 12),
-                _buildTimeRangePicker(context),
+                _buildTimeRangePicker(context, isDarkMode),
                 const SizedBox(height: 12),
                 Divider(
                   color:
@@ -107,6 +107,7 @@ class CreateEventView extends GetView<CreateEventController> {
           ),
         ),
       ),
+        ),
       ),
     );
   }
@@ -123,7 +124,7 @@ class CreateEventView extends GetView<CreateEventController> {
       child: Obx(
         () => GlobalTextField(
           controller: controller.titleController,
-          hintText: AppTexts.EVENT_TITLE,
+          hintText: AppTexts.SHOOT_TITLE,
           labelText: controller.titleController.text.isEmpty
               ? controller.currentTitleSuggestion
               : null,
@@ -164,7 +165,7 @@ class CreateEventView extends GetView<CreateEventController> {
     );
   }
 
-  Widget _buildDatePicker(Size size) {
+  Widget _buildDatePicker(Size size, bool isDarkMode) {
     return Showcase(
       key: _dateKey,
       title: AppTexts.SHOWCASE_CREATE_DATE_TITLE,
@@ -196,7 +197,7 @@ class CreateEventView extends GetView<CreateEventController> {
                     AppImages.CALENDAR,
                     height: 20,
                     width: 20,
-                    color: AppColors.textColor,
+                    color: isDarkMode ? Colors.white : AppColors.primaryColor,
                   ),
                 ),
               ),
@@ -213,14 +214,14 @@ class CreateEventView extends GetView<CreateEventController> {
               },
             ),
             const SizedBox(height: 8),
-            if (controller.showCalendar.value) _buildInlineCalendar(size),
+            if (controller.showCalendar.value) _buildInlineCalendar(size, isDarkMode),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInlineCalendar(Size size) {
+  Widget _buildInlineCalendar(Size size, bool isDarkMode) {
     return Obx(
       () => TableCalendar(
         firstDay: DateTime.now(), // Start from today
@@ -231,7 +232,8 @@ class CreateEventView extends GetView<CreateEventController> {
         onDaySelected: (selectedDay, focusedDay) {
           controller.selectDay(selectedDay, focusedDay);
           HapticFeedback.mediumImpact();
-          final formattedDate = DateFormat('dd MMM yyyy').format(selectedDay);
+          // Use locale-aware date formatting
+          final formattedDate = DateConverter.formatDateLocale(selectedDay);
           controller.dateController.text = formattedDate;
           controller.validateDate(formattedDate);
           controller.showCalendar.value = false;
@@ -243,12 +245,18 @@ class CreateEventView extends GetView<CreateEventController> {
             horizontal: size.width * 0.04,
           ),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isDarkMode ? Colors.grey[900] : Colors.white,
             borderRadius: BorderRadius.circular(size.width * 0.035),
-            border: Border.all(color: gray_textfield.withOpacity(0.6)),
+            border: Border.all(
+              color: isDarkMode
+                  ? Colors.grey[700]!.withOpacity(0.6)
+                  : gray_textfield.withOpacity(0.6),
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: isDarkMode
+                    ? Colors.black.withOpacity(0.2)
+                    : Colors.black.withOpacity(0.04),
                 blurRadius: 6,
                 offset: const Offset(0, 3),
               ),
@@ -259,17 +267,21 @@ class CreateEventView extends GetView<CreateEventController> {
           titleTextStyle: customBoldText.copyWith(
             fontSize: size.height * 0.022,
             fontWeight: FontWeight.w600,
-            color: AppColors.textColor,
+            color: isDarkMode ? Colors.white : AppColors.textColor,
           ),
           leftChevronIcon: Icon(
             Icons.chevron_left,
             size: size.width * 0.07,
-            color: AppColors.textColor.withOpacity(0.65),
+            color: isDarkMode
+                ? Colors.white.withOpacity(0.65)
+                : AppColors.textColor.withOpacity(0.65),
           ),
           rightChevronIcon: Icon(
             Icons.chevron_right,
             size: size.width * 0.07,
-            color: AppColors.textColor.withOpacity(0.65),
+            color: isDarkMode
+                ? Colors.white.withOpacity(0.65)
+                : AppColors.textColor.withOpacity(0.65),
           ),
         ),
         calendarStyle: CalendarStyle(
@@ -301,15 +313,25 @@ class CreateEventView extends GetView<CreateEventController> {
             color: Colors.white,
             fontWeight: FontWeight.w600,
           ),
-          weekendTextStyle: const TextStyle(
-            color: AppColors.primaryColor1,
+          weekendTextStyle: TextStyle(
+            color: isDarkMode ? Colors.white : AppColors.textColor,
             fontWeight: FontWeight.w500,
           ),
           defaultTextStyle: TextStyle(
-            color: AppColors.textColor,
+            color: isDarkMode ? Colors.white : AppColors.textColor,
             fontWeight: FontWeight.w500,
           ),
           outsideDaysVisible: false,
+        ),
+        daysOfWeekStyle: DaysOfWeekStyle(
+          weekdayStyle: TextStyle(
+            color: isDarkMode ? Colors.white70 : AppColors.textColor,
+            fontWeight: FontWeight.w500,
+          ),
+          weekendStyle: TextStyle(
+            color: isDarkMode ? Colors.white70 : AppColors.textColor,
+            fontWeight: FontWeight.w500,
+          ),
         ),
         daysOfWeekHeight: size.height * 0.035,
         rowHeight: size.height * 0.055,
@@ -317,7 +339,7 @@ class CreateEventView extends GetView<CreateEventController> {
     );
   }
 
-  Widget _buildTimeRangePicker(BuildContext context) {
+  Widget _buildTimeRangePicker(BuildContext context, bool isDarkMode) {
     return Showcase(
       key: _timeKey,
       title: AppTexts.SHOWCASE_CREATE_TIME_TITLE,
@@ -333,7 +355,7 @@ class CreateEventView extends GetView<CreateEventController> {
             AppTexts.SET_TIME_RANGE,
             style: customBoldText.copyWith(
               fontSize: 16,
-              color: AppColors.textColor,
+              color: isDarkMode ? Colors.white : AppColors.textColor,
             ),
           ),
           const SizedBox(height: 8),
@@ -390,7 +412,7 @@ class CreateEventView extends GetView<CreateEventController> {
                         context,
                         controller.endTimeController,
                         controller.endTimeError,
-                        // isEndTime: true,
+                        isEndTime: true,
                       ),
                   suffixIcon: Builder(
                     builder: (context) {
@@ -431,7 +453,7 @@ class CreateEventView extends GetView<CreateEventController> {
         },
         title:
             controller.isEditMode.value
-                ? AppTexts.UPDATE_EVENT
+                ? AppTexts.UPDATE_SHOOT
                 : AppTexts.CREATE_SHOOT,
         backgroundColor:
             isDarkMode

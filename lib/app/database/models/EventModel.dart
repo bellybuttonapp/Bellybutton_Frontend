@@ -1,6 +1,7 @@
 // ignore_for_file: non_constant_identifier_names, file_names, avoid_print
 
 import 'package:hive/hive.dart';
+import 'package:intl/intl.dart';
 
 @HiveType(typeId: 0)
 class EventModel extends HiveObject {
@@ -28,6 +29,21 @@ class EventModel extends HiveObject {
   @HiveField(7)
   String? imagePath;
 
+  @HiveField(8)
+  String? shareToken;
+
+  @HiveField(9)
+  int? creatorId;
+
+  @HiveField(10)
+  String? status; // UPCOMING, EXPIRED, etc.
+
+  @HiveField(11)
+  String? timezone; // e.g., "Asia/Kolkata", "America/New_York"
+
+  @HiveField(12)
+  String? timezoneOffset; // e.g., "+05:30", "-08:00"
+
   EventModel({
     this.id, // ✅ FIXED
     required this.title,
@@ -37,6 +53,11 @@ class EventModel extends HiveObject {
     required this.endTime,
     required this.invitedPeople,
     this.imagePath,
+    this.shareToken,
+    this.creatorId,
+    this.status,
+    this.timezone,
+    this.timezoneOffset,
   });
 
   // ============================
@@ -54,6 +75,11 @@ class EventModel extends HiveObject {
       endTime: json['endTime'],
       invitedPeople: json['invitedPeople'] ?? [],
       imagePath: json['imagePath'],
+      shareToken: json['shareToken'],
+      creatorId: json['creatorId'],
+      status: json['status'],
+      timezone: json['timezone'],
+      timezoneOffset: json['timezoneOffset'],
     );
   }
 
@@ -75,6 +101,11 @@ class EventModel extends HiveObject {
       endTime: event['endTime'],
       invitedPeople: invitedPeopleWithId, // Use the one with id!
       imagePath: event['imagePath'],
+      shareToken: event['shareToken'],
+      creatorId: event['creatorId'],
+      status: event['status'],
+      timezone: event['timezone'],
+      timezoneOffset: event['timezoneOffset'],
     );
   }
 
@@ -88,6 +119,11 @@ class EventModel extends HiveObject {
       'endTime': endTime,
       'invitedPeople': invitedPeople,
       'imagePath': imagePath,
+      'shareToken': shareToken,
+      'creatorId': creatorId,
+      'status': status,
+      'timezone': timezone,
+      'timezoneOffset': timezoneOffset,
     };
   }
 
@@ -136,6 +172,130 @@ class EventModel extends HiveObject {
       return eventDate;
     }
   }
+
+  // ============================
+  // 🌍 TIMEZONE HANDLING (GLOBAL SUPPORT)
+  // Backend stores UTC times
+  // Flutter converts UTC → Local for display
+  // ============================
+
+  /// Get start time as local DateTime
+  /// Converts UTC (stored) → viewer's local timezone
+  DateTime get localStartDateTime {
+    // fullEventDateTime gives us the raw DateTime from server
+    // Server stores UTC, so we treat it as UTC and convert to local
+    final utcDateTime = DateTime.utc(
+      eventDate.year,
+      eventDate.month,
+      eventDate.day,
+      fullEventDateTime.hour,
+      fullEventDateTime.minute,
+      fullEventDateTime.second,
+    );
+    final localDateTime = utcDateTime.toLocal();
+
+    // 🔍 DEBUG: Print timezone conversion when displaying event
+    print('═══════════════════════════════════════════════════════');
+    print('🌍 DISPLAY TIMEZONE CONVERSION DEBUG:');
+    print('───────────────────────────────────────────────────────');
+    print('📥 Received from Backend:');
+    print('   Event ID: $id');
+    print('   Title: $title');
+    print('   eventDate: ${DateFormat('yyyy-MM-dd').format(eventDate)}');
+    print('   startTime: $startTime');
+    print('   timezone: $timezone');
+    print('   timezoneOffset: $timezoneOffset');
+    print('───────────────────────────────────────────────────────');
+    print('🔄 UTC DateTime Constructed:');
+    print('   $utcDateTime UTC');
+    print('───────────────────────────────────────────────────────');
+    print('🌐 Device Timezone:');
+    print('   ${DateTime.now().timeZoneName} (${DateTime.now().timeZoneOffset})');
+    print('───────────────────────────────────────────────────────');
+    print('✅ Converted to Local:');
+    print('   ${DateFormat('yyyy-MM-dd HH:mm:ss').format(localDateTime)} ${DateTime.now().timeZoneName}');
+    print('   Display: ${DateFormat('E, d MMMM - h:mm a').format(localDateTime)}');
+    print('═══════════════════════════════════════════════════════');
+
+    return localDateTime;
+  }
+
+  /// Get end time as local DateTime
+  /// Converts UTC (stored) → viewer's local timezone
+  DateTime get localEndDateTime {
+    final utcDateTime = DateTime.utc(
+      eventDate.year,
+      eventDate.month,
+      eventDate.day,
+      fullEventEndDateTime.hour,
+      fullEventEndDateTime.minute,
+      fullEventEndDateTime.second,
+    );
+    return utcDateTime.toLocal();
+  }
+
+  /// Get formatted local start time string
+  /// Example: "3:00 PM" or "15:00" based on device setting
+  String getLocalStartTimeString({bool use24Hour = false}) {
+    final local = localStartDateTime;
+    if (use24Hour) {
+      return DateFormat('HH:mm').format(local);
+    }
+    return DateFormat.jm().format(local);
+  }
+
+  /// Get formatted local end time string
+  String getLocalEndTimeString({bool use24Hour = false}) {
+    final local = localEndDateTime;
+    if (use24Hour) {
+      return DateFormat('HH:mm').format(local);
+    }
+    return DateFormat.jm().format(local);
+  }
+
+  /// Get formatted local date string
+  /// Automatically adapts to user's locale
+  String getLocalDateString({String? locale}) {
+    final local = localStartDateTime;
+    try {
+      return DateFormat.yMMMd(locale).format(local);
+    } catch (e) {
+      return DateFormat('dd MMM yyyy').format(local);
+    }
+  }
+
+  /// Get the local date (may differ from UTC date due to timezone)
+  DateTime get localEventDate {
+    final local = localStartDateTime;
+    return DateTime(local.year, local.month, local.day);
+  }
+
+  /// Check if the event date is different in viewer's timezone
+  /// Important for events that cross midnight
+  bool get dateChangesInLocalTimezone {
+    final utcDay = eventDate.day;
+    final localDay = localStartDateTime.day;
+    return utcDay != localDay;
+  }
+
+  /// Get formatted time range string in local timezone
+  /// Example: "3:00 PM - 5:00 PM" or "15:00 - 17:00"
+  String getLocalTimeRangeString({bool use24Hour = false}) {
+    return "${getLocalStartTimeString(use24Hour: use24Hour)} - ${getLocalEndTimeString(use24Hour: use24Hour)}";
+  }
+
+  /// Get creator's timezone info for display
+  /// Example: "Created in IST (+05:30)"
+  String get creatorTimezoneInfo {
+    if (timezone != null && timezoneOffset != null) {
+      return "$timezone ($timezoneOffset)";
+    } else if (timezone != null) {
+      return timezone!;
+    } else if (timezoneOffset != null) {
+      return "UTC$timezoneOffset";
+    }
+    return "Unknown timezone";
+  }
 }
 
 // ============================
@@ -162,13 +322,18 @@ class EventModelAdapter extends TypeAdapter<EventModel> {
       endTime: fields[5] as String,
       invitedPeople: (fields[6] as List).cast<dynamic>(),
       imagePath: fields[7] as String?,
+      shareToken: fields[8] as String?,
+      creatorId: fields[9] as int?,
+      status: fields[10] as String?,
+      timezone: fields[11] as String?,
+      timezoneOffset: fields[12] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, EventModel obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(13)
       ..writeByte(0)
       ..write(obj.id) // nullable safe
       ..writeByte(1)
@@ -184,6 +349,16 @@ class EventModelAdapter extends TypeAdapter<EventModel> {
       ..writeByte(6)
       ..write(obj.invitedPeople)
       ..writeByte(7)
-      ..write(obj.imagePath);
+      ..write(obj.imagePath)
+      ..writeByte(8)
+      ..write(obj.shareToken)
+      ..writeByte(9)
+      ..write(obj.creatorId)
+      ..writeByte(10)
+      ..write(obj.status)
+      ..writeByte(11)
+      ..write(obj.timezone)
+      ..writeByte(12)
+      ..write(obj.timezoneOffset);
   }
 }

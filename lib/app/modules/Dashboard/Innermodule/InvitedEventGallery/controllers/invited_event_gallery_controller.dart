@@ -14,6 +14,7 @@ import '../../../../../global_widgets/CustomBottomSheet/CustomBottomsheet.dart';
 import '../../../../../global_widgets/CustomPopup/CustomPopup.dart';
 import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../../../routes/app_pages.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class InvitedEventGalleryController extends GetxController {
   InvitedEventModel? event;
@@ -33,29 +34,42 @@ class InvitedEventGalleryController extends GetxController {
   RxInt uploadedCount = 0.obs;
   RxInt totalToUpload = 0.obs;
   RxBool uploadDone = false.obs;
+  RxInt failedCount = 0.obs;
+  RxList<AssetEntity> failedAssets = <AssetEntity>[].obs;
 
-  // ======================================================
-  //  ⭐ ADD THIS BLOCK HERE ⭐
-  // ======================================================
+  // ------------------------------------------------------
+  // 👤 USER COUNT MANAGEMENT (Real-time member tracking)
+  // ------------------------------------------------------
+  RxInt invitedCount = 0.obs;
+  RxInt totalCapacity = 1.obs; // 🎬 Always 1 director per event
+
+  // ------------------------------------------------------
+  // 📊 EVENT STATE GETTERS
+  // ------------------------------------------------------
 
   /// 1️⃣ Event NOT started yet
+  /// Uses local timezone for accurate comparison
   bool get eventNotStarted =>
-      event != null && DateTime.now().isBefore(event!.eventStartDateTime);
+      event != null && DateTime.now().isBefore(event!.localStartDateTime);
 
   /// 2️⃣ Event already finished
+  /// Uses local timezone for accurate comparison
   bool get eventEnded =>
-      event != null && DateTime.now().isAfter(event!.eventEndDateTime);
+      event != null && DateTime.now().isAfter(event!.localEndDateTime);
 
   /// 3️⃣ All uploaded on this device — nothing left
   bool get allUploaded => galleryAssets.isEmpty && uploadedCount.value > 0;
 
-  /// 4️⃣ No images found inside event time range
-  bool get noPhotosFound =>
-      galleryAssets.isEmpty && !eventNotStarted && !eventEnded;
-
-  /// 5️⃣ Event ongoing but empty gallery
+  /// 4️⃣ Event ongoing but empty gallery (no camera photos in time range)
   bool get eventLiveButEmpty =>
-      !eventEnded && !eventNotStarted && galleryAssets.isEmpty;
+      !eventEnded && !eventNotStarted && galleryAssets.isEmpty && !allUploaded;
+
+  /// 5️⃣ No photos found (event ended with no uploads)
+  bool get noPhotosFound => eventEnded && galleryAssets.isEmpty;
+
+  /// 6️⃣ Per-event storage key for uploaded photo IDs
+  String get _eventUploadKey =>
+      "${Preference.EVENT_UPLOADED_HASHES}_${event?.eventId ?? 0}";
 
   //----------------------------------------------------
   // SELECTION LOGIC
@@ -103,7 +117,35 @@ class InvitedEventGalleryController extends GetxController {
     }
 
     // Delay gallery load to avoid blocking UI during navigation
-    Future.microtask(() => loadGalleryImages());
+    Future.microtask(() {
+      loadGalleryImages();
+      fetchInvitedUsersCount(); // Fetch member count
+    });
+  }
+
+  // ------------------------------------------------------
+  // 🎬 FETCH EVENT DIRECTOR COUNT (Admin only for Invited Gallery)
+  // ------------------------------------------------------
+  Future<void> fetchInvitedUsersCount() async {
+    if (event?.eventId == null) return;
+
+    try {
+      // ✅ Use getJoinedAdmins for invited event participants
+      // Endpoint: /eventresource/event/userview/{eventId}
+      // Returns: { "admin": {...}, "you": {...}, "event": "...", "status": "success" }
+      final response = await PublicApiService().getJoinedAdmins(event!.eventId);
+
+      // 🎬 For Invited Event Gallery: Show only Event Director (Admin) count
+      // This is the event creator/owner count
+      invitedCount.value = response["admin"] != null ? 1 : 0;
+
+      print("🎬 Event Directors: ${invitedCount.value}/${totalCapacity.value}");
+    } catch (e) {
+      print("❌ Failed to fetch event director count: $e");
+      // Default to 1 (assume admin exists)
+      invitedCount.value = 1;
+      print("🎬 Using default director count: ${invitedCount.value}");
+    }
   }
 
   // ⬇ ADD THIS INSIDE InvitedEventGalleryController
@@ -143,15 +185,6 @@ class InvitedEventGalleryController extends GetxController {
     );
   }
 
-  // ------------------------------------------------------
-  // 🔍 CHECK IF IMAGE ALREADY EXISTS (PREVENT DUPLICATES)
-  // ------------------------------------------------------
-
-  /// Returns TRUE if image with same ID already exists.
-  bool isDuplicate(AssetEntity asset) {
-    return galleryAssets.any((a) => a.id == asset.id);
-  }
-
   //----------------------------------------------------
   // LOAD GALLERY
   //----------------------------------------------------
@@ -162,6 +195,17 @@ class InvitedEventGalleryController extends GetxController {
     try {
       isLoading.value = true;
 
+      if (event == null) {
+        isLoading.value = false;
+        return;
+      }
+
+      // Skip loading if event hasn't started yet - no photos to show
+      if (eventNotStarted) {
+        isLoading.value = false;
+        return;
+      }
+
       final permission = await PhotoManager.requestPermissionExtend();
       if (!permission.isAuth) {
         isLoading.value = false;
@@ -169,22 +213,19 @@ class InvitedEventGalleryController extends GetxController {
         return;
       }
 
-      /// Load previously uploaded hashes (permanent)
+      /// Load previously uploaded hashes (per-event)
       List storedList = Preference.box.get(
-        Preference.EVENT_UPLOADED_HASHES,
+        _eventUploadKey,
         defaultValue: <String>[],
       );
       Set<String> savedHashes = storedList.map((e) => e.toString()).toSet();
 
-      if (event == null) {
-        isLoading.value = false;
-        return;
-      }
-
+      // Use local timezone for filtering photos
+      // This ensures photos taken during the event (in user's timezone) are captured
       final filter = FilterOptionGroup(
         createTimeCond: DateTimeCond(
-          min: event!.eventStartDateTime,
-          max: event!.eventEndDateTime,
+          min: event!.localStartDateTime,
+          max: event!.localEndDateTime,
         ),
         orders: [const OrderOption(type: OrderOptionType.createDate, asc: false)],
       );
@@ -198,33 +239,31 @@ class InvitedEventGalleryController extends GetxController {
 
       List<AssetEntity> temp = [];
 
-      // First, try to load from "All" album (includes ALL camera images - front & back)
-      final allAlbum = albums.firstWhereOrNull(
-        (a) => a.isAll || a.name.toLowerCase() == "recent" || a.name.toLowerCase() == "all photos",
-      );
+      // 📸 CAMERA-ONLY: Filter for camera-specific albums only
+      // This excludes screenshots, downloads, WhatsApp, and other non-camera images
+      List<AssetPathEntity> cameraAlbums = albums.where((a) {
+        final n = a.name.toLowerCase();
+        return n == "camera" ||
+            n == "dcim" ||
+            n.contains("100media") ||
+            n.contains("100andro") ||
+            n.contains("100apple") ||
+            n == "photos" ||  // iOS camera roll
+            (Platform.isIOS && a.isAll);  // On iOS, "All Photos" = camera roll
+      }).toList();
 
-      if (allAlbum != null) {
-        final assets = await allAlbum.getAssetListPaged(page: 0, size: 500);
-        temp.addAll(assets);
-        print("Loaded ${assets.length} images from '${allAlbum.name}' album");
-      } else {
-        // Fallback: Load from camera-related albums (expanded list for better coverage)
-        final cameraAlbums = albums.where((a) {
+      if (cameraAlbums.isEmpty) {
+        // Fallback: Try broader camera-related patterns if no exact match
+        cameraAlbums = albums.where((a) {
           final n = a.name.toLowerCase();
-          return n.contains("camera") ||
-              n.contains("dcim") ||
-              n.contains("100media") ||
-              n.contains("100andro") ||
-              n.contains("photo") ||
-              n.contains("selfie") ||
-              n.contains("front");
+          return n.contains("camera") || n.contains("dcim");
         }).toList();
+      }
 
-        for (final album in cameraAlbums) {
-          final assets = await album.getAssetListPaged(page: 0, size: 500);
-          temp.addAll(assets);
-          print("Loaded ${assets.length} images from '${album.name}' album");
-        }
+      for (final album in cameraAlbums) {
+        final assets = await album.getAssetListPaged(page: 0, size: 500);
+        temp.addAll(assets);
+        print("📸 Loaded ${assets.length} camera images from '${album.name}' album");
       }
 
       // Remove duplicates (same image might appear in multiple albums)
@@ -236,8 +275,9 @@ class InvitedEventGalleryController extends GetxController {
 
       /// Only unseen images show in UI
       galleryAssets.assignAll(freshItems);
-    } catch (e) {
+    } catch (e, stackTrace) {
       print("❌ Error loading gallery: $e");
+      print("📍 Stack trace: $stackTrace");
     } finally {
       isLoading.value = false;
     }
@@ -247,8 +287,25 @@ class InvitedEventGalleryController extends GetxController {
   // REFRESH
   //----------------------------------------------------
 
-  /// Reloads gallery images again.
-  Future<void> refreshGallery() async => loadGalleryImages();
+  /// Reloads gallery images and refreshes member count
+  Future<void> refreshGallery() async {
+    // ⚡ Run both operations in parallel for faster refresh
+    await Future.wait([
+      loadGalleryImages(),
+      fetchInvitedUsersCount().catchError((e) {
+        debugPrint("⚠️ Failed to refresh member count: $e");
+        // Don't block gallery refresh if count fetch fails
+      }),
+    ]);
+  }
+
+  // ------------------------------------------------------
+  // 🌐 NETWORK CONNECTIVITY CHECK
+  // ------------------------------------------------------
+  Future<bool> _hasNetworkConnection() async {
+    final result = await Connectivity().checkConnectivity();
+    return !result.contains(ConnectivityResult.none);
+  }
 
   //----------------------------------------------------
   // OLD UPLOAD BUTTON CALLS POPUP FLOW
@@ -257,6 +314,12 @@ class InvitedEventGalleryController extends GetxController {
   /// Called when Upload button is clicked.
   /// Filters unselected images and uploads them.
   Future<void> onUploadTap() async {
+    // Check network connectivity first
+    if (!await _hasNetworkConnection()) {
+      showCustomSnackBar(AppTexts.NO_INTERNET, SnackbarState.error);
+      return;
+    }
+
     const int MAX_UPLOAD_LIMIT = 20;
 
     final assetsToUpload =
@@ -267,9 +330,9 @@ class InvitedEventGalleryController extends GetxController {
       return;
     }
 
-    /// Read already uploaded permanent IDs
+    /// Read already uploaded permanent IDs (per-event)
     List storedList = Preference.box.get(
-      Preference.EVENT_UPLOADED_HASHES,
+      _eventUploadKey,
       defaultValue: <String>[],
     );
 
@@ -320,6 +383,7 @@ class InvitedEventGalleryController extends GetxController {
           showProgress: true,
           savedCount: uploadedCount,
           totalCount: totalToUpload,
+          barrierDismissible: false,
         ),
       ),
       barrierDismissible: false,
@@ -331,17 +395,26 @@ class InvitedEventGalleryController extends GetxController {
   // ------------------------------------------------------
 
   /// Uploads one photo to server.
-  /// Increases uploaded count if successful.
-  Future<void> uploadOne(File file) async {
-    if (event == null) return;
+  /// Returns true if successful, false otherwise.
+  Future<bool> uploadOne(File file) async {
+    if (event == null) return false;
 
-    final res = await PublicApiService().uploadEventImagesPost(
-      eventId: event!.eventId,
-      files: [file],
-    );
+    try {
+      final res = await PublicApiService().uploadEventImagesPost(
+        eventId: event!.eventId,
+        files: [file],
+      );
 
-    final status = res["headers"]?["status"];
-    if (status == "success") uploadedCount.value++;
+      final status = res["headers"]?["status"];
+      if (status == "success") {
+        uploadedCount.value++;
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print("❌ Upload failed: $e");
+      return false;
+    }
   }
 
   // ------------------------------------------------------
@@ -351,28 +424,31 @@ class InvitedEventGalleryController extends GetxController {
   /// Uploads multiple images in parallel (6 at once for faster upload).
   /// Uses asset.id for duplicate tracking (fast, no file I/O).
   Future<void> uploadPhotosFromAssets(List<AssetEntity> assets) async {
+    isUploading.value = true;
     totalToUpload.value = assets.length;
     uploadedCount.value = 0;
     uploadDone.value = false;
+    failedCount.value = 0;
+    failedAssets.clear();
 
     showUploadPopup();
 
-    /// Load previously uploaded IDs
+    /// Load previously uploaded IDs (per-event)
     List storedList = Preference.box.get(
-      Preference.EVENT_UPLOADED_HASHES,
+      _eventUploadKey,
       defaultValue: <String>[],
     );
     Set<String> savedIds = storedList.map((e) => e.toString()).toSet();
 
     /// 🔥 Step 1: Prepare all files in parallel (faster than sequential)
-    List<MapEntry<String, File>> filesToUpload = [];
+    List<MapEntry<AssetEntity, File>> filesToUpload = [];
 
     await Future.wait(
       assets.map((asset) async {
         if (savedIds.contains(asset.id)) return;
         final file = await asset.file;
         if (file != null) {
-          filesToUpload.add(MapEntry(asset.id, file));
+          filesToUpload.add(MapEntry(asset, file));
         }
       }),
     );
@@ -385,30 +461,83 @@ class InvitedEventGalleryController extends GetxController {
 
       await Future.wait(
         batch.map((entry) async {
-          await uploadOne(entry.value);
-          savedIds.add(entry.key);
+          final success = await uploadOne(entry.value);
+          if (success) {
+            savedIds.add(entry.key.id);
+          } else {
+            failedCount.value++;
+            failedAssets.add(entry.key);
+          }
         }),
       );
 
       /// Save to Hive after each batch (not every file - reduces I/O)
       Preference.box.put(
-        Preference.EVENT_UPLOADED_HASHES,
+        _eventUploadKey,
         savedIds.toList(),
       );
     }
 
     uploadDone.value = true;
+    isUploading.value = false;
     clearSelection();
     refreshGallery();
 
-    LocalNotificationService.show(
-      title: AppTexts.UPLOAD_COMPLETE_NOTIFICATION_TITLE,
-      body: "${uploadedCount.value} ${AppTexts.PHOTOS_UPLOADED_SUCCESSFULLY}",
-    );
+    // Show appropriate notification based on results
+    if (failedCount.value > 0) {
+      LocalNotificationService.show(
+        title: AppTexts.UPLOAD_COMPLETE_NOTIFICATION_TITLE,
+        body: "${uploadedCount.value} uploaded, ${failedCount.value} failed",
+      );
+    } else {
+      LocalNotificationService.show(
+        title: AppTexts.UPLOAD_COMPLETE_NOTIFICATION_TITLE,
+        body: "${uploadedCount.value} ${AppTexts.PHOTOS_UPLOADED_SUCCESSFULLY}",
+      );
+    }
 
     Future.delayed(const Duration(seconds: 1), () {
       if (Get.isDialogOpen!) Get.back();
+      // Show retry option if there are failed uploads
+      if (failedAssets.isNotEmpty) {
+        _showRetryDialog();
+      }
     });
+  }
+
+  // ------------------------------------------------------
+  // 🔄 RETRY FAILED UPLOADS
+  // ------------------------------------------------------
+  void _showRetryDialog() {
+    Get.dialog(
+      CustomPopup(
+        title: AppTexts.UPLOAD_FAILED_TITLE,
+        message: "${failedCount.value} ${AppTexts.PHOTOS_FAILED_TO_UPLOAD}",
+        confirmText: AppTexts.ERROR_RETRY,
+        cancelText: AppTexts.CANCEL,
+        isProcessing: false.obs,
+        barrierDismissible: true,
+        onConfirm: () {
+          Get.back();
+          retryFailedUploads();
+        },
+      ),
+      barrierDismissible: true,
+    );
+  }
+
+  /// Retry uploading failed assets
+  Future<void> retryFailedUploads() async {
+    if (failedAssets.isEmpty) return;
+
+    // Check network before retry
+    if (!await _hasNetworkConnection()) {
+      showCustomSnackBar(AppTexts.NO_INTERNET, SnackbarState.error);
+      return;
+    }
+
+    final assetsToRetry = List<AssetEntity>.from(failedAssets);
+    uploadPhotosFromAssets(assetsToRetry);
   }
 
   //----------------------------------------------------
@@ -418,4 +547,30 @@ class InvitedEventGalleryController extends GetxController {
   /// Opens invited users list UI (not implemented yet).
   void onInvitedUsersTap() =>
       Get.toNamed(Routes.INVITED_ADMINS_LIST, arguments: event);
+
+  // ------------------------------------------------------
+  // 🔙 HANDLE BACK NAVIGATION
+  // ------------------------------------------------------
+  void handleBackNavigation() {
+    // If upload is in progress, show confirmation dialog
+    if (!uploadDone.value && totalToUpload.value > 0) {
+      Get.dialog(
+        CustomPopup(
+          title: AppTexts.DISCARD_CHANGES_TITLE,
+          message: AppTexts.UPLOADING_PHOTOS,
+          confirmText: AppTexts.DISCARD,
+          cancelText: AppTexts.CANCEL,
+          isProcessing: false.obs,
+          onConfirm: () {
+            Get.back(); // Close dialog
+            Get.back(); // Go back to previous screen
+          },
+        ),
+      );
+      return;
+    }
+
+    // No upload in progress, navigate back normally
+    Get.back();
+  }
 }

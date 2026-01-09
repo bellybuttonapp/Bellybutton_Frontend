@@ -2,16 +2,12 @@ import 'package:flutter/material.dart';
 
 import 'package:get/get.dart';
 
-import '../modules/Auth/SetNewPasswordView/bindings/set_new_password_view_binding.dart';
-import '../modules/Auth/SetNewPasswordView/views/set_new_password_view_view.dart';
-import '../modules/Auth/forgot_password/bindings/forgot_password_binding.dart';
-import '../modules/Auth/forgot_password/views/forgot_password_view.dart';
-import '../modules/Auth/login/bindings/login_binding.dart';
-import '../modules/Auth/login/views/login_view.dart';
-import '../modules/Auth/signup/bindings/signup_binding.dart';
-import '../modules/Auth/signup/views/signup_view.dart';
-import '../modules/Auth/signup_otp/bindings/signup_otp_binding.dart';
-import '../modules/Auth/signup_otp/views/signup_otp_view.dart';
+import '../modules/Auth/phone_login/bindings/phone_login_binding.dart';
+import '../modules/Auth/phone_login/views/phone_login_view.dart';
+import '../modules/Auth/login_otp/bindings/login_otp_binding.dart';
+import '../modules/Auth/login_otp/views/login_otp_view.dart';
+import '../modules/Auth/profile_setup/bindings/profile_setup_binding.dart';
+import '../modules/Auth/profile_setup/views/profile_setup_view.dart';
 import '../modules/Dashboard/Innermodule/EventInvitations/bindings/event_invitations_binding.dart';
 import '../modules/Dashboard/Innermodule/EventInvitations/views/event_invitations_view.dart';
 import '../modules/Dashboard/Innermodule/Event_gallery/bindings/event_gallery_binding.dart';
@@ -40,18 +36,17 @@ import '../modules/Premium/bindings/premium_binding.dart';
 import '../modules/Premium/views/premium_view.dart';
 import '../modules/Profile/Innermodule/Account_Details/bindings/account_details_binding.dart';
 import '../modules/Profile/Innermodule/Account_Details/views/account_details_view.dart';
-import '../modules/Profile/Innermodule/Reset_password/bindings/reset_password_binding.dart';
-import '../modules/Profile/Innermodule/Reset_password/views/reset_password_view.dart';
 import '../modules/Profile/bindings/profile_binding.dart';
 import '../modules/Profile/views/profile_view.dart';
 import '../modules/SharedEventGallery/bindings/shared_event_gallery_binding.dart';
 import '../modules/SharedEventGallery/views/shared_event_gallery_view.dart';
 import '../modules/home/bindings/home_binding.dart';
 import '../modules/home/views/home_view.dart';
-import '../modules/onboarding/bindings/onboarding_binding.dart';
-import '../modules/onboarding/views/onboarding_view.dart';
 import '../modules/terms_and_conditions/bindings/terms_and_conditions_binding.dart';
 import '../modules/terms_and_conditions/views/terms_and_conditions_view.dart';
+import '../modules/onboarding/bindings/onboarding_binding.dart';
+import '../modules/onboarding/views/onboarding_view.dart';
+
 
 // ignore_for_file: constant_identifier_names
 
@@ -60,7 +55,8 @@ part 'app_routes.dart';
 class AppPages {
   AppPages._();
 
-  static const INITIAL = Routes.ONBOARDING;
+  // Default initial route (actual route determined by MainInitializer.getInitialRoute)
+  static const INITIAL = Routes.PHONE_LOGIN;
 
   static final routes = [
     GetPage(
@@ -70,39 +66,6 @@ class AppPages {
       transition: Transition.fadeIn,
       curve: Curves.linear,
       transitionDuration: Duration(milliseconds: 300),
-    ),
-    GetPage(
-      name: _Paths.ONBOARDING,
-      page: () => const OnboardingView(),
-      binding: OnboardingBinding(),
-      transition: Transition.downToUp,
-      curve: Curves.fastOutSlowIn,
-      transitionDuration: Duration(milliseconds: 500),
-    ),
-    GetPage(
-      name: _Paths.LOGIN,
-      page: () => LoginView(),
-      binding: LoginBinding(),
-      transition: Transition.fadeIn,
-      preventDuplicates: true,
-      curve: Curves.easeOutCubic,
-      transitionDuration: Duration(milliseconds: 400),
-    ),
-    GetPage(
-      name: _Paths.SIGNUP,
-      page: () => SignupView(),
-      binding: SignupBinding(),
-      transition: Transition.rightToLeft,
-      curve: Curves.easeOutQuart,
-      transitionDuration: Duration(milliseconds: 400),
-    ),
-    GetPage(
-      name: _Paths.FORGOT_PASSWORD,
-      page: () => ForgotPasswordView(),
-      binding: ForgotPasswordBinding(),
-      transition: Transition.zoom,
-      curve: Curves.easeOutBack,
-      transitionDuration: Duration(milliseconds: 450),
     ),
     GetPage(
       name: _Paths.DASHBOARD,
@@ -153,22 +116,6 @@ class AppPages {
           transitionDuration: Duration(milliseconds: 350),
         ),
         GetPage(
-          name: _Paths.EVENT_INVITATIONS,
-          page: () => EventInvitationsView(),
-          binding: EventInvitationsBinding(),
-          transition: Transition.downToUp,
-          curve: Curves.easeOutQuart,
-          transitionDuration: Duration(milliseconds: 350),
-        ),
-        GetPage(
-          name: _Paths.INVITED_EVENT_GALLERY,
-          page: () => InvitedEventGalleryView(),
-          binding: InvitedEventGalleryBinding(),
-          transition: Transition.cupertino,
-          curve: Curves.easeInOut,
-          transitionDuration: Duration(milliseconds: 350),
-        ),
-        GetPage(
           name: _Paths.INVITED_ADMINS_LIST,
           page: () => const InvitedAdminsListView(),
           binding: InvitedAdminsListBinding(),
@@ -177,6 +124,23 @@ class AppPages {
           transitionDuration: Duration(milliseconds: 350),
         ),
       ],
+    ),
+    // Top-level routes for deep link access
+    GetPage(
+      name: _Paths.EVENT_INVITATIONS,
+      page: () => EventInvitationsView(),
+      binding: EventInvitationsBinding(),
+      transition: Transition.downToUp,
+      curve: Curves.easeOutQuart,
+      transitionDuration: Duration(milliseconds: 350),
+    ),
+    GetPage(
+      name: _Paths.INVITED_EVENT_GALLERY,
+      page: () => InvitedEventGalleryView(),
+      binding: InvitedEventGalleryBinding(),
+      transition: Transition.cupertino,
+      curve: Curves.easeInOut,
+      transitionDuration: Duration(milliseconds: 350),
     ),
     GetPage(
       name: _Paths.INVITEUSER,
@@ -210,14 +174,6 @@ class AppPages {
           curve: Curves.easeOutCubic,
           transitionDuration: Duration(milliseconds: 350),
         ),
-        GetPage(
-          name: _Paths.RESET_PASSWORD,
-          page: () => ResetPasswordView(),
-          binding: ResetPasswordBinding(),
-          transition: Transition.size,
-          curve: Curves.easeInOutQuart,
-          transitionDuration: Duration(milliseconds: 400),
-        ),
       ],
     ),
     GetPage(
@@ -229,27 +185,11 @@ class AppPages {
       transitionDuration: Duration(milliseconds: 500),
     ),
     GetPage(
-      name: _Paths.SET_NEW_PASSWORD_VIEW,
-      page: () => SetNewPasswordView(),
-      binding: SetNewPasswordViewBinding(),
-      transition: Transition.size,
-      curve: Curves.easeInOutQuart,
-      transitionDuration: Duration(milliseconds: 400),
-    ),
-    GetPage(
       name: _Paths.PHOTO_PRE,
       page: () => PhotoPreView(),
       binding: PhotoPreBinding(),
       transition: Transition.cupertino,
       curve: Curves.easeOutSine,
-      transitionDuration: Duration(milliseconds: 350),
-    ),
-    GetPage(
-      name: _Paths.SIGNUP_OTP,
-      page: () => SignupOtpView(),
-      binding: SignupOtpBinding(),
-      transition: Transition.rightToLeftWithFade,
-      curve: Curves.easeInOutCubic,
       transitionDuration: Duration(milliseconds: 350),
     ),
     GetPage(
@@ -265,8 +205,40 @@ class AppPages {
       page: () => const SharedEventGalleryView(),
       binding: SharedEventGalleryBinding(),
     ),
+    // Phone OTP Login Routes
+    GetPage(
+      name: _Paths.PHONE_LOGIN,
+      page: () => const PhoneLoginView(),
+      binding: PhoneLoginBinding(),
+      transition: Transition.fadeIn,
+      preventDuplicates: true,
+      curve: Curves.easeOutCubic,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
+    GetPage(
+      name: _Paths.LOGIN_OTP,
+      page: () => const LoginOtpView(),
+      binding: LoginOtpBinding(),
+      transition: Transition.rightToLeftWithFade,
+      curve: Curves.easeInOutCubic,
+      transitionDuration: const Duration(milliseconds: 350),
+    ),
+    GetPage(
+      name: _Paths.PROFILE_SETUP,
+      page: () => const ProfileSetupView(),
+      binding: ProfileSetupBinding(),
+      transition: Transition.rightToLeftWithFade,
+      curve: Curves.easeInOutCubic,
+      transitionDuration: const Duration(milliseconds: 350),
+    ),
+    // Onboarding
+    GetPage(
+      name: _Paths.ONBOARDING,
+      page: () => const OnboardingView(),
+      binding: OnboardingBinding(),
+      transition: Transition.fadeIn,
+      curve: Curves.easeOutCubic,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
   ];
 }
-
-// End of file
-// lib/app/routes/app_pages.dart

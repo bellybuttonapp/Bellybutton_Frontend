@@ -21,11 +21,11 @@ class InvitedEventGalleryView extends GetView<InvitedEventGalleryController> {
   final RefreshController _refreshController = RefreshController();
   final ScrollController _scrollController = ScrollController();
 
-  // Showcase GlobalKeys
-  static final GlobalKey _membersKey = GlobalKey();
-  static final GlobalKey _uploadKey = GlobalKey();
+  // Showcase GlobalKeys - Instance-level to avoid duplicate key errors
+  final GlobalKey _membersKey = GlobalKey();
+  final GlobalKey _uploadKey = GlobalKey();
 
-  // Flag to prevent showcase from starting multiple times
+  // Static flag to prevent showcase from starting multiple times per session
   static bool _showcaseStarted = false;
 
   @override
@@ -49,10 +49,14 @@ class InvitedEventGalleryView extends GetView<InvitedEventGalleryController> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (ShowcaseService.shouldShowInvitedGalleryTour && !_showcaseStarted) {
         _showcaseStarted = true;
-        ShowcaseService.startShowcase(
-          context,
-          [_membersKey, _uploadKey],
-        );
+
+        // Only include upload key if button will be visible
+        final canUpload = !c.eventNotStarted && !c.eventEnded && c.galleryAssets.isNotEmpty;
+        final showcaseKeys = canUpload
+            ? [_membersKey, _uploadKey]
+            : [_membersKey];
+
+        ShowcaseService.startShowcase(context, showcaseKeys);
       }
     });
 
@@ -60,9 +64,15 @@ class InvitedEventGalleryView extends GetView<InvitedEventGalleryController> {
     final eventTitle = c.event?.title ?? "";
     final eventDescription = c.event?.description ?? "";
 
-    return Scaffold(
-      body: ReusableEventGalleryLayout(
-        appBarTitle: AppTexts.INVITED_EVENT_GALLERY,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        c.handleBackNavigation();
+      },
+      child: Scaffold(
+        body: ReusableEventGalleryLayout(
+        appBarTitle: AppTexts.INVITED_SHOOT_GALLERY,
         title: eventTitle,
         description: eventDescription,
 
@@ -74,65 +84,106 @@ class InvitedEventGalleryView extends GetView<InvitedEventGalleryController> {
           textColor: ShowcaseService.textColor,
           titleTextStyle: ShowcaseService.titleStyle,
           descTextStyle: ShowcaseService.descriptionStyle,
-          child: buildSuffixWidget(
-            count: "01/01",
-            iconPath: AppImages.USERS_COUNT,
-            onTap: c.onInvitedUsersTap,
-            screenWidth: width,
-          ),
-        ),
-
-        //----------------------------------------------------
-        // BOTTOM BUTTON
-        //----------------------------------------------------
-        bottomButton: Showcase(
-          key: _uploadKey,
-          title: AppTexts.SHOWCASE_INVITED_UPLOAD_TITLE,
-          description: AppTexts.SHOWCASE_INVITED_UPLOAD_DESC,
-          tooltipBackgroundColor: ShowcaseService.tooltipBackgroundColor,
-          textColor: ShowcaseService.textColor,
-          titleTextStyle: ShowcaseService.titleStyle,
-          descTextStyle: ShowcaseService.descriptionStyle,
           child: Obx(() {
-            if (c.selectedAssets.isEmpty) {
-              return global_button(
-                loaderWhite: true,
-                title: AppTexts.BTN_UPLOAD_PHOTOS,
-                isLoading: c.isUploading.value,
-                backgroundColor: AppColors.primaryColor,
-                onTap: c.onUploadTap,
-              );
-            }
+            final currentMembers = c.invitedCount.value;
+            final maxCapacity = c.totalCapacity.value;
 
-            return Row(
-              children: [
-                Expanded(
-                  child: global_button(
-                    title: "${AppTexts.BTN_REMOVE} (${c.selectedAssets.length})",
-                    backgroundColor: Colors.red,
-                    onTap: c.removeSelected,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: global_button(
-                    title: AppTexts.BTN_UPLOAD,
-                    backgroundColor: AppColors.primaryColor,
-                    isLoading: c.isUploading.value,
-                    onTap: c.onUploadTap,
-                  ),
-                ),
-              ],
+            return buildSuffixWidget(
+              count: "${currentMembers.toString().padLeft(2, '0')}/${maxCapacity.toString().padLeft(2, '0')}",
+              iconPath: AppImages.USERS_COUNT,
+              onTap: c.onInvitedUsersTap,
+              screenWidth: width,
             );
           }),
         ),
 
         //----------------------------------------------------
+        // BOTTOM BUTTON
+        // Flow: Select to Exclude
+        // - No selection → "Upload All (X)" uploads everything
+        // - Has selection → selected images are EXCLUDED from upload
+        // - "Clear (X)" removes exclusion marks
+        // - "Upload (Y)" uploads non-excluded images
+        //----------------------------------------------------
+        bottomButton: Obx(() {
+          // 🔥 IMPORTANT: Access all observables FIRST to register with GetX
+          final galleryAssets = c.galleryAssets;
+          final selectedAssets = c.selectedAssets; // Selected = Excluded
+          final isUploading = c.isUploading.value;
+
+          // Now compute derived values using the accessed observables
+          final totalPhotos = galleryAssets.length;
+          final hasPhotos = totalPhotos > 0;
+          final excludedCount = selectedAssets.length;
+          final hasExclusions = excludedCount > 0;
+          final uploadCount = totalPhotos - excludedCount;
+
+          // Hide upload button if event not started, ended, or no photos
+          final canUpload = !c.eventNotStarted && !c.eventEnded && hasPhotos;
+
+          if (!canUpload) {
+            return const SizedBox.shrink();
+          }
+
+          // No exclusions → Show "Upload All (X)" button
+          if (!hasExclusions) {
+            return Showcase(
+              key: _uploadKey,
+              title: AppTexts.SHOWCASE_INVITED_UPLOAD_TITLE,
+              description: AppTexts.SHOWCASE_INVITED_UPLOAD_DESC,
+              tooltipBackgroundColor: ShowcaseService.tooltipBackgroundColor,
+              textColor: ShowcaseService.textColor,
+              titleTextStyle: ShowcaseService.titleStyle,
+              descTextStyle: ShowcaseService.descriptionStyle,
+              child: global_button(
+                loaderWhite: true,
+                title: "Upload All ($totalPhotos)",
+                isLoading: isUploading,
+                backgroundColor: AppColors.primaryColor,
+                onTap: c.onUploadTap,
+              ),
+            );
+          }
+
+          // Has exclusions → Show "Clear" + "Upload" buttons
+          return Row(
+            children: [
+              // Clear button - removes all exclusion marks
+              Expanded(
+                child: global_button(
+                  title: "Clear ($excludedCount)",
+                  backgroundColor: Colors.grey.shade600,
+                  onTap: c.clearSelection,
+                ),
+              ),
+              const SizedBox(width: 10),
+              // Upload button - uploads non-excluded images
+              Expanded(
+                child: global_button(
+                  title: "Upload ($uploadCount)",
+                  backgroundColor: uploadCount > 0
+                      ? AppColors.primaryColor
+                      : Colors.grey,
+                  isLoading: isUploading,
+                  onTap: uploadCount > 0 ? c.onUploadTap : null,
+                ),
+              ),
+            ],
+          );
+        }),
+
+        //----------------------------------------------------
         // GRID VIEW
         //----------------------------------------------------
         gridView: Obx(() {
+          // 🔥 IMPORTANT: Access all observables FIRST to register with GetX
+          final galleryAssets = c.galleryAssets;
+          final isLoading = c.isLoading.value;
+          // Access uploadedCount to track changes (used in allUploaded getter)
+          c.uploadedCount.value;
+
           // ✅ Loading Shimmer
-          if (c.isLoading.value) {
+          if (isLoading) {
             return const EventGalleryShimmer(
               itemCount: 30,
               crossAxisCount: 3,
@@ -141,127 +192,30 @@ class InvitedEventGalleryView extends GetView<InvitedEventGalleryController> {
 
           // ✅ Empty states
           if (c.eventNotStarted) {
-            return SmartRefresher(
-              controller: _refreshController,
-              enablePullDown: true,
-              onRefresh: () async {
-                await c.refreshGallery();
-                _refreshController.refreshCompleted();
-              },
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(
-                      child: EmptyJobsPlaceholder(
-                        title: AppTexts.EVENT_NOT_STARTED_TITLE,
-                        description: AppTexts.EVENT_NOT_STARTED_DESC,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          if (c.eventEnded && c.galleryAssets.isEmpty) {
-            return SmartRefresher(
-              controller: _refreshController,
-              enablePullDown: true,
-              onRefresh: () async {
-                await c.refreshGallery();
-                _refreshController.refreshCompleted();
-              },
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(
-                      child: EmptyJobsPlaceholder(
-                        title: AppTexts.EVENT_ENDED_TITLE,
-                        description: AppTexts.EVENT_ENDED_DESC,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            return _buildEmptyState(
+              title: AppTexts.SHOOT_NOT_STARTED_TITLE,
+              description: AppTexts.SHOOT_NOT_STARTED_DESC,
             );
           }
 
           if (c.allUploaded) {
-            return SmartRefresher(
-              controller: _refreshController,
-              enablePullDown: true,
-              onRefresh: () async {
-                await c.refreshGallery();
-                _refreshController.refreshCompleted();
-              },
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(
-                      child: EmptyJobsPlaceholder(
-                        title: AppTexts.ALL_PHOTOS_SYNCED_TITLE,
-                        description: AppTexts.ALL_PHOTOS_SYNCED_DESC,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            return _buildEmptyState(
+              title: AppTexts.ALL_PHOTOS_SYNCED_TITLE,
+              description: AppTexts.ALL_PHOTOS_SYNCED_DESC,
             );
           }
 
           if (c.eventLiveButEmpty) {
-            return SmartRefresher(
-              controller: _refreshController,
-              enablePullDown: true,
-              onRefresh: () async {
-                await c.refreshGallery();
-                _refreshController.refreshCompleted();
-              },
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(
-                      child: EmptyJobsPlaceholder(
-                        title: AppTexts.EVENT_LIVE_EMPTY_TITLE,
-                        description: AppTexts.EVENT_LIVE_EMPTY_DESC,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            return _buildEmptyState(
+              title: AppTexts.SHOOT_LIVE_EMPTY_TITLE,
+              description: AppTexts.SHOOT_LIVE_EMPTY_DESC,
             );
           }
 
           if (c.noPhotosFound) {
-            return SmartRefresher(
-              controller: _refreshController,
-              enablePullDown: true,
-              onRefresh: () async {
-                await c.refreshGallery();
-                _refreshController.refreshCompleted();
-              },
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(
-                      child: EmptyJobsPlaceholder(
-                        title: AppTexts.NO_PHOTOS_FOUND_TITLE,
-                        description: AppTexts.NO_PHOTOS_FOUND_DESC,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            return _buildEmptyState(
+              title: AppTexts.SHOOT_ENDED_TITLE,
+              description: AppTexts.SHOOT_ENDED_DESC,
             );
           }
 
@@ -277,63 +231,28 @@ class InvitedEventGalleryView extends GetView<InvitedEventGalleryController> {
               padding: const EdgeInsets.all(8),
               child: MasonryGridView.count(
                 controller: _scrollController,
-                physics: const AlwaysScrollableScrollPhysics(),
+                shrinkWrap: false,
+                physics: const ClampingScrollPhysics(),
                 crossAxisCount: 3,
                 mainAxisSpacing: 6,
                 crossAxisSpacing: 6,
-                itemCount: c.galleryAssets.length,
+                itemCount: galleryAssets.length,
                 itemBuilder: (_, index) {
-                  final asset = c.galleryAssets[index];
+                  final asset = galleryAssets[index];
 
                   return GestureDetector(
                     onTap: () => c.toggleSelection(asset),
                     onLongPress: () {
                       Get.to(
                         () => ReusablePhotoPreview(
-                          images: c.galleryAssets.toList(),
+                          images: galleryAssets.toList(),
                           isAsset: true,
                           initialIndex: index,
                           enableInfoButton: false,
                         ),
                       );
                     },
-                    child: Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: AspectRatio(
-                            aspectRatio: asset.width / asset.height,
-                            child: AssetEntityImage(
-                              asset,
-                              thumbnailSize: const ThumbnailSize(400, 400),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                        Positioned.fill(
-                          child: Obx(() {
-                            final selected = c.isSelected(asset);
-                            return AnimatedOpacity(
-                              opacity: selected ? 1 : 0,
-                              duration: const Duration(milliseconds: 180),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
-                                  color: Colors.black.withOpacity(.5),
-                                ),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.check_circle,
-                                    color: Colors.white,
-                                    size: 34,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }),
-                        ),
-                      ],
-                    ),
+                    child: _buildGridItem(asset),
                   );
                 },
               ),
@@ -341,6 +260,83 @@ class InvitedEventGalleryView extends GetView<InvitedEventGalleryController> {
           );
         }),
       ),
+      ),
+    );
+  }
+
+  /// Build empty state with SmartRefresher for pull-to-refresh
+  Widget _buildEmptyState({required String title, required String description}) {
+    return SmartRefresher(
+      controller: _refreshController,
+      enablePullDown: true,
+      onRefresh: () async {
+        await controller.refreshGallery();
+        _refreshController.refreshCompleted();
+      },
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: EmptyJobsPlaceholder(
+                title: title,
+                description: description,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build individual grid item with exclusion overlay
+  /// Selected = Excluded from upload (shows X icon)
+  Widget _buildGridItem(dynamic asset) {
+    // Calculate safe aspect ratio
+    final aspectRatio = (asset.height > 0)
+        ? (asset.width / asset.height).clamp(0.5, 2.0)
+        : 1.0;
+
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: AspectRatio(
+            aspectRatio: aspectRatio,
+            child: AssetEntityImage(
+              asset,
+              thumbnailSize: const ThumbnailSize(400, 400),
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+        Positioned.fill(
+          child: Obx(() {
+            // 🔥 Access the observable list to register with GetX
+            final selectedList = controller.selectedAssets;
+            final isExcluded = selectedList.contains(asset);
+
+            return AnimatedOpacity(
+              opacity: isExcluded ? 1 : 0,
+              duration: const Duration(milliseconds: 180),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.black.withOpacity(.6),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.cancel, // X icon to indicate exclusion
+                    color: Colors.red,
+                    size: 40,
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
     );
   }
 }

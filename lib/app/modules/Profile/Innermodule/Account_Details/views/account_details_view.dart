@@ -1,16 +1,17 @@
 // ignore_for_file: annotate_overrides, deprecated_member_use, curly_braces_in_flow_control_structures
 
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
-import '../../../../../Controllers/oauth.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_images.dart';
 import '../../../../../core/constants/app_texts.dart';
 import '../../../../../global_widgets/Button/global_button.dart';
 import '../../../../../global_widgets/GlobalTextField/GlobalTextField.dart';
 import '../../../../../global_widgets/custom_app_bar/custom_app_bar.dart';
+import '../../../../../global_widgets/loader/global_loader.dart';
 import '../controllers/account_details_controller.dart';
 import 'package:bellybutton/app/core/utils/index.dart';
 
@@ -30,25 +31,19 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-    final user = AuthService().currentUser;
-
-    ImageProvider<Object>? profileImage() {
+    // Get the image URL to use
+    String? getImageUrl() {
       final picked = controller.pickedImage.value;
       final savedImage = Preference.profileImage ?? '';
-      final photoUrl = user?.photoURL;
 
-      if (picked != null) return FileImage(File(picked.path));
-
-      if (savedImage.isNotEmpty) {
-        return savedImage.startsWith('http')
-            ? NetworkImage(savedImage)
-            : FileImage(File(savedImage));
-      }
-
-      if (photoUrl != null && photoUrl.isNotEmpty)
-        return NetworkImage(photoUrl);
-
+      if (picked != null) return picked.path;
+      if (savedImage.isNotEmpty) return savedImage;
       return null;
+    }
+
+    bool isLocalFile(String? url) {
+      if (url == null || url.isEmpty) return false;
+      return !url.startsWith('http');
     }
 
     return PopScope(
@@ -84,33 +79,93 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
                   clipBehavior: Clip.none,
                   children: [
                     Obx(
-                      () => Hero(
-                        tag: 'profile-photo',
-                        child: CircleAvatar(
-                          radius: screenWidth * 0.16,
-                          backgroundColor: const Color.fromARGB(
-                            255,
-                            166,
-                            216,
-                            233,
-                          ).withOpacity(0.15),
-                          backgroundImage: profileImage(),
-                          child:
-                              profileImage() == null
-                                  ? Padding(
-                                    padding: EdgeInsets.all(screenWidth * 0.03),
-                                    child: SvgPicture.asset(
-                                      AppImages.PERSON,
-                                      height: screenWidth * 0.08,
-                                      width: screenWidth * 0.08,
-                                      color: AppColors.textColor.withOpacity(
-                                        0.7,
-                                      ),
-                                    ),
-                                  )
-                                  : null,
-                        ),
-                      ),
+                      () {
+                        final imageUrl = getImageUrl();
+                        final isLocal = isLocalFile(imageUrl);
+                        final radius = screenWidth * 0.16;
+                        final iconSize = screenWidth * 0.08;
+                        final bgColor = const Color.fromARGB(255, 166, 216, 233).withOpacity(0.15);
+
+                        Widget buildImage() {
+                          // No image
+                          if (imageUrl == null || imageUrl.isEmpty) {
+                            return CircleAvatar(
+                              radius: radius,
+                              backgroundColor: bgColor,
+                              child: Padding(
+                                padding: EdgeInsets.all(screenWidth * 0.03),
+                                child: SvgPicture.asset(
+                                  AppImages.PERSON,
+                                  height: iconSize,
+                                  width: iconSize,
+                                  color: AppColors.textColor.withOpacity(0.7),
+                                ),
+                              ),
+                            );
+                          }
+
+                          // Local file
+                          if (isLocal) {
+                            final file = File(imageUrl);
+                            if (file.existsSync()) {
+                              return CircleAvatar(
+                                radius: radius,
+                                backgroundColor: bgColor,
+                                backgroundImage: FileImage(file),
+                              );
+                            }
+                            return CircleAvatar(
+                              radius: radius,
+                              backgroundColor: bgColor,
+                              child: Padding(
+                                padding: EdgeInsets.all(screenWidth * 0.03),
+                                child: SvgPicture.asset(
+                                  AppImages.PERSON,
+                                  height: iconSize,
+                                  width: iconSize,
+                                  color: AppColors.textColor.withOpacity(0.7),
+                                ),
+                              ),
+                            );
+                          }
+
+                          // Network image with caching
+                          return CachedNetworkImage(
+                            imageUrl: imageUrl,
+                            imageBuilder: (context, imageProvider) => CircleAvatar(
+                              radius: radius,
+                              backgroundColor: bgColor,
+                              backgroundImage: imageProvider,
+                            ),
+                            placeholder: (context, url) => CircleAvatar(
+                              radius: radius,
+                              backgroundColor: bgColor,
+                              child: Global_Loader(
+                                size: iconSize * 0.6,
+                                strokeWidth: 2,
+                              ),
+                            ),
+                            errorWidget: (context, url, error) => CircleAvatar(
+                              radius: radius,
+                              backgroundColor: bgColor,
+                              child: Padding(
+                                padding: EdgeInsets.all(screenWidth * 0.03),
+                                child: SvgPicture.asset(
+                                  AppImages.PERSON,
+                                  height: iconSize,
+                                  width: iconSize,
+                                  color: AppColors.textColor.withOpacity(0.7),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+
+                        return Hero(
+                          tag: 'profile-photo',
+                          child: buildImage(),
+                        );
+                      },
                     ),
                     Positioned(
                       bottom: screenWidth * 0.015,
@@ -202,16 +257,15 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
 
               SizedBox(height: screenHeight * 0.015),
 
-              /// EMAIL FIELD (READ ONLY)
+              /// PHONE NUMBER FIELD (READ ONLY)
               GlobalTextField(
                 enabled: false,
                 controller: TextEditingController(
-                  text:
-                      Preference.email.isNotEmpty
-                          ? Preference.email
-                          : (user?.email ?? "example@email.com"),
+                  text: Preference.phone.isNotEmpty
+                      ? Preference.phone
+                      : "-",
                 ),
-                hintText: AppTexts.EMAIL,
+                hintText: AppTexts.PHONE_LOGIN_HINT,
                 obscureText: false,
                 suffixIcon: Padding(
                   padding: EdgeInsets.all(screenWidth * 0.03),
@@ -223,7 +277,7 @@ class AccountDetailsView extends GetView<AccountDetailsController> {
                 ),
               ),
 
-              SizedBox(height: screenHeight * 0.15),
+              SizedBox(height: screenHeight * 0.1),
 
               /// SAVE BUTTON
               Obx(

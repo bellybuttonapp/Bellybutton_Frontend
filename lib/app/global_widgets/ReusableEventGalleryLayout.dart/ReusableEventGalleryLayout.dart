@@ -34,7 +34,7 @@ class ReusableEventGalleryLayout extends StatelessWidget {
     this.bottomButton,
     this.floatingButtons,
     this.showAppBar = true,
-    this.appBarTitle = AppTexts.EVENT,
+    this.appBarTitle = AppTexts.SHOOT,
   });
 
   @override
@@ -74,7 +74,7 @@ class ReusableEventGalleryLayout extends StatelessWidget {
             if (title != null && title!.trim().isNotEmpty)
               GlobalTextField(
                 readOnly: true,
-                hintText: AppTexts.EVENT_TITLE,
+                hintText: AppTexts.SHOOT_TITLE,
                 initialValue: limitWords(title, 6),
                 suffixIcon: suffixWidget,
               ),

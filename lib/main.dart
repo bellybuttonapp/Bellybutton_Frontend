@@ -1,30 +1,20 @@
 // ignore_for_file: deprecated_member_use
 
-import 'dart:async';
-import 'package:bellybutton/app/core/utils/storage/preference.dart';
-import 'package:bellybutton/app/core/utils/initializer/app_initializer.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'app/core/constants/app_colors.dart';
-import 'app/core/services/local_notification_service.dart';
-import 'app/core/services/notification_service.dart';
-import 'firebase_options.dart';
-import 'app/routes/app_pages.dart';
-import 'app/database/models/EventModel.dart';
-import 'app/core/services/firebase_notification_service.dart';
+import 'package:flutter_inapp_notifications/flutter_inapp_notifications.dart';
 import 'app/core/services/deep_link_service.dart';
-import 'app/core/services/app_badge_service.dart';
+import 'app/core/services/firebase_notification_service.dart';
+import 'app/core/services/showcase_service.dart';
+import 'app/core/utils/initializer/app_lifecycle_handler.dart';
+import 'app/core/utils/initializer/main_initializer.dart';
+import 'app/routes/app_pages.dart';
+import 'firebase_options.dart';
 
 /// ----------------------------------------------------------
-/// 1️⃣ BACKGROUND HANDLER — MUST BE TOP LEVEL
+/// BACKGROUND HANDLER — MUST BE TOP LEVEL
 /// ----------------------------------------------------------
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -32,103 +22,48 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint("🌙 Background message received → ${message.messageId}");
 }
 
+/// ----------------------------------------------------------
+/// MAIN ENTRY POINT
+/// ----------------------------------------------------------
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  /// ----------------------------------------------------------
-  /// 2️⃣ REGISTER BACKGROUND HANDLER (ONLY ONCE)
-  /// ----------------------------------------------------------
+  // Register Firebase background message handler
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-  /// ----------------------------------------------------------
-  /// 3️⃣ LOCAL STORAGE (Hive + GetStorage)
-  /// ----------------------------------------------------------
-  await GetStorage.init();
+  // Initialize local storage (Hive)
+  await MainInitializer.initializeHive();
 
-  await Hive.initFlutter();
-  Hive.registerAdapter(EventModelAdapter());
+  // Check for cold start deep links early
+  final deepLinkInfo = await MainInitializer.checkInitialDeepLink();
 
-  final hiveBox = await Hive.openBox('appBox');
-  await Hive.openBox<EventModel>('eventsBox');
+  // Initialize Firebase services
+  await MainInitializer.initializeFirebase();
 
-  Preference.init(hiveBox);
-  Get.put(hiveBox);
-  debugPrint('✅ Hive Initialized');
+  // Configure error handling
+  MainInitializer.configureErrorHandling();
 
-  /// ----------------------------------------------------------
-  /// 4️⃣ FIREBASE INIT
-  /// ----------------------------------------------------------
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  debugPrint('✅ Firebase Initialized');
-
-  // if (kDebugMode) {
-  //   debugPrint("📌 FCM Token: ${await FirebaseMessaging.instance.getToken()}");
-  // }
-
-  /// ----------------------------------------------------------
-  /// 5️⃣ Firebase App Check
-  /// ----------------------------------------------------------
-  await FirebaseAppCheck.instance.activate(
-    androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
-    appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
-  );
-
-  /// ----------------------------------------------------------
-  /// 6️⃣ Crashlytics
-  /// ----------------------------------------------------------
-  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
-  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!kDebugMode);
-
-  /// ----------------------------------------------------------
-  /// 7️⃣ FCM NOTIFICATION SYSTEM (Foreground / Tap / Terminated)
-  /// ----------------------------------------------------------
+  // Initialize notification services
   await FirebaseNotificationService.init();
+  await MainInitializer.initializeNotifications();
 
-  /// ----------------------------------------------------------
-  /// LOCAL NOTIFICATIONS INIT + RANDOM DAILY TRIGGER
-  /// ----------------------------------------------------------
-  await LocalNotificationService.init();
-  await LocalNotificationService.scheduleRandomTwoDaily();
+  // Initialize app services
+  await MainInitializer.initializeAppServices();
 
-  /// ----------------------------------------------------------
-  /// 8️⃣ App Initializer (connectivity, etc.)
-  /// ----------------------------------------------------------
-  await AppInitializer.initialize();
+  // Configure UI settings
+  await MainInitializer.configureUI();
 
-  /// ----------------------------------------------------------
-  /// 8️⃣.5 App Badge Service (app icon badge management)
-  /// ----------------------------------------------------------
-  await Get.putAsync(() => AppBadgeService().init());
+  // Determine initial route
+  final initialRoute = MainInitializer.getInitialRoute(deepLinkInfo);
 
-  /// ----------------------------------------------------------
-  /// 8️⃣.6 Notification Service (global state)
-  /// ----------------------------------------------------------
-  await Get.putAsync(() => NotificationService().init());
-
-  /// ----------------------------------------------------------
-  /// 9️⃣ Orientation + Status Bar
-  /// ----------------------------------------------------------
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
-
-  SystemChrome.setSystemUIOverlayStyle(
-    SystemUiOverlayStyle(
-      statusBarColor: AppTheme.lightTheme.primaryColor,
-      statusBarIconBrightness: Brightness.light,
-    ),
+  // Register app lifecycle handler
+  final lifecycleHandler = AppLifecycleHandler(
+    onResumed: () => debugPrint('🟢 App resumed'),
+    onPaused: () => debugPrint('🟡 App paused'),
   );
+  lifecycleHandler.register();
 
-  /// ----------------------------------------------------------
-  /// 🔟 Start Page (Dashboard or Onboarding)
-  /// ----------------------------------------------------------
-  final initialRoute =
-      Preference.isLoggedIn ? Routes.DASHBOARD : Routes.ONBOARDING;
-
-  /// ----------------------------------------------------------
-  /// 1️⃣1️⃣ RUN THE APP
-  /// ----------------------------------------------------------
+  // Run the app
   runApp(
     GetMaterialApp(
       title: "Application",
@@ -137,15 +72,37 @@ Future<void> main() async {
       getPages: AppPages.routes,
       themeMode: ThemeMode.light,
       darkTheme: ThemeData.dark(),
+      builder: InAppNotifications.init(),
     ),
   );
 
-  /// ----------------------------------------------------------
-  /// 1️⃣2️⃣ Initialize Local Notifications & Deep Links AFTER UI builds
-  /// ----------------------------------------------------------
+  // Initialize post-frame services
   WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Initialize local notification UI
     FirebaseNotificationService.initLocalNotifications();
-    DeepLinkService.init();
+
+    // Initialize deep link service
+    Future.delayed(const Duration(milliseconds: 1000), () {
+      DeepLinkService.init();
+    });
+
+    // Handle public gallery deep link (no auth required)
+    if (deepLinkInfo.publicGalleryToken != null) {
+      _handlePublicGalleryDeepLink(deepLinkInfo.publicGalleryToken!);
+    }
   });
 }
 
+/// Handle public gallery deep link navigation
+void _handlePublicGalleryDeepLink(String token) {
+  debugPrint('📸 Processing public gallery deep link after app init...');
+  Future.delayed(const Duration(milliseconds: 1500), () {
+    debugPrint('📸 Navigating to SHARED_EVENT_GALLERY with token: $token');
+    ShowcaseService.hasPendingDeepLink = false;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Get.context != null) {
+        Get.toNamed(Routes.SHARED_EVENT_GALLERY, arguments: token);
+      }
+    });
+  });
+}

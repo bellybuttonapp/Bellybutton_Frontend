@@ -1,4 +1,4 @@
-// ignore_for_file: unnecessary_overrides, deprecated_member_use, unnecessary_set_literal, depend_on_referenced_packages
+// ignore_for_file: unnecessary_overrides, deprecated_member_use, unnecessary_set_literal, depend_on_referenced_packages, avoid_print
 
 import 'dart:io';
 import 'package:dio/dio.dart';
@@ -9,6 +9,7 @@ import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../../../../api/PublicApiService.dart';
 import '../../../../../core/constants/app_constant.dart';
 import '../../../../../core/constants/app_texts.dart';
@@ -23,6 +24,9 @@ import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../../../global_widgets/CustomBottomSheet/CustomBottomsheet.dart';
 import '../../../../../routes/app_pages.dart';
 import '../../../../../global_widgets/Shimmers/MediaInfoShimmer.dart';
+import '../../inviteuser/controllers/inviteuser_controller.dart';
+import '../../inviteuser/models/invite_user_arguments.dart';
+import '../../inviteuser/views/inviteuser_view.dart';
 
 class EventGalleryController extends GetxController {
   late EventModel event;
@@ -34,6 +38,12 @@ class EventGalleryController extends GetxController {
   RxInt savedCount = 0.obs;
   RxInt totalToSave = 0.obs;
   RxBool isLoading = true.obs;
+  RxBool isAutoSyncEnabled = false.obs; // Tracks auto-sync preference
+  RxBool isAutoSyncing = false.obs; // True while auto-sync is in progress
+  RxBool isDownloading = false.obs; // True while manual sync is in progress
+
+  /// Get event-specific sync key
+  String get _eventSyncKey => "${Preference.EVENT_SYNC_DONE}_${event.id}";
 
   // ------------------------------------------------------
   // 👤 ADMIN & INVITATION MANAGEMENT
@@ -53,19 +63,22 @@ class EventGalleryController extends GetxController {
 
   // ======================================================
   //  ⭐ EVENT STATE GETTERS (EMPTY PLACEHOLDER CONDITIONS)
+  //  🌍 Uses LOCAL timezone conversion for accurate comparisons
   // ======================================================
 
   /// 1️⃣ Event NOT started yet
-  bool get eventNotStarted => DateTime.now().isBefore(event.fullEventDateTime);
+  /// Compares current time with event start time in LOCAL timezone
+  bool get eventNotStarted => DateTime.now().isBefore(event.localStartDateTime);
 
   /// 2️⃣ Event already finished
-  bool get eventEnded => DateTime.now().isAfter(event.fullEventEndDateTime);
+  /// Compares current time with event end time in LOCAL timezone
+  bool get eventEnded => DateTime.now().isAfter(event.localEndDateTime);
 
   /// 3️⃣ Event is currently live (ongoing)
   bool get eventLive => !eventNotStarted && !eventEnded;
 
-  /// 4️⃣ All synced on this device
-  bool get allSynced => Preference.box.get(Preference.EVENT_SYNC_DONE) == true;
+  /// 4️⃣ All synced on this device (event-specific)
+  bool get allSynced => Preference.box.get(_eventSyncKey) == true;
 
   /// 5️⃣ No photos uploaded to this event yet (from server)
   bool get noPhotosUploaded => photos.isEmpty && !isLoading.value;
@@ -82,8 +95,57 @@ class EventGalleryController extends GetxController {
     // ------------------------------------------------------
     event = Get.arguments as EventModel;
     albumName = "EventGallery_${event.title.replaceAll(" ", "_")}";
-    fetchPhotos();
+
+    // Load auto-sync preference
+    isAutoSyncEnabled.value = Preference.autoSync;
+
+    fetchPhotos().then((_) {
+      // Auto-sync if enabled and photos exist and not already synced
+      if (isAutoSyncEnabled.value && photos.isNotEmpty && !allSynced) {
+        _autoSyncPhotos();
+      }
+    });
     fetchInvitedUsersCount();
+  }
+
+  // ------------------------------------------------------
+  // 🔄 AUTO SYNC (triggered automatically when enabled - silent download)
+  // ------------------------------------------------------
+  Future<void> _autoSyncPhotos() async {
+    // Skip if already synced for this event
+    if (allSynced) return;
+
+    debugPrint("📲 Auto-sync enabled, starting silent background download...");
+
+    // Silent sync - no dialog, just download in background
+    if (photos.isEmpty) return;
+
+    // Check permission first before starting
+    if (!await askPermission()) {
+      debugPrint("❌ Auto-sync cancelled: Permission denied");
+      return;
+    }
+
+    isAutoSyncing.value = true;
+    savedCount(0);
+    enableOK(false);
+    totalToSave(photos.length);
+
+    // Save images silently (no dialog) - skip permission check since already done
+    await _saveImagesWithoutPermissionCheck();
+    enableOK(true);
+    isAutoSyncing.value = false;
+
+    // Show notification when complete
+    LocalNotificationService.show(
+      title: AppTexts.NOTIFY_SYNC_COMPLETE_TITLE,
+      body: "All photos from '${event.title}' have been saved to your gallery.",
+    );
+
+    // Mark as synced (event-specific key)
+    Preference.box.put(_eventSyncKey, true);
+
+    debugPrint("✅ Auto-sync complete: ${savedCount.value}/${totalToSave.value} photos saved");
   }
 
   // ------------------------------------------------------
@@ -92,11 +154,15 @@ class EventGalleryController extends GetxController {
   Future<void> fetchInvitedUsersCount() async {
     final response = await PublicApiService().getJoinedUsers(event.id!);
 
-    int admin = response["admin"] != null ? 1 : 0;
-    int members = (response["joinedPeople"] ?? []).length;
+    // 📸 Count admin + joined people
+    int joinedCount = (response["joinedPeople"] ?? []).length;
+    int adminCount = response["admin"] != null ? 1 : 0;
+    int totalMembers = adminCount + joinedCount;
 
-    invitedCount.value = admin + members;
+    invitedCount.value = totalMembers;
     invitedCount.refresh();
+
+    print("📸 Camera Crew: ${invitedCount.value}/${totalCapacity.value} (Admin: $adminCount, Joined: $joinedCount)");
   }
 
   /// ------------------------------------------------------
@@ -109,6 +175,13 @@ class EventGalleryController extends GetxController {
     // Set loading state on first load
     if (!loadMore) {
       isLoading.value = true;
+
+      // 🔄 Refresh member count in parallel (non-blocking)
+      // Runs in background so it doesn't delay photo loading
+      fetchInvitedUsersCount().catchError((e) {
+        debugPrint("⚠️ Failed to refresh member count: $e");
+        // Don't block photo loading if count fetch fails
+      });
     }
 
     try {
@@ -162,9 +235,23 @@ class EventGalleryController extends GetxController {
   }
 
   // ------------------------------------------------------
+  // 🌐 NETWORK CONNECTIVITY CHECK
+  // ------------------------------------------------------
+  Future<bool> _hasNetworkConnection() async {
+    final result = await Connectivity().checkConnectivity();
+    return !result.contains(ConnectivityResult.none);
+  }
+
+  // ------------------------------------------------------
   // 🔄 SYNC IMAGES
   // ------------------------------------------------------
   Future<void> syncNow() async {
+    // Check network connectivity first
+    if (!await _hasNetworkConnection()) {
+      showCustomSnackBar(AppTexts.NO_INTERNET, SnackbarState.error);
+      return;
+    }
+
     await fetchPhotos();
     if (photos.isEmpty) {
       showCustomSnackBar(AppTexts.NO_IMAGES_FOUND, SnackbarState.warning);
@@ -174,6 +261,7 @@ class EventGalleryController extends GetxController {
     savedCount(0);
     enableOK(false);
     totalToSave(photos.length);
+    isDownloading.value = true;
 
     Get.dialog(
       Obx(
@@ -189,6 +277,7 @@ class EventGalleryController extends GetxController {
           showProgress: true,
           savedCount: savedCount,
           totalCount: totalToSave,
+          barrierDismissible: false,
         ),
       ),
       barrierDismissible: false,
@@ -196,14 +285,15 @@ class EventGalleryController extends GetxController {
 
     await saveImages();
     enableOK(true);
+    isDownloading.value = false;
     LocalNotificationService.show(
       title: AppTexts.NOTIFY_SYNC_COMPLETE_TITLE,
       body:
           "All photos from '${event.title}' have been saved to your gallery successfully.",
     );
 
-    // 🔥 store permanently so UI shows Completed always next time
-    Preference.box.put(Preference.EVENT_SYNC_DONE, true);
+    // 🔥 store permanently so UI shows Completed always next time (event-specific)
+    Preference.box.put(_eventSyncKey, true);
 
     Future.delayed(const Duration(seconds: 1), () {
       if (Get.isDialogOpen == true) Get.back();
@@ -319,214 +409,280 @@ class EventGalleryController extends GetxController {
   }
 
   // ------------------------------------------------------
+  // 💾 SAVE IMAGES WITHOUT PERMISSION CHECK (for auto-sync)
+  // ------------------------------------------------------
+  Future<void> _saveImagesWithoutPermissionCheck() async {
+    final tempDir = await getTemporaryDirectory();
+    final downloadDir = Directory("${tempDir.path}/$albumName");
+    if (!downloadDir.existsSync()) {
+      downloadDir.createSync(recursive: true);
+    }
+
+    final dio = Dio();
+    const int batchSize = 6;
+
+    for (int i = 0; i < photos.length; i += batchSize) {
+      final batch = photos.skip(i).take(batchSize).toList();
+
+      await Future.wait(
+        batch.map((url) async {
+          String name = url.split("/").last;
+          String tempPath = "${downloadDir.path}/$name";
+
+          try {
+            await dio.download(url, tempPath);
+            final saved = await GallerySaver.saveImage(
+              tempPath,
+              albumName: albumName,
+            );
+
+            if (saved == true) {
+              savedCount.value++;
+              try {
+                File(tempPath).deleteSync();
+              } catch (_) {}
+            } else {
+              debugPrint("❌ GallerySaver failed for: $name");
+              savedCount.value++;
+            }
+          } catch (e) {
+            debugPrint("❌ Save Failed: $e");
+            savedCount.value++;
+          }
+        }),
+      );
+    }
+
+    try {
+      if (downloadDir.existsSync()) {
+        downloadDir.deleteSync(recursive: true);
+      }
+    } catch (_) {}
+  }
+
+  // ------------------------------------------------------
   // 🔗 SHARE OPTIONS
   // ------------------------------------------------------
-  RxBool viewOnly = true.obs;
-  RxBool viewAndSync = false.obs;
-  RxBool isShareLoading = false.obs;
   RxString shareLink = "".obs;
+  RxBool isGeneratingLink = false.obs;
   final shareLinkController = TextEditingController();
-
-  /// Get current permission type based on selection
-  String get currentPermission => viewOnly.value ? "view-only" : "view-sync";
 
   // ------------------------------------------------------
   // 📤 SHARE BOTTOMSHEET
   // ------------------------------------------------------
   void openShareBottomSheet() {
-    // Reset states
-    viewOnly.value = true;
-    viewAndSync.value = false;
-    shareLink.value = "";
-    shareLinkController.text = AppTexts.LOADING;
-
-    // Fetch initial link with default permission
-    _fetchShareLink();
-
+    // Show bottomsheet first with loading state
     CustomBottomSheet.show(
       title: AppTexts.SHARE_GROUP_TITLE,
       header: _permissionSelector(),
       footer: _shareButton(),
       actions: [],
     );
+
+    // Generate share link with token from API
+    _generateShareToken();
   }
 
-  /// Fetch share link from API
-  Future<void> _fetchShareLink() async {
-    isShareLoading.value = true;
-    shareLinkController.text = AppTexts.LOADING;
+  /// Generate share token from API and create share URL
+  Future<void> _generateShareToken() async {
+    isGeneratingLink.value = true;
+    shareLink.value = "";
+    shareLinkController.text = "Generating link...";
 
     try {
-      final response = await PublicApiService().shareEvent(
-        event.id!,
-        permission: currentPermission,
-      );
+      final response = await PublicApiService().shareEvent(event.id!);
+      debugPrint("🔗 Share API Response: $response");
 
-      debugPrint("📦 Share Response: $response");
+      // Check for success (backend returns "status": "success" not "success": true)
+      final isSuccess = response["success"] == true ||
+                        response["status"] == "success" ||
+                        response["shareLink"] != null;
 
-      // Response format: { "shareLink": "...", "message": "...", "status": "success" }
-      if (response["status"] == "success" && response["shareLink"] != null) {
-        shareLink.value = response["shareLink"];
-        shareLinkController.text = response["shareLink"];
-      } else if (response["success"] == true && response["shareLink"] != null) {
-        shareLink.value = response["shareLink"];
-        shareLinkController.text = response["shareLink"];
+      if (isSuccess) {
+        // Extract token from response
+        String? token = response["token"] ?? response["shareToken"] ?? response["data"]?["token"];
+
+        // If no direct token, extract from shareLink URL
+        if (token == null || token.toString().isEmpty) {
+          final link = response["shareLink"] ?? response["link"] ?? response["data"]?["shareLink"] ?? response["data"]?["link"];
+          if (link != null && link.toString().isNotEmpty) {
+            // Extract token from URL like: /eventresource/share/event/open/{token}
+            final uri = Uri.tryParse(link.toString());
+            if (uri != null && uri.pathSegments.isNotEmpty) {
+              token = uri.pathSegments.last;
+              debugPrint("🔗 Extracted token from shareLink: $token");
+            }
+          }
+        }
+
+        if (token != null && token.toString().isNotEmpty) {
+          // Construct PUBLIC_EVENT_GALLERY URL with token
+          final galleryUrl = "${AppConstants.publicGalleryBaseUrl}/$token";
+          shareLink.value = galleryUrl;
+          debugPrint("🔗 Constructed PUBLIC_EVENT_GALLERY URL: ${shareLink.value}");
+        } else {
+          // Fallback: use eventId if no token returned
+          debugPrint("⚠️ No token in response, using eventId fallback");
+          final galleryUrl = "${AppConstants.publicGalleryBaseUrl}/${event.id}";
+          shareLink.value = galleryUrl;
+        }
+
+        shareLinkController.text = shareLink.value;
+        debugPrint("🔗 Final Share Gallery URL: ${shareLink.value}");
       } else {
-        // Fallback to generated link if API fails
-        final fallback =
-            "${AppConstants.UNIVERSAL_LINK_PREFIX}/invite/${event.id}?permission=$currentPermission";
-        shareLink.value = fallback;
-        shareLinkController.text = fallback;
+        // API failed, show error
+        debugPrint("❌ Share API failed: ${response["message"]}");
+        showCustomSnackBar(response["message"] ?? "Failed to generate share link", SnackbarState.error);
+        shareLink.value = "";
+        shareLinkController.text = "Failed to generate link";
       }
     } catch (e) {
-      debugPrint("❌ Share link fetch error: $e");
-      // Fallback link
-      final fallback =
-          "${AppConstants.UNIVERSAL_LINK_PREFIX}/invite/${event.id}?permission=$currentPermission";
-      shareLink.value = fallback;
-      shareLinkController.text = fallback;
+      debugPrint("❌ Share API error: $e");
+      showCustomSnackBar("Failed to generate share link", SnackbarState.error);
+      shareLink.value = "";
+      shareLinkController.text = "Failed to generate link";
     } finally {
-      isShareLoading.value = false;
+      isGeneratingLink.value = false;
     }
   }
 
-  Widget _permissionSelector() => Obx(
-    () => Column(
-      children: [
-        _switchTile(
-          AppTexts.VIEW_ONLY,
-          AppTexts.VIEW_ONLY_DESC,
-          viewOnly.value,
-          (_) {
-            viewOnly.value = true;
-            viewAndSync.value = false;
-            _fetchShareLink();
-          },
-        ),
-        const SizedBox(height: 12),
-        _switchTile(
-          AppTexts.VIEW_AND_SYNC,
-          AppTexts.VIEW_AND_SYNC_DESC,
-          viewAndSync.value,
-          (_) {
-            viewOnly.value = false;
-            viewAndSync.value = true;
-            _fetchShareLink();
-          },
-        ),
-        const SizedBox(height: 18),
-        _linkField(),
-      ],
-    ),
+  Widget _permissionSelector() => Column(
+    children: [
+      _linkField(),
+    ],
   );
 
-  Widget _switchTile(String title, desc, bool val, Function(bool) onChanged) {
-    final isDark = Get.isDarkMode;
-
-    return SwitchListTile(
-      value: val,
-      onChanged: onChanged,
-      contentPadding: EdgeInsets.symmetric(horizontal: Get.width * 0.02),
-      activeColor: AppColors.success,
-      activeTrackColor:
-          isDark ? Colors.white70 : AppColors.success.withOpacity(0.6),
-      inactiveThumbColor:
-          isDark
-              ? Colors.grey.shade300
-              : AppColors.primaryColor.withOpacity(0.5),
-      inactiveTrackColor:
-          isDark ? Colors.grey.withOpacity(0.4) : Colors.grey.withOpacity(0.3),
-      title: Text(
-        title,
-        style: customBoldText.copyWith(fontSize: Get.width * 0.035),
-      ),
-      subtitle: Text(desc),
-    );
-  }
-
-  Widget _linkField() => Obx(
-    () => Container(
-      width: Get.width,
-      padding: EdgeInsets.symmetric(
-        horizontal: Get.width * 0.04,
-        vertical: Get.height * 0.015,
-      ),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade600),
-        borderRadius: BorderRadius.circular(Get.width * 0.02),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              isShareLoading.value ? AppTexts.LOADING : shareLinkController.text,
-              style: TextStyle(
-                fontSize: Get.width * 0.035,
-                color: Colors.grey.shade700,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          SizedBox(width: Get.width * 0.02),
-          GestureDetector(
-            onTap:
-                isShareLoading.value
-                    ? null
-                    : () {
-                      Clipboard.setData(ClipboardData(text: shareLink.value));
-                      showCustomSnackBar(AppTexts.COPIED, SnackbarState.success);
-                    },
-            child: Icon(
-              isShareLoading.value
-                  ? Icons.hourglass_empty
-                  : Icons.copy_outlined,
-              size: Get.width * 0.055,
+  Widget _linkField() => Obx(() => Container(
+    width: Get.width,
+    padding: EdgeInsets.symmetric(
+      horizontal: Get.width * 0.04,
+      vertical: Get.height * 0.015,
+    ),
+    decoration: BoxDecoration(
+      border: Border.all(color: Colors.grey.shade600),
+      borderRadius: BorderRadius.circular(Get.width * 0.02),
+    ),
+    child: Row(
+      children: [
+        if (isGeneratingLink.value)
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
               color: Colors.grey.shade600,
             ),
           ),
-        ],
-      ),
+        if (isGeneratingLink.value) SizedBox(width: Get.width * 0.02),
+        Expanded(
+          child: Text(
+            isGeneratingLink.value ? "Generating link..." : shareLink.value.isEmpty ? "Failed to generate link" : shareLink.value,
+            style: TextStyle(
+              fontSize: Get.width * 0.035,
+              color: Colors.grey.shade700,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        SizedBox(width: Get.width * 0.02),
+        GestureDetector(
+          onTap: shareLink.value.isEmpty ? null : () {
+            Clipboard.setData(ClipboardData(text: shareLink.value));
+            showCustomSnackBar(AppTexts.COPIED, SnackbarState.success);
+          },
+          child: Icon(
+            Icons.copy_outlined,
+            size: Get.width * 0.055,
+            color: shareLink.value.isEmpty ? Colors.grey.shade400 : Colors.grey.shade600,
+          ),
+        ),
+      ],
     ),
-  );
+  ));
 
   /// Generate formatted share message with event details
   String get _shareMessage {
-    final permissionText =
-        viewOnly.value ? AppTexts.VIEW_PHOTOS : AppTexts.VIEW_AND_DOWNLOAD_PHOTOS;
-
-    return '''
-📸 *${event.title}*
-
-$permissionText from this event:
-${shareLink.value}
-
-📲 ${AppTexts.DOWNLOAD_APP_MESSAGE}
-${AppConstants.APP_STORE_URL}
-''';
+    return "📸 You're invited to view photos from \"${event.title}\"\n\n"
+        "🔗 View Gallery:\n${shareLink.value}\n\n"
+        "Shared via BellyButton";
   }
 
-  Widget _shareButton() => Obx(
-    () => global_button(
-      title: isShareLoading.value ? AppTexts.LOADING : AppTexts.SHARE_LINK,
-      backgroundColor: AppColors.primaryColor,
-      onTap:
-          isShareLoading.value
-              ? null
-              : () {
-                Get.back(); // Close bottomsheet first
-                Share.share(
-                  _shareMessage,
-                  subject: "${AppTexts.EVENT_PHOTOS_SUBJECT} ${event.title}",
-                );
-              },
-    ),
-  );
+  Widget _shareButton() => Obx(() => global_button(
+    title: AppTexts.SHARE_LINK,
+    backgroundColor: AppColors.primaryColor,
+    isLoading: isGeneratingLink.value,
+    onTap: shareLink.value.isEmpty ? null : () {
+      Get.back(); // Close bottomsheet first
+      Share.share(
+        _shareMessage,
+        subject: event.title,
+      );
+    },
+  ));
 
   // ------------------------------------------------------
   // ⚡ FAB ACTIONS
   // ------------------------------------------------------
   void fabOneAction() => openShareBottomSheet();
-  void fabTwoAction() => Get.toNamed(Routes.INVITEUSER, arguments: event);
+
+  /// Navigate to reinvite flow with existing event
+  Future<void> fabTwoAction() async {
+    try {
+      // 🔥 Fetch event data and all invitations (PENDING + ACCEPTED) in parallel
+      final results = await Future.wait([
+        PublicApiService().getEventById(event.id!),
+        PublicApiService().getAllInvitations(event.id!),
+      ]);
+
+      final eventData = results[0] as EventModel?;
+      final invitations = results[1] as List<Map<String, dynamic>>;
+
+      if (eventData == null) {
+        showCustomSnackBar(
+          "Failed to load event details. Please try again.",
+          SnackbarState.error,
+        );
+        return;
+      }
+
+      // 🔥 Merge invitations into event data
+      final eventWithInvitations = EventModel(
+        id: eventData.id,
+        title: eventData.title,
+        description: eventData.description,
+        eventDate: eventData.eventDate,
+        startTime: eventData.startTime,
+        endTime: eventData.endTime,
+        timezone: eventData.timezone,
+        timezoneOffset: eventData.timezoneOffset,
+        creatorId: eventData.creatorId,
+        status: eventData.status,
+        imagePath: eventData.imagePath,
+        shareToken: eventData.shareToken,
+        invitedPeople: invitations, // Use invitations from new endpoint
+      );
+
+      print("📋 Reinvite: Loaded event with ${invitations.length} invitations (PENDING + ACCEPTED)");
+
+      // Navigate to invite screen with reinvite arguments
+      Get.to(
+        () {
+          // Initialize controller with fresh instance
+          Get.delete<InviteuserController>();
+          Get.put(InviteuserController());
+          return InviteuserView();
+        },
+        arguments: InviteUserArguments.reinvite(eventWithInvitations),
+      );
+    } catch (e) {
+      debugPrint("❌ Failed to fetch event details: $e");
+      showCustomSnackBar(
+        "Failed to load event details. Please try again.",
+        SnackbarState.error,
+      );
+    }
+  }
+
   void onInvitedUsersTap() =>
       Get.toNamed(Routes.INVITED_USERS_LIST, arguments: event);
 
@@ -695,5 +851,37 @@ ${AppConstants.APP_STORE_URL}
     } catch (e) {
       return dateTimeStr;
     }
+  }
+
+  // ------------------------------------------------------
+  // 🔙 HANDLE BACK NAVIGATION
+  // ------------------------------------------------------
+  void handleBackNavigation() {
+    // If download is in progress, show confirmation dialog
+    if (isDownloading.value || isAutoSyncing.value) {
+      Get.dialog(
+        CustomPopup(
+          title: AppTexts.DISCARD_CHANGES_TITLE,
+          message: AppTexts.DOWNLOADING_IMAGES,
+          confirmText: AppTexts.DISCARD,
+          cancelText: AppTexts.CANCEL,
+          isProcessing: false.obs,
+          onConfirm: () {
+            Get.back(); // Close dialog
+            Get.back(); // Go back to previous screen
+          },
+        ),
+      );
+      return;
+    }
+
+    // No download in progress, navigate back normally
+    Get.back();
+  }
+
+  @override
+  void onClose() {
+    shareLinkController.dispose();
+    super.onClose();
   }
 }

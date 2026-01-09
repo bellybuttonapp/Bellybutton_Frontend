@@ -2,29 +2,27 @@
 
 class AppImages {
   // ═══════════════════════════════════════════════════════════════════════════
+  // APP ICON
+  // ═══════════════════════════════════════════════════════════════════════════
+  static const APP_ICON = 'assets/Icons/Appicon.png'; // App icon/logo
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // AUTHENTICATION & ONBOARDING
   // ═══════════════════════════════════════════════════════════════════════════
-  static const GOOGLE_ICON = 'assets/images/google_svg.svg'; // Google sign-in button
+  static const ONBOARDING_PNG1 = 'assets/images/Home_Onboarding.png'; // Onboarding background
   static const BACK_ARROW = 'assets/images/Backarrow.svg'; // Navigation back arrow
-  static const ONBOARDING_PNG1 = 'assets/images/Home_Onboarding.png'; // Onboarding illustration
-  static const LOGIN_PNG = 'assets/images/log_bg.png'; // Login background
-  static const FORGET_PSWRD = 'assets/images/forget_pswrd.png'; // Forgot password illustration
-  static const NEW_PSWRD = 'assets/images/newpswrd.svg'; // New password illustration
 
   // ═══════════════════════════════════════════════════════════════════════════
   // USER & NOTIFICATIONS
   // ═══════════════════════════════════════════════════════════════════════════
   static const NOTIFICATION = 'assets/images/notification.svg'; // Notification bell
-  static const NOTIFICATION_EMPTY = 'assets/images/Notificationempty.svg'; // Empty notification state
-  static const NOTIFICATION_ICON = 'assets/images/notification_icon.svg'; // Notification icon
   static const PERSON = 'assets/images/person.svg'; // User avatar placeholder
   static const USERS_COUNT = 'assets/images/userscount.svg'; // Users count indicator
 
   // ═══════════════════════════════════════════════════════════════════════════
   // EVENTS
   // ═══════════════════════════════════════════════════════════════════════════
-  static const UPCOMMING_EVENT = 'assets/images/upcomming_event.svg'; // Upcoming event icon
-  static const UP_EVENT = 'assets/images/upevent.png'; // Event card image
+  static const UP_EVENT = 'assets/images/upevent.webp'; // Event card image
   static const CALENDAR = 'assets/images/Calendar.png'; // Calendar icon
   static const CLOCK_ICON = 'assets/images/clock_icon.svg'; // Time/clock icon
   static const OBJECT = 'assets/images/Object.png'; // Event object image
@@ -55,7 +53,6 @@ class AppImages {
   // ═══════════════════════════════════════════════════════════════════════════
   static const PERMISSIONS_ICON = 'assets/images/Privacy&permissions_icon.svg'; // Privacy settings
   static const AUTO_SYNC_ICON = 'assets/images/Auto_sync_icon.svg'; // Auto-sync toggle
-  static const FAQ_ICON = 'assets/images/Faq_icon.svg'; // FAQ/help icon
   static const DELETE_ACCOUNT_ICON = 'assets/images/Delete_account_icon.svg'; // Delete account icon
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -82,4 +79,12 @@ class AppImages {
   // PHOTO PREVIEW
   // ═══════════════════════════════════════════════════════════════════════════
   static const PHOTO_INFO_ICON = 'assets/images/Info_icon.svg'; // Photo info icon
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LOGIN PROFILE PICTURES
+  // ═══════════════════════════════════════════════════════════════════════════
+  static const PROFILE_1 = 'assets/images/profile_1.png'; // Login profile 1
+  static const PROFILE_2 = 'assets/images/profile_2.png'; // Login profile 2
+  static const PROFILE_3 = 'assets/images/profile_3.png'; // Login profile 3
+  static const PROFILE_4 = 'assets/images/profile_4.png'; // Login profile 4
 }

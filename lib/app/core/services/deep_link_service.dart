@@ -19,13 +19,18 @@ class DeepLinkService {
   /// Track if we're currently processing a deep link
   static bool _isProcessing = false;
 
+  /// Track if initial deep link has already been processed (prevents hot reload re-navigation)
+  static bool _initialLinkProcessed = false;
+
   /// MUST be called in main() after runApp() or in initial binding
   static Future<void> init() async {
     try {
       // 🔥 Handle link when app opened from terminated state
       final Uri? initialLink = await _appLinks.getInitialLink();
-      if (initialLink != null) {
+      if (initialLink != null && !_initialLinkProcessed) {
         print("📱 Initial link detected: $initialLink");
+        _initialLinkProcessed = true; // Mark as processed to prevent hot reload re-navigation
+
         // Wait for app to be fully ready before processing
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Future.delayed(const Duration(milliseconds: 1500), () {
@@ -37,6 +42,8 @@ class DeepLinkService {
             }
           });
         });
+      } else if (initialLink != null && _initialLinkProcessed) {
+        print("⏭️ Initial link already processed, skipping to avoid hot reload re-navigation");
       }
 
       // 🔥 Handle links when app is running (foreground/background)
@@ -80,10 +87,10 @@ class DeepLinkService {
       print("⚠️ User not logged in, storing pending deep link");
       _pendingDeepLink = uri;
 
-      // Navigate to login if not already there
-      if (Get.currentRoute != Routes.LOGIN && Get.currentRoute != Routes.ONBOARDING) {
+      // Navigate to phone login if not already there
+      if (Get.currentRoute != Routes.PHONE_LOGIN && Get.currentRoute != Routes.LOGIN_OTP) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          Get.offAllNamed(Routes.LOGIN);
+          Get.offAllNamed(Routes.PHONE_LOGIN);
         });
       }
 
@@ -198,6 +205,13 @@ class DeepLinkService {
       return;
     }
 
+    // Handle public gallery links (no auth required)
+    // Format: https://mobapidev.bellybutton.global/api/public/event/gallery/{token}
+    if (uri.path.contains("public/event/gallery")) {
+      _handlePublicGalleryLink(uri);
+      return;
+    }
+
     // Handle share event links
     // Format: https://mobapidev.bellybutton.global/api/eventresource/share/event/open/{shareToken}
     // Format: http://54.90.159.46:8080/api/eventresource/share/event/open/{shareToken}
@@ -218,20 +232,34 @@ class DeepLinkService {
   }
 
   /// Handle custom URL scheme links
-  /// Format: bellybutton://event/join/{eventId}
+  /// Format: bellybutton://join/{eventId} or bellybutton://public/gallery/{token}
   static void _handleCustomSchemeLink(Uri uri) {
     print("📱 Processing Custom Scheme Link...");
 
-    // Check if user is logged in
+    final segments = uri.pathSegments;
+    final host = uri.host;
+    print("📌 Custom scheme segments: $segments");
+    print("📌 Custom scheme host: $host");
+
+    // Handle bellybutton://public/gallery/{token} (no auth required)
+    // In this format, "public" is the host, and segments are [gallery, token]
+    if (host == 'public' && segments.length >= 2 && segments[0] == 'gallery') {
+      final token = segments[1];
+      print("🔑 Public Gallery Token from custom scheme: $token");
+
+      // Navigate directly to SharedEventGallery (no auth required)
+      Get.toNamed(Routes.SHARED_EVENT_GALLERY, arguments: token);
+      _isProcessing = false;
+      return;
+    }
+
+    // Check if user is logged in for all other custom scheme links
     if (!_ensureLoggedIn(uri)) {
       _isProcessing = false;
       return;
     }
 
-    final segments = uri.pathSegments;
-    print("📌 Custom scheme segments: $segments");
-
-    // Handle bellybutton://event/join/{eventId}
+    // Handle bellybutton://join/{eventId}
     if (segments.length >= 2 && segments[0] == 'join') {
       final eventId = segments[1];
       if (int.tryParse(eventId) != null) {
@@ -275,7 +303,7 @@ class DeepLinkService {
         // Navigate to InvitedEventGalleryView
         await _navigateToInvitedEventGallery(invitedEvent, "view-sync");
       } else {
-        _showError(response["message"] ?? AppTexts.DEEPLINK_EVENT_NOT_FOUND);
+        _showError(response["message"] ?? AppTexts.DEEPLINK_SHOOT_NOT_FOUND);
         _isProcessing = false;
       }
     } catch (e) {
@@ -337,7 +365,7 @@ class DeepLinkService {
         // Navigate to InvitedEventGalleryView
         await _navigateToInvitedEventGallery(invitedEvent, "view-sync");
       } else {
-        _showError(response["message"] ?? AppTexts.DEEPLINK_EVENT_NOT_FOUND);
+        _showError(response["message"] ?? AppTexts.DEEPLINK_SHOOT_NOT_FOUND);
         _isProcessing = false;
       }
     } catch (e) {
@@ -396,7 +424,7 @@ class DeepLinkService {
         // Navigate to SharedEventGalleryView (with permission-based UI)
         await _navigateToSharedEventGallery(invitedEvent, permission);
       } else {
-        _showError(response["message"] ?? AppTexts.DEEPLINK_EVENT_NOT_FOUND);
+        _showError(response["message"] ?? AppTexts.DEEPLINK_SHOOT_NOT_FOUND);
         _isProcessing = false;
       }
     } catch (e) {
@@ -451,12 +479,50 @@ class DeepLinkService {
         // Navigate to InvitedEventGalleryView
         await _navigateToInvitedEventGallery(invitedEvent, permission);
       } else {
-        _showError(AppTexts.DEEPLINK_EVENT_NOT_FOUND);
+        _showError(AppTexts.DEEPLINK_SHOOT_NOT_FOUND);
         _isProcessing = false;
       }
     } catch (e) {
       _dismissLoading();
       print("❌ Error: $e");
+      _showError(AppTexts.DEEPLINK_FAILED_TO_OPEN);
+      _isProcessing = false;
+    }
+  }
+
+  /// Handle public gallery links (no authentication required)
+  /// Format: https://mobapidev.bellybutton.global/api/public/event/gallery/{token}
+  static Future<void> _handlePublicGalleryLink(Uri uri) async {
+    print("📸 Processing Public Gallery Link...");
+
+    // Extract token from path
+    // Path: /api/public/event/gallery/059735429fa84b9f94ef2c031ab2cf09
+    String? token;
+
+    if (uri.pathSegments.isNotEmpty) {
+      token = uri.pathSegments.last;
+    }
+
+    if (token == null || token.isEmpty) {
+      print("⚠️ Invalid token in public gallery link");
+      _showError(AppTexts.DEEPLINK_INVALID_LINK);
+      _isProcessing = false;
+      return;
+    }
+
+    print("🔑 Public Gallery Token: $token");
+
+    try {
+      // Navigate directly to SharedEventGallery with token
+      // No authentication required - controller will fetch public gallery
+      print("📸 Navigating to SHARED_EVENT_GALLERY with token: $token");
+
+      // Navigate to SharedEventGalleryView
+      await Get.toNamed(Routes.SHARED_EVENT_GALLERY, arguments: token);
+
+      _isProcessing = false;
+    } catch (e) {
+      print("❌ Error opening public gallery: $e");
       _showError(AppTexts.DEEPLINK_FAILED_TO_OPEN);
       _isProcessing = false;
     }
