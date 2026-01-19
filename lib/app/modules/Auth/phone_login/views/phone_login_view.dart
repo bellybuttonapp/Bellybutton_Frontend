@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -21,84 +22,118 @@ class PhoneLoginView extends GetView<PhoneLoginController> {
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       backgroundColor: const Color(0xFFBACCCC),
-      body: Stack(
-        children: [
-          // Background Gradient - Full top area
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: screenHeight * 0.45,
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  stops: [0.0, 0.1399, 0.274, ],
-                  colors: [
-                    Color(0xFF070B17), // 0%
-                    Color(0xFF060F1E), // 13.99%
-                    Color(0xFF051938), // 27.4%
-                    // Color(0xFF0F508A), // 47.6%
-                    // Color(0xFF438AB6), // 63.94%
-                    // Color(0xFF6AA8C4), // 76.92%
-                    // Color(0xFF91BECE), // 85.58%
-                    // Color(0xFFBACCCC), // 100%
-                  ],
-                ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Top section with gradient background and profile pictures
+            SizedBox(
+              height: screenHeight * 0.38,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // Background Gradient - Full top area
+                  Positioned.fill(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          stops: [0.0, 0.1399, 0.274],
+                          colors: [
+                            Color(0xFF070B17), // 0%
+                            Color(0xFF060F1E), // 13.99%
+                            Color(0xFF051938), // 27.4%
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Profile Picture 1 - Top Left
+                  Positioned(
+                    top: screenHeight * 0.02,
+                    left: screenWidth * 0.02,
+                    child: _buildProfileCircle(
+                      AppImages.PROFILE_1,
+                      screenWidth * 0.14,
+                    ),
+                  ),
+
+                  // Profile Picture 2 - Top Right
+                  Positioned(
+                    top: screenHeight * 0.02,
+                    right: screenWidth * 0.02,
+                    child: _buildProfileCircle(
+                      AppImages.PROFILE_2,
+                      screenWidth * 0.12,
+                    ),
+                  ),
+
+                  // Profile Picture 3 - Bottom Left
+                  Positioned(
+                    top: screenHeight * 0.28,
+                    left: screenWidth * 0.02,
+                    child: _buildProfileCircle(
+                      AppImages.PROFILE_3,
+                      screenWidth * 0.11,
+                    ),
+                  ),
+
+                  // Profile Picture 4 - Bottom Right
+                  Positioned(
+                    top: screenHeight * 0.26,
+                    right: screenWidth * 0.02,
+                    child: _buildProfileCircle(
+                      AppImages.PROFILE_4,
+                      screenWidth * 0.15,
+                    ),
+                  ),
+
+                  // App Icon - Centered in the visible background area
+                  Positioned(
+                    top: screenHeight * 0.12,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: Container(
+                        height: screenWidth * 0.42,
+                        width: screenWidth * 0.42,
+                        decoration: BoxDecoration(
+                          color: AppColors.textColor3,
+                          borderRadius: BorderRadius.circular(screenWidth * 0.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 15,
+                              spreadRadius: 2,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        child: ClipOval(
+                          child: Padding(
+                            padding: EdgeInsets.all(screenWidth * 0.03),
+                            child: SvgPicture.asset(
+                              AppImages.APP_ICON_WITH_TEXT,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
 
-          // Profile Picture 1 - Top Left
-          Positioned(
-            top: screenHeight * 0.08,
-            left: screenWidth * 0.05,
-            child: _buildProfileCircle(
-              AppImages.PROFILE_1,
-              screenWidth * 0.14,
-            ),
-          ),
-
-          // Profile Picture 2 - Top Right
-          Positioned(
-            top: screenHeight * 0.06,
-            right: screenWidth * 0.08,
-            child: _buildProfileCircle(
-              AppImages.PROFILE_2,
-              screenWidth * 0.12,
-            ),
-          ),
-
-          // Profile Picture 3 - Middle Left
-          Positioned(
-            top: screenHeight * 0.22,
-            left: screenWidth * 0.12,
-            child: _buildProfileCircle(
-              AppImages.PROFILE_3,
-              screenWidth * 0.11,
-            ),
-          ),
-
-          // Profile Picture 4 - Middle Right
-          Positioned(
-            top: screenHeight * 0.18,
-            right: screenWidth * 0.05,
-            child: _buildProfileCircle(
-              AppImages.PROFILE_4,
-              screenWidth * 0.15,
-            ),
-          ),
-
-          // White Form Card - Overlaps background
-          Positioned(
-            top: screenHeight * 0.35,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
+            // White Form Card
+            Container(
+              width: double.infinity,
+              constraints: BoxConstraints(
+                minHeight: screenHeight * 0.62,
+              ),
               decoration: BoxDecoration(
                 color: AppColors.textColor3,
                 borderRadius: BorderRadius.vertical(
@@ -116,7 +151,7 @@ class PhoneLoginView extends GetView<PhoneLoginController> {
                     // Title
                     Text(
                       AppTexts.PHONE_LOGIN_TITLE,
-                      style: customBoldText.copyWith(
+                      style: AppText.headingLg.copyWith(
                         fontSize: screenWidth * 0.055,
                       ),
                     ),
@@ -125,7 +160,7 @@ class PhoneLoginView extends GetView<PhoneLoginController> {
                     // Subtitle
                     Text(
                       AppTexts.PHONE_LOGIN_SUBTITLE,
-                      style: customMediumText.copyWith(
+                      style: AppText.labelLg.copyWith(
                         fontSize: screenWidth * 0.035,
                         color: AppColors.tertiaryColor,
                       ),
@@ -156,7 +191,7 @@ class PhoneLoginView extends GetView<PhoneLoginController> {
                                 SizedBox(width: screenWidth * 0.01),
                                 Text(
                                   "+${controller.selectedCountry.value.phoneCode}",
-                                  style: customBoldText.copyWith(
+                                  style: AppText.headingLg.copyWith(
                                     fontSize: screenWidth * 0.035,
                                     color: AppColors.tertiaryColor,
                                   ),
@@ -175,74 +210,76 @@ class PhoneLoginView extends GetView<PhoneLoginController> {
 
                     SizedBox(height: screenHeight * 0.025),
 
+                    // Terms & Conditions Checkbox
+                    Obx(
+                      () => Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: Checkbox(
+                              value: controller.termsAccepted.value,
+                              activeColor: AppColors.primaryColor,
+                              onChanged: (val) {
+                                controller.termsAccepted.value = val ?? false;
+                              },
+                            ),
+                          ),
+                          SizedBox(width: screenWidth * 0.02),
+                          Expanded(
+                            child: Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Text(
+                                  AppTexts.TERMS_ACCEPT_CHECKBOX,
+                                  style: AppText.labelLg.copyWith(
+                                    fontSize: screenWidth * 0.035,
+                                    color: AppColors.tertiaryColor,
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: controller.showTermsDialog,
+                                  child: Text(
+                                    AppTexts.TERMS_LINK_TEXT,
+                                    style: AppText.headingLg.copyWith(
+                                      fontSize: screenWidth * 0.035,
+                                      color: AppColors.primaryColor,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    SizedBox(height: screenHeight * 0.02),
+
                     // Send OTP Button
                     Obx(
                       () => global_button(
                         loaderWhite: true,
                         isLoading: controller.isLoading.value,
                         title: AppTexts.PHONE_LOGIN_SEND_OTP,
-                        backgroundColor: isDarkMode
-                            ? AppTheme.darkTheme.scaffoldBackgroundColor
-                            : AppTheme.lightTheme.primaryColor,
-                        onTap: controller.isLoading.value
+                        backgroundColor: controller.termsAccepted.value
+                            ? (isDarkMode
+                                ? AppTheme.darkTheme.scaffoldBackgroundColor
+                                : AppTheme.lightTheme.primaryColor)
+                            : Colors.grey, // Gray when terms not accepted
+                        onTap: (controller.isLoading.value || !controller.termsAccepted.value)
                             ? null
                             : controller.sendOtp,
                       ),
                     ),
-
-                    SizedBox(height: screenHeight * 0.03),
-
-                    // Terms Text
-                    Center(
-                      child: Text(
-                        AppTexts.PHONE_LOGIN_TERMS,
-                        style: customMediumText.copyWith(
-                          fontSize: screenWidth * 0.03,
-                          color: AppColors.textColor.withOpacity(0.5),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
                   ],
                 ),
               ),
             ),
-          ),
-
-          // App Icon - Centered in the visible background area
-          Positioned(
-            top: screenHeight * 0.12,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                height: screenWidth * 0.26,
-                width: screenWidth * 0.26,
-                decoration: BoxDecoration(
-                  color: AppColors.textColor3,
-                  borderRadius: BorderRadius.circular(screenWidth * 0.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 15,
-                      spreadRadius: 2,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: ClipOval(
-                  child: Padding(
-                    padding: EdgeInsets.all(screenWidth * 0.03),
-                    child: Image.asset(
-                      AppImages.APP_ICON,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

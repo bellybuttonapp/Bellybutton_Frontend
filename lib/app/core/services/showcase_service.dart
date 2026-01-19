@@ -162,13 +162,13 @@ class ShowcaseService {
   static Color get textColor => AppColors.textColor3;
 
   /// Default title style for showcase tooltips (using app's DM_Sans font)
-  static TextStyle get titleStyle => customBoldText.copyWith(
+  static TextStyle get titleStyle => AppText.headingLg.copyWith(
         color: AppColors.textColor3,
         fontSize: 18,
       );
 
   /// Default description style for showcase tooltips (using app's DM_Sans font)
-  static TextStyle get descriptionStyle => customTextNormal.copyWith(
+  static TextStyle get descriptionStyle => AppText.bodyMd.copyWith(
         color: AppColors.textColor3,
         fontSize: 14,
       );

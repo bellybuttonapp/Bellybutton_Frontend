@@ -41,6 +41,7 @@ class Preference {
   static const String REMEMBERED_EMAIL = 'remembered_email'; // Saved email for auto-fill
   static const String IS_PROFILE_COMPLETE = 'is_profile_complete'; // Profile setup completed
   static const String ONBOARDING_COMPLETE = 'onboarding_complete'; // Onboarding done flag
+  static const String TERMS_ACCEPTED = 'terms_accepted'; // Terms & Conditions accepted
 
   // ═══════════════════════════════════════════════════════════════════════════
   // STORAGE KEYS - User Profile (7)
@@ -114,6 +115,9 @@ class Preference {
 
   static bool get onboardingComplete => box.get(ONBOARDING_COMPLETE, defaultValue: false) ?? false;
   static set onboardingComplete(bool value) => box.put(ONBOARDING_COMPLETE, value);
+
+  static bool get termsAccepted => box.get(TERMS_ACCEPTED, defaultValue: false) ?? false;
+  static set termsAccepted(bool value) => box.put(TERMS_ACCEPTED, value);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // GETTERS & SETTERS - User Profile (reactive)

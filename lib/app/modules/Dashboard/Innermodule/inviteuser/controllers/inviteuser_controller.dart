@@ -12,10 +12,15 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import '../../../../../core/constants/app_texts.dart';
+import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/services/local_notification_service.dart';
+import '../../Past_Event/controllers/past_event_controller.dart';
+import '../../Upcomming_Event/controllers/upcomming_event_controller.dart';
 import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
+import '../../../../../global_widgets/CustomPopup/CustomPopup.dart';
 import '../../../../../database/models/EventModel.dart';
 import '../models/invite_user_arguments.dart';
+import '../../../../../routes/app_pages.dart';
 import 'package:intl/intl.dart';
 import 'package:phone_numbers_parser/phone_numbers_parser.dart';
 
@@ -1207,6 +1212,51 @@ class InviteuserController extends GetxController {
   }
 
   //----------------------------------------------------
+  // SHOW UPGRADE REQUIRED POPUP
+  //----------------------------------------------------
+  final _upgradePopupProcessing = false.obs;
+
+  void _showUpgradeRequiredPopup() {
+    Get.dialog(
+      barrierDismissible: false,
+      CustomPopup(
+        title: AppTexts.UPGRADE_REQUIRED_TITLE,
+        message: AppTexts.UPGRADE_REQUIRED_MESSAGE,
+        confirmText: AppTexts.OK,
+        isProcessing: _upgradePopupProcessing,
+        barrierDismissible: false,
+        confirmButtonColor: AppColors.primaryColor,
+        onConfirm: () {
+          Get.back(); // Close dialog
+          Get.offAllNamed(Routes.DASHBOARD); // Navigate to dashboard
+        },
+      ),
+    );
+  }
+
+  //----------------------------------------------------
+  // SHOW TIME CONFLICT POPUP
+  //----------------------------------------------------
+  final _timeConflictPopupProcessing = false.obs;
+
+  void _showTimeConflictPopup() {
+    Get.dialog(
+      barrierDismissible: false,
+      CustomPopup(
+        title: AppTexts.TIME_CONFLICT_TITLE,
+        message: AppTexts.TIME_CONFLICT_CREATE_MESSAGE,
+        confirmText: "OK",
+        // cancelText: AppTexts.CANCEL,
+        isProcessing: _timeConflictPopupProcessing,
+        barrierDismissible: false,
+        cancelButtonColor: AppColors.error,
+        confirmButtonColor: AppColors.primaryColor,
+        onConfirm: () => Get.back(), // Close dialog
+      ),
+    );
+  }
+
+  //----------------------------------------------------
   // INVITE USERS
   //----------------------------------------------------
   Future<void> inviteSelectedUsers() async {
@@ -1256,6 +1306,40 @@ class InviteuserController extends GetxController {
           timezone: eventData.timezone,           // Creator's timezone for global support
           timezoneOffset: eventData.timezoneOffset, // Creator's offset for global support
         );
+
+        // Debug: Log the full response
+        debugPrint("📦 Create Event Response: $response");
+
+        // ✅ Check for event limit error (400 status with specific message)
+        // API service wraps error as: { "success": false, "message": "You can create only 4 events per month", "status": "error" }
+        final errorMessage = response["message"]?.toString().toLowerCase() ?? "";
+        final isErrorResponse = response["status"] == "error" || response["success"] == false;
+
+        // Check for event limit error
+        if (isErrorResponse &&
+            response["message"] != null &&
+            (errorMessage.contains("can create only") ||
+             errorMessage.contains("events per month") ||
+             errorMessage.contains("4 events"))) {
+          debugPrint("🚫 Event limit reached - showing upgrade popup");
+          debugPrint("🚫 Error message: ${response["message"]}");
+          _showUpgradeRequiredPopup();
+          return;
+        }
+
+        // ✅ Check for time conflict error
+        // API service wraps error as: { "success": false, "message": "You already have another event at this time", "status": "error" }
+        if (isErrorResponse &&
+            response["message"] != null &&
+            (errorMessage.contains("already have another event") ||
+             errorMessage.contains("at this time") ||
+             errorMessage.contains("time conflict"))) {
+          debugPrint("⏰ Time conflict detected - showing conflict popup");
+          debugPrint("⏰ Error message: ${response["message"]}");
+          _showTimeConflictPopup();
+          return;
+        }
+
         final ok = response?["headers"]?["status"] == "success";
         if (ok) {
           // Show success notification with event details in user's local time
@@ -1266,8 +1350,17 @@ class InviteuserController extends GetxController {
             "${AppTexts.USERS_INVITED_SUCCESSFULLY}\n📅 $localDate at $localStartTime",
             SnackbarState.success,
           );
-          Get.offAll(() => DashboardView());
+          _navigateToDashboardWithRefresh();
         } else {
+          // Double-check for event limit error before showing generic error
+          final errorMsg = response["message"]?.toString().toLowerCase() ?? "";
+          if (errorMsg.contains("can create only") ||
+              errorMsg.contains("events per month") ||
+              errorMsg.contains("4 events")) {
+            debugPrint("🚫 Event limit reached (in else block) - showing upgrade popup");
+            _showUpgradeRequiredPopup();
+            return;
+          }
           showCustomSnackBar(AppTexts.INVITE_FAILED, SnackbarState.error);
         }
       } else {
@@ -1298,7 +1391,7 @@ class InviteuserController extends GetxController {
             if (showUpdateNotification) {
               _showEventUpdatedNotification();
             }
-            Get.offAll(() => DashboardView());
+            _navigateToDashboardWithRefresh();
           } else {
             // Show success notification with event details in user's local time
             final localStartTime = eventData.getLocalStartTimeString();
@@ -1310,9 +1403,10 @@ class InviteuserController extends GetxController {
             );
             // Show local notification if this is update flow
             if (showUpdateNotification) {
+              
               _showEventUpdatedNotification();
             }
-            Get.offAll(() => DashboardView());
+            _navigateToDashboardWithRefresh();
           }
         } else {
           showCustomSnackBar(AppTexts.INVITE_FAILED, SnackbarState.error);
@@ -1323,5 +1417,19 @@ class InviteuserController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  /// Navigate to dashboard with fresh event controllers
+  /// Deletes old controllers to ensure fresh data is fetched
+  void _navigateToDashboardWithRefresh() {
+    // Delete old event controllers if they exist to force fresh data
+    if (Get.isRegistered<UpcommingEventController>()) {
+      Get.delete<UpcommingEventController>();
+    }
+    if (Get.isRegistered<PastEventController>()) {
+      Get.delete<PastEventController>();
+    }
+    // Navigate to dashboard - new controllers will fetch fresh data
+    Get.offAll(() => DashboardView());
   }
 }

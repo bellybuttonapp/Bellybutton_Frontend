@@ -137,7 +137,7 @@ class InvitedEventGalleryView extends GetView<InvitedEventGalleryController> {
               descTextStyle: ShowcaseService.descriptionStyle,
               child: global_button(
                 loaderWhite: true,
-                title: "Upload All ($totalPhotos)",
+                title: "${AppTexts.UPLOAD_ALL} ($totalPhotos)",
                 isLoading: isUploading,
                 backgroundColor: AppColors.primaryColor,
                 onTap: c.onUploadTap,
@@ -151,7 +151,7 @@ class InvitedEventGalleryView extends GetView<InvitedEventGalleryController> {
               // Clear button - removes all exclusion marks
               Expanded(
                 child: global_button(
-                  title: "Clear ($excludedCount)",
+                  title: "${AppTexts.CLEAR} ($excludedCount)",
                   backgroundColor: Colors.grey.shade600,
                   onTap: c.clearSelection,
                 ),
@@ -160,7 +160,7 @@ class InvitedEventGalleryView extends GetView<InvitedEventGalleryController> {
               // Upload button - uploads non-excluded images
               Expanded(
                 child: global_button(
-                  title: "Upload ($uploadCount)",
+                  title: "${AppTexts.UPLOAD} ($uploadCount)",
                   backgroundColor: uploadCount > 0
                       ? AppColors.primaryColor
                       : Colors.grey,

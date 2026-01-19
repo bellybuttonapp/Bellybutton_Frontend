@@ -111,6 +111,7 @@ class DashboardView extends GetView<DashboardController> {
       },
       child: DefaultTabController(
         length: 2,
+        initialIndex: controller.initialTabIndex.value,
         child: Scaffold(
           backgroundColor:
               isDark
@@ -151,7 +152,7 @@ class DashboardView extends GetView<DashboardController> {
                       ),
                       badgeContent: Text(
                         unreadCount > 99 ? '99+' : unreadCount.toString(),
-                        style: customTextExtraSmall.copyWith(
+                        style: AppText.bodyXs.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: unreadCount > 9 ? 9 : 10,
@@ -168,7 +169,7 @@ class DashboardView extends GetView<DashboardController> {
                       HapticFeedback.mediumImpact();
                       controller.goToNotificationView();
                     },
-                    tooltip: "Notifications",
+                    tooltip: AppTexts.NOTIFICATION,
                   );
                 }),
               ),
@@ -191,11 +192,11 @@ class DashboardView extends GetView<DashboardController> {
                     color: AppColors.primaryColor,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  labelStyle: customBoldText.copyWith(
+                  labelStyle: AppText.headingLg.copyWith(
                     fontSize: width * 0.04,
                     fontWeight: FontWeight.bold,
                   ),
-                  unselectedLabelStyle: customBoldText.copyWith(
+                  unselectedLabelStyle: AppText.headingLg.copyWith(
                     fontSize: width * 0.04,
                   ),
                   labelColor: Colors.white,

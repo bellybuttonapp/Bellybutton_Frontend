@@ -71,7 +71,7 @@ class _ReusablePhotoPreviewState extends State<ReusablePhotoPreview> {
         titleWidget: Obx(
           () => Text(
             "${index.value + 1}/${widget.images.length}",
-            style: customBoldText.copyWith(
+            style: AppText.headingLg.copyWith(
               color: Colors.black,
               fontSize: width * 0.045,
             ),

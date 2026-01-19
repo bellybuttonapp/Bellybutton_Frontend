@@ -65,7 +65,7 @@ class global_button extends StatelessWidget {
                   )
                   : Text(
                     title,
-                    style: customBoldText.copyWith(
+                    style: AppText.headingLg.copyWith(
                       fontSize: screenWidth * 0.038,
                       color: textColor,
                     ),

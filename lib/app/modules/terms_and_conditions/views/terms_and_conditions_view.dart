@@ -42,7 +42,7 @@ class TermsAndConditionsView extends GetView<TermsAndConditionsController> {
                 SizedBox(height: screenHeight * 0.02),
                 Text(
                   controller.errorMessage.value,
-                  style: customBoldText.copyWith(
+                  style: AppText.headingLg.copyWith(
                     fontSize: screenWidth * 0.04,
                     color: AppColors.tertiaryColor,
                   ),
@@ -53,7 +53,7 @@ class TermsAndConditionsView extends GetView<TermsAndConditionsController> {
                   onPressed: controller.fetchTermsAndConditions,
                   child: Text(
                     "Retry",
-                    style: customBoldText.copyWith(
+                    style: AppText.headingLg.copyWith(
                       fontSize: screenWidth * 0.035,
                       color: AppColors.primaryColor,
                     ),
@@ -71,7 +71,7 @@ class TermsAndConditionsView extends GetView<TermsAndConditionsController> {
           ),
           child: HtmlWidget(
             controller.content.value,
-            textStyle: customBoldText.copyWith(
+            textStyle: AppText.headingLg.copyWith(
               fontSize: screenWidth * 0.038,
               fontWeight: FontWeight.w400,
               color: isDark ? Colors.white : Colors.black87,

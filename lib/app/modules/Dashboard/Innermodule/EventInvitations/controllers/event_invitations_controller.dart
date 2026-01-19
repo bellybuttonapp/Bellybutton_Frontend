@@ -51,14 +51,23 @@ class EventInvitationsController extends GetxController {
     );
   }
 
-  Future<void> _acceptInvitation(InvitedEventModel event) async {
+  Future<void> _acceptInvitation(InvitedEventModel event, {bool force = false}) async {
     isProcessing.value = true;
     try {
-      final res = await PublicApiService().acceptInvitedEvent(event.eventId);
+      final res = await PublicApiService().acceptInvitedEvent(event.eventId, force: force);
 
       // Check for success using headers.status (preferred) or message fallback
       final status = res['headers']?['status'];
-      final isSuccess = status == "success" || res['message'] == "Event Accepted Successfully";
+      final message = res['message'] ?? '';
+      final isSuccess = status == "success" || message == "Event Accepted Successfully";
+
+      // Check for time conflict
+      final isTimeConflict = message.toString().toLowerCase().contains('time conflict') ||
+                              message.toString().toLowerCase().contains('already have another event') ||
+                              message.toString().toLowerCase().contains('at this time');
+
+      // Extract conflicting event details if present
+      final conflictingEvent = res['conflictingEvent'] as Map<String, dynamic>?;
 
       if (isSuccess) {
         // Update via service (updates badge automatically)
@@ -73,14 +82,66 @@ class EventInvitationsController extends GetxController {
           "${AppTexts.SHOOT_ACCEPTED} ${event.title}",
           SnackbarState.success,
         );
+      } else if (isTimeConflict && !force) {
+        // Only show conflict dialog if not already forcing
+        isProcessing.value = false;
+        Get.back(); // Close the accept confirmation dialog
+        _showTimeConflictDialog(event, conflictingEvent: conflictingEvent);
       } else {
         isProcessing.value = false;
         showCustomSnackBar(AppTexts.FAILED_TO_ACCEPT_SHOOT, SnackbarState.error);
       }
     } catch (e) {
       isProcessing.value = false;
-      showCustomSnackBar(AppTexts.SOMETHING_WENT_WRONG, SnackbarState.error);
+      // Check if error message contains time conflict
+      if (e.toString().toLowerCase().contains('time conflict') && !force) {
+        Get.back();
+        _showTimeConflictDialog(event);
+      } else {
+        showCustomSnackBar(AppTexts.SOMETHING_WENT_WRONG, SnackbarState.error);
+      }
     }
+  }
+
+  /// Build conflict message with event details
+  String _buildConflictMessage(Map<String, dynamic>? conflictingEvent) {
+    if (conflictingEvent == null) {
+      return AppTexts.TIME_CONFLICT_MESSAGE;
+    }
+
+    final title = conflictingEvent['title'] ?? 'Unknown Shoot';
+    final date = conflictingEvent['date'] ?? '';
+    final startTime = conflictingEvent['startTime'] ?? '';
+    final endTime = conflictingEvent['endTime'] ?? '';
+
+    String timeRange = '';
+    if (startTime.toString().isNotEmpty && endTime.toString().isNotEmpty) {
+      timeRange = '$startTime - $endTime';
+    } else if (startTime.toString().isNotEmpty) {
+      timeRange = startTime.toString();
+    }
+
+    return "${AppTexts.TIME_CONFLICT_WITH_EVENT}\n\n"
+        "$title\n"
+        "${date.toString().isNotEmpty ? '$date\n' : ''}"
+        "${timeRange.isNotEmpty ? timeRange : ''}";
+  }
+
+  /// Show time conflict dialog with Accept Anyway option
+  void _showTimeConflictDialog(InvitedEventModel event, {Map<String, dynamic>? conflictingEvent}) {
+    Get.dialog(
+      CustomPopup(
+        title: AppTexts.TIME_CONFLICT_TITLE,
+        message: _buildConflictMessage(conflictingEvent),
+        confirmText: AppTexts.ACCEPT_ANYWAY,
+        cancelText: AppTexts.CANCEL,
+        onConfirm: () {
+          Get.back(); // Close conflict dialog
+          _acceptInvitation(event, force: true); // Force accept
+        },
+        isProcessing: isProcessing,
+      ),
+    );
   }
 
   /// ======================= DENY INVITATION =======================

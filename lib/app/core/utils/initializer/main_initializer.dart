@@ -8,11 +8,12 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
-import 'package:app_links/app_links.dart';
+// app_links removed - causes cold start crash
 import '../../../database/models/EventModel.dart';
 import '../../../routes/app_pages.dart';
 import '../../constants/app_texts.dart';
 import '../../services/app_badge_service.dart';
+import '../../services/cache_manager_service.dart';
 import '../../services/event_invitations_service.dart';
 import '../../services/local_notification_service.dart';
 import '../../services/notification_service.dart';
@@ -22,6 +23,7 @@ import '../../../global_widgets/ErrorWidget/custom_error_widget.dart';
 import '../../../modules/SharedEventGallery/controllers/shared_event_gallery_controller.dart';
 import '../../../../firebase_options.dart';
 import 'app_initializer.dart';
+
 
 /// ----------------------------------------------------------
 /// MAIN APP INITIALIZER
@@ -41,55 +43,8 @@ class MainInitializer {
     debugPrint('✅ Hive Initialized');
   }
 
-  /// Check for initial deep link on cold start
-  static Future<DeepLinkInfo> checkInitialDeepLink() async {
-    debugPrint('📱 [EARLY] Checking for deep link... isLoggedIn: ${Preference.isLoggedIn}');
-
-    try {
-      final appLinks = AppLinks();
-      final initialDeepLink = await appLinks.getInitialLink();
-
-      if (initialDeepLink == null) {
-        return DeepLinkInfo();
-      }
-
-      debugPrint('📱 [EARLY] Deep link found: $initialDeepLink');
-
-      // Check for public gallery link (no auth required)
-      final publicToken = _extractPublicGalleryToken(initialDeepLink);
-      if (publicToken != null) {
-        debugPrint('📸 [EARLY] Public gallery link detected, token: $publicToken');
-        ShowcaseService.hasPendingDeepLink = true;
-        return DeepLinkInfo(publicGalleryToken: publicToken);
-      }
-
-      debugPrint('📱 [EARLY] No special deep link handling needed');
-    } catch (e) {
-      debugPrint('⚠️ [EARLY] Error checking initial deep link: $e');
-    }
-
-    return DeepLinkInfo();
-  }
-
-  /// Extract public gallery token from deep link
-  static String? _extractPublicGalleryToken(Uri uri) {
-    // Format 1: https://mobapidev.bellybutton.global/api/public/event/gallery/{token}
-    if (uri.path.contains('public/event/gallery')) {
-      final token = uri.pathSegments.last;
-      return token.isNotEmpty ? token : null;
-    }
-
-    // Format 2: bellybutton://public/gallery/{token}
-    if (uri.scheme == 'bellybutton' &&
-        uri.host == 'public' &&
-        uri.pathSegments.isNotEmpty &&
-        uri.pathSegments[0] == 'gallery' &&
-        uri.pathSegments.length >= 2) {
-      return uri.pathSegments[1];
-    }
-
-    return null;
-  }
+  // Deep link checking is now done in main.dart using native platform channel
+  // to avoid the app_links cold start crash
 
   /// Initialize Firebase services
   static Future<void> initializeFirebase() async {
@@ -106,41 +61,23 @@ class MainInitializer {
 
   /// Configure error handling for Flutter and Crashlytics
   static void configureErrorHandling() {
-    // Custom error handler to suppress known navigation timing errors
+    // Send Flutter errors to Crashlytics
     FlutterError.onError = (FlutterErrorDetails details) {
-      final errorString = details.exception.toString();
-
-      // Suppress known deep link cold-start errors
-      if (_isKnownNavigationError(errorString)) {
-        debugPrint('⚠️ Suppressing known navigation timing error: ${details.exception.runtimeType}');
-        return;
-      }
-
-      // Report all other errors to Crashlytics
       FirebaseCrashlytics.instance.recordFlutterFatalError(details);
     };
 
-    // In release mode, show friendly error screen
-    if (!kDebugMode) {
-      ErrorWidget.builder = (FlutterErrorDetails details) {
+    // Custom error widget for release mode
+    ErrorWidget.builder = (FlutterErrorDetails details) {
+      if (!kDebugMode) {
         return CustomErrorWidget(
           errorDetails: details,
           message: AppTexts.ERROR_CRASH_MESSAGE,
         );
-      };
-    }
+      }
+      return ErrorWidget(details.exception);
+    };
 
     FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!kDebugMode);
-  }
-
-  /// Check if error is a known navigation timing error
-  static bool _isKnownNavigationError(String errorString) {
-    return errorString.contains('_elements.contains(element)') ||
-        errorString.contains('!_debugLocked') ||
-        errorString.contains('deactivated widget') ||
-        errorString.contains('Looking up a deactivated') ||
-        errorString.contains('setState() or markNeedsBuild()') ||
-        errorString.contains('RenderBox was not laid out');
   }
 
   /// Initialize notification services
@@ -150,9 +87,10 @@ class MainInitializer {
     await LocalNotificationService.scheduleRandomTwoDaily();
   }
 
-  /// Initialize app services (connectivity, badges, etc.)
+  /// Initialize app services (connectivity, badges, cache, etc.)
   static Future<void> initializeAppServices() async {
     await AppInitializer.initialize();
+    await Get.putAsync(() => CacheManagerService().init());
     await Get.putAsync(() => AppBadgeService().init());
     await Get.putAsync(() => NotificationService().init());
     await Get.putAsync(() => EventInvitationsService().init());
@@ -206,8 +144,15 @@ class MainInitializer {
 /// Container for deep link information detected on cold start
 class DeepLinkInfo {
   final String? publicGalleryToken;
+  final String? joinEventToken;
+  final bool hasJoinEventLink;
 
   DeepLinkInfo({
     this.publicGalleryToken,
+    this.joinEventToken,
+    this.hasJoinEventLink = false,
   });
+
+  bool get hasDeepLink => publicGalleryToken != null || hasJoinEventLink;
 }
+

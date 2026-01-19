@@ -55,7 +55,7 @@ class PhotoPreView extends GetView<PhotoPreController> {
           titleWidget: Obx(
             () => Text(
               "${c.currentIndex.value + 1}/${assets.length}",
-              style: customBoldText.copyWith(
+              style: AppText.headingLg.copyWith(
                 color: Colors.black,
                 fontSize: width * 0.05,
               ),

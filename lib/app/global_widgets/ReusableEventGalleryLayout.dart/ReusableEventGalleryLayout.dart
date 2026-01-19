@@ -22,6 +22,7 @@ class ReusableEventGalleryLayout extends StatelessWidget {
   final Widget gridView;
   final Widget? suffixWidget;
   final List<Widget>? floatingButtons;
+  final Widget? belowDescriptionWidget;
 
   final bool showAppBar;
   final String appBarTitle;
@@ -33,6 +34,7 @@ class ReusableEventGalleryLayout extends StatelessWidget {
     required this.gridView,
     this.bottomButton,
     this.floatingButtons,
+    this.belowDescriptionWidget,
     this.showAppBar = true,
     this.appBarTitle = AppTexts.SHOOT,
   });
@@ -85,6 +87,15 @@ class ReusableEventGalleryLayout extends StatelessWidget {
                 hintText: AppTexts.DESCRIPTION,
                 initialValue: limitWords(description, 12),
                 maxLines: 2,
+              ),
+
+            if (belowDescriptionWidget != null)
+              Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: belowDescriptionWidget,
+                ),
               ),
 
             const SizedBox(height: 12),

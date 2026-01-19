@@ -7,6 +7,7 @@ class PastEventBinding extends Bindings {
   void dependencies() {
     Get.lazyPut<PastEventController>(
       () => PastEventController(),
+      fenix: false, // Don't auto-recreate - let GetBuilder manage lifecycle
     );
   }
 }

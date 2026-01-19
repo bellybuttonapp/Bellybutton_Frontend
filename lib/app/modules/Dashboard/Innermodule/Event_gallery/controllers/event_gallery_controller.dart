@@ -1,5 +1,6 @@
 // ignore_for_file: unnecessary_overrides, deprecated_member_use, unnecessary_set_literal, depend_on_referenced_packages, avoid_print
 
+import 'dart:async';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -28,7 +29,7 @@ import '../../inviteuser/controllers/inviteuser_controller.dart';
 import '../../inviteuser/models/invite_user_arguments.dart';
 import '../../inviteuser/views/inviteuser_view.dart';
 
-class EventGalleryController extends GetxController {
+class EventGalleryController extends GetxController with WidgetsBindingObserver {
   late EventModel event;
 
   // ------------------------------------------------------
@@ -41,6 +42,12 @@ class EventGalleryController extends GetxController {
   RxBool isAutoSyncEnabled = false.obs; // Tracks auto-sync preference
   RxBool isAutoSyncing = false.obs; // True while auto-sync is in progress
   RxBool isDownloading = false.obs; // True while manual sync is in progress
+
+  // ------------------------------------------------------
+  // 🔄 RETRY LOGIC VARIABLES
+  // ------------------------------------------------------
+  RxList<String> failedUrls = <String>[].obs; // Track failed download URLs
+  RxInt failedCount = 0.obs; // Count of failed downloads
 
   /// Get event-specific sync key
   String get _eventSyncKey => "${Preference.EVENT_SYNC_DONE}_${event.id}";
@@ -60,6 +67,13 @@ class EventGalleryController extends GetxController {
   // ------------------------------------------------------
   RxBool isMediaInfoLoading = false.obs;
   Rx<Map<String, dynamic>> currentMediaInfo = Rx<Map<String, dynamic>>({});
+
+  // ------------------------------------------------------
+  // 📸 REAL-TIME PHOTO DETECTION (Server polling)
+  // ------------------------------------------------------
+  Timer? _photoPollingTimer;
+  int _lastKnownPhotoCount = 0;
+  bool _isCheckingForPhotos = false;
 
   // ======================================================
   //  ⭐ EVENT STATE GETTERS (EMPTY PLACEHOLDER CONDITIONS)
@@ -90,6 +104,9 @@ class EventGalleryController extends GetxController {
   void onInit() {
     super.onInit();
 
+    // Register lifecycle observer for app resume detection
+    WidgetsBinding.instance.addObserver(this);
+
     // ------------------------------------------------------
     // 🚀 INITIAL SETUP
     // ------------------------------------------------------
@@ -100,12 +117,136 @@ class EventGalleryController extends GetxController {
     isAutoSyncEnabled.value = Preference.autoSync;
 
     fetchPhotos().then((_) {
-      // Auto-sync if enabled and photos exist and not already synced
-      if (isAutoSyncEnabled.value && photos.isNotEmpty && !allSynced) {
+      // Store initial count for change detection
+      _lastKnownPhotoCount = photos.length;
+
+      // Start real-time polling for new photos
+      _startPhotoPolling();
+
+      // Auto-sync only if:
+      // 1. Auto-sync is enabled
+      // 2. Photos exist
+      // 3. Not already synced
+      // 4. Event has ended (to prevent photo duplication during live event)
+      if (isAutoSyncEnabled.value && photos.isNotEmpty && !allSynced && eventEnded) {
         _autoSyncPhotos();
       }
     });
     fetchInvitedUsersCount();
+  }
+
+  //----------------------------------------------------
+  // 📸 REAL-TIME PHOTO POLLING (Server-side detection)
+  //----------------------------------------------------
+
+  /// Start polling server for new photos
+  void _startPhotoPolling() {
+    // Only poll during live events
+    if (eventEnded || eventNotStarted) {
+      print("📸 Server polling skipped - event not live");
+      return;
+    }
+
+    _photoPollingTimer?.cancel();
+    _photoPollingTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      _checkForNewPhotos();
+    });
+    print("📸 Started server photo polling (10s interval)");
+  }
+
+  /// Stop polling for photos
+  void _stopPhotoPolling() {
+    _photoPollingTimer?.cancel();
+    _photoPollingTimer = null;
+    print("📸 Stopped server photo polling");
+  }
+
+  /// Check server for new photos (optimized - silent check)
+  Future<void> _checkForNewPhotos() async {
+    // Skip if event not live or download in progress
+    if (eventEnded || eventNotStarted || isDownloading.value || isAutoSyncing.value) {
+      return;
+    }
+
+    // Skip if already checking or loading
+    if (_isCheckingForPhotos || isLoading.value) return;
+
+    _isCheckingForPhotos = true;
+
+    try {
+      // Quick count check from server
+      final hasNewPhotos = await _hasNewPhotosQuickCheck();
+
+      if (hasNewPhotos) {
+        print("📸 New photos detected on server - updating gallery");
+        await _silentFetchPhotos();
+        _lastKnownPhotoCount = photos.length;
+      }
+    } catch (e) {
+      print("📸 Error checking for new photos: $e");
+    } finally {
+      _isCheckingForPhotos = false;
+    }
+  }
+
+  /// Quick check if there are new photos on server
+  Future<bool> _hasNewPhotosQuickCheck() async {
+    try {
+      // Check network first
+      if (!await _hasNetworkConnection()) return false;
+
+      final result = await PublicApiService().fetchEventPhotos(event.id);
+      if (result["data"] == null) return false;
+
+      final serverCount = (result["data"] as List).length;
+
+      if (serverCount != _lastKnownPhotoCount) {
+        print("📸 Quick check: count changed from $_lastKnownPhotoCount to $serverCount");
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      print("📸 Quick check error: $e");
+      return false;
+    }
+  }
+
+  /// Silently fetch photos without showing loading state
+  Future<void> _silentFetchPhotos() async {
+    try {
+      final result = await PublicApiService().fetchEventPhotos(event.id);
+      if (result["data"] == null) return;
+
+      List<Map<String, dynamic>> allData =
+          (result["data"] as List).map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e)).toList();
+
+      List<String> all =
+          allData.map<String>((e) => e["fileUrl"].toString()).toList();
+
+      Preference.box.put(Preference.EVENT_GALLERY_CACHE, all);
+
+      // Update UI with new photos
+      photos.assignAll(all.take(batchSize).toList());
+      photoData.assignAll(allData.take(batchSize).toList());
+      loadedCount = photos.length;
+
+      print("📸 Silent fetch complete: ${photos.length} photos loaded");
+    } catch (e) {
+      print("📸 Silent fetch error: $e");
+    }
+  }
+
+  /// Called when app lifecycle changes (resume/pause)
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    if (state == AppLifecycleState.resumed) {
+      // App came back to foreground - check for new photos immediately
+      print("📸 App resumed - checking for new photos");
+      _checkForNewPhotos();
+    }
   }
 
   // ------------------------------------------------------
@@ -258,7 +399,10 @@ class EventGalleryController extends GetxController {
       return;
     }
 
+    // Reset counters
     savedCount(0);
+    failedCount(0);
+    failedUrls.clear();
     enableOK(false);
     totalToSave(photos.length);
     isDownloading.value = true;
@@ -286,17 +430,105 @@ class EventGalleryController extends GetxController {
     await saveImages();
     enableOK(true);
     isDownloading.value = false;
-    LocalNotificationService.show(
-      title: AppTexts.NOTIFY_SYNC_COMPLETE_TITLE,
-      body:
-          "All photos from '${event.title}' have been saved to your gallery successfully.",
+
+    // Close progress dialog
+    Future.delayed(const Duration(seconds: 1), () {
+      if (Get.isDialogOpen == true) Get.back();
+
+      // Check if there were failures and show retry dialog
+      if (failedUrls.isNotEmpty) {
+        _showRetryDialog();
+      } else {
+        // All photos synced successfully
+        LocalNotificationService.show(
+          title: AppTexts.NOTIFY_SYNC_COMPLETE_TITLE,
+          body: "All photos from '${event.title}' have been saved to your gallery successfully.",
+        );
+        // Mark as synced (event-specific)
+        Preference.box.put(_eventSyncKey, true);
+      }
+    });
+  }
+
+  // ------------------------------------------------------
+  // 🔄 RETRY FAILED DOWNLOADS
+  // ------------------------------------------------------
+  void _showRetryDialog() {
+    Get.dialog(
+      CustomPopup(
+        title: AppTexts.SYNC_FAILED_TITLE,
+        message: "${failedCount.value} ${AppTexts.PHOTOS_FAILED_TO_DOWNLOAD}",
+        confirmText: AppTexts.ERROR_RETRY,
+        cancelText: AppTexts.CANCEL,
+        isProcessing: false.obs,
+        barrierDismissible: true,
+        onConfirm: () {
+          Get.back();
+          retryFailedDownloads();
+        },
+      ),
+      barrierDismissible: true,
+    );
+  }
+
+  /// Retry downloading failed photos
+  Future<void> retryFailedDownloads() async {
+    if (failedUrls.isEmpty) return;
+
+    // Check network before retry
+    if (!await _hasNetworkConnection()) {
+      showCustomSnackBar(AppTexts.NO_INTERNET, SnackbarState.error);
+      return;
+    }
+
+    final urlsToRetry = List<String>.from(failedUrls);
+
+    // Reset counters for retry
+    savedCount(0);
+    failedCount(0);
+    failedUrls.clear();
+    enableOK(false);
+    totalToSave(urlsToRetry.length);
+    isDownloading.value = true;
+
+    Get.dialog(
+      Obx(
+        () => CustomPopup(
+          title: enableOK.value ? "${AppTexts.SYNC_COMPLETE} 🎉" : AppTexts.RETRYING_DOWNLOAD,
+          message: enableOK.value
+              ? AppTexts.DOWNLOAD_FINISHED
+              : AppTexts.DOWNLOADING_IMAGES,
+          confirmText: enableOK.value ? AppTexts.CLOSE : AppTexts.PLEASE_WAIT,
+          onConfirm: enableOK.value ? () => Get.back() : null,
+          isProcessing: enableOK,
+          showProgress: true,
+          savedCount: savedCount,
+          totalCount: totalToSave,
+          barrierDismissible: false,
+        ),
+      ),
+      barrierDismissible: false,
     );
 
-    // 🔥 store permanently so UI shows Completed always next time (event-specific)
-    Preference.box.put(_eventSyncKey, true);
+    await _saveImagesFromUrls(urlsToRetry);
+    enableOK(true);
+    isDownloading.value = false;
 
     Future.delayed(const Duration(seconds: 1), () {
       if (Get.isDialogOpen == true) Get.back();
+
+      // Check if there are still failures
+      if (failedUrls.isNotEmpty) {
+        _showRetryDialog();
+      } else {
+        // All photos synced successfully
+        LocalNotificationService.show(
+          title: AppTexts.NOTIFY_SYNC_COMPLETE_TITLE,
+          body: "All photos from '${event.title}' have been saved to your gallery successfully.",
+        );
+        // Mark as synced (event-specific)
+        Preference.box.put(_eventSyncKey, true);
+      }
     });
   }
 
@@ -353,7 +585,11 @@ class EventGalleryController extends GetxController {
   // ------------------------------------------------------
   Future<void> saveImages() async {
     if (!await askPermission()) return;
+    await _saveImagesFromUrls(photos.toList());
+  }
 
+  /// Save images from a list of URLs (used by both initial sync and retry)
+  Future<void> _saveImagesFromUrls(List<String> urls) async {
     // Use temporary directory for downloading (works on all platforms)
     final tempDir = await getTemporaryDirectory();
     final downloadDir = Directory("${tempDir.path}/$albumName");
@@ -364,8 +600,8 @@ class EventGalleryController extends GetxController {
     final dio = Dio();
     const int batchSize = 6; // Download 6 images at once
 
-    for (int i = 0; i < photos.length; i += batchSize) {
-      final batch = photos.skip(i).take(batchSize).toList();
+    for (int i = 0; i < urls.length; i += batchSize) {
+      final batch = urls.skip(i).take(batchSize).toList();
 
       await Future.wait(
         batch.map((url) async {
@@ -390,11 +626,15 @@ class EventGalleryController extends GetxController {
               } catch (_) {}
             } else {
               debugPrint("❌ GallerySaver failed for: $name");
-              savedCount.value++; // Still count as processed
+              // Track as failed for retry
+              failedUrls.add(url);
+              failedCount.value++;
             }
           } catch (e) {
             debugPrint("❌ Save Failed: $e");
-            savedCount.value++; // Count as processed to avoid infinite loop
+            // Track as failed for retry
+            failedUrls.add(url);
+            failedCount.value++;
           }
         }),
       );
@@ -412,52 +652,8 @@ class EventGalleryController extends GetxController {
   // 💾 SAVE IMAGES WITHOUT PERMISSION CHECK (for auto-sync)
   // ------------------------------------------------------
   Future<void> _saveImagesWithoutPermissionCheck() async {
-    final tempDir = await getTemporaryDirectory();
-    final downloadDir = Directory("${tempDir.path}/$albumName");
-    if (!downloadDir.existsSync()) {
-      downloadDir.createSync(recursive: true);
-    }
-
-    final dio = Dio();
-    const int batchSize = 6;
-
-    for (int i = 0; i < photos.length; i += batchSize) {
-      final batch = photos.skip(i).take(batchSize).toList();
-
-      await Future.wait(
-        batch.map((url) async {
-          String name = url.split("/").last;
-          String tempPath = "${downloadDir.path}/$name";
-
-          try {
-            await dio.download(url, tempPath);
-            final saved = await GallerySaver.saveImage(
-              tempPath,
-              albumName: albumName,
-            );
-
-            if (saved == true) {
-              savedCount.value++;
-              try {
-                File(tempPath).deleteSync();
-              } catch (_) {}
-            } else {
-              debugPrint("❌ GallerySaver failed for: $name");
-              savedCount.value++;
-            }
-          } catch (e) {
-            debugPrint("❌ Save Failed: $e");
-            savedCount.value++;
-          }
-        }),
-      );
-    }
-
-    try {
-      if (downloadDir.existsSync()) {
-        downloadDir.deleteSync(recursive: true);
-      }
-    } catch (_) {}
+    // Reuse the shared method for consistency
+    await _saveImagesFromUrls(photos.toList());
   }
 
   // ------------------------------------------------------
@@ -793,7 +989,7 @@ class EventGalleryController extends GetxController {
           SizedBox(height: Get.height * 0.02),
           Text(
             AppTexts.MEDIA_INFO_EMPTY_TITLE,
-            style: customBoldText.copyWith(
+            style: AppText.headingLg.copyWith(
               color: isDark ? Colors.white70 : AppColors.textColor,
               fontSize: width * 0.045,
             ),
@@ -802,7 +998,7 @@ class EventGalleryController extends GetxController {
           Text(
             AppTexts.MEDIA_INFO_EMPTY_DESC,
             textAlign: TextAlign.center,
-            style: customTextNormal.copyWith(
+            style: AppText.bodyMd.copyWith(
               color: isDark ? Colors.white54 : AppColors.textColor2,
               fontSize: width * 0.035,
             ),
@@ -823,7 +1019,7 @@ class EventGalleryController extends GetxController {
             width: width * 0.3,
             child: Text(
               label,
-              style: customMediumText.copyWith(
+              style: AppText.labelLg.copyWith(
                 fontSize: width * 0.035,
                 color: isDark ? Colors.white70 : AppColors.textColor2,
               ),
@@ -832,7 +1028,7 @@ class EventGalleryController extends GetxController {
           Expanded(
             child: Text(
               value,
-              style: customSemiBoldText.copyWith(
+              style: AppText.titleMd.copyWith(
                 fontSize: width * 0.035,
                 color: isDark ? Colors.white : AppColors.textColor,
               ),
@@ -879,8 +1075,17 @@ class EventGalleryController extends GetxController {
     Get.back();
   }
 
+  //----------------------------------------------------
+  // CLEANUP
+  //----------------------------------------------------
   @override
   void onClose() {
+    // Stop photo polling
+    _stopPhotoPolling();
+
+    // Remove lifecycle observer
+    WidgetsBinding.instance.removeObserver(this);
+
     shareLinkController.dispose();
     super.onClose();
   }

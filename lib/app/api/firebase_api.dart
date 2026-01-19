@@ -6,7 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inapp_notifications/flutter_inapp_notifications.dart';
-import '../core/utils/helpers/dimensions.dart';
+import '../core/utils/index.dart';
 
 class FirebaseApi {
   static final FirebaseApi _singleton = FirebaseApi._internal();

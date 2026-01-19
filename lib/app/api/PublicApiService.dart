@@ -45,6 +45,16 @@ class PublicApiService {
         return {"success": false, "message": "No internet connection"};
       }
       print("DioException: ${e.message}");
+
+      // Extract error response data if available (e.g., for 400 errors with conflictingEvent)
+      if (e.response?.data != null && e.response?.data is Map<String, dynamic>) {
+        final errorData = e.response!.data as Map<String, dynamic>;
+        return {
+          "success": false,
+          ...errorData,
+        };
+      }
+
       return {"success": false, "message": "Network error"};
     } catch (e) {
       print("Unexpected error: $e");
@@ -75,6 +85,7 @@ class PublicApiService {
           "timezone": timezone,           // Creator's timezone (e.g., "Asia/Kolkata")
           "timezoneOffset": timezoneOffset, // Creator's offset (e.g., "+05:30")
         },
+        rethrowError: true, // ✅ Rethrow errors so _handleApiCall can extract error data
       ),
     );
   }
@@ -271,15 +282,23 @@ class PublicApiService {
   // ==========================
   // 6️⃣ Accept Invited Event
   // ==========================
-  Future<Map<String, dynamic>> acceptInvitedEvent(int eventId) async {
-    final endpoint = Endpoints.ACCEPT_INVITED_EVENT.replaceFirst(
+  /// Accept an invited event
+  /// [force] - If true, will override time conflicts and auto-deny conflicting events
+  Future<Map<String, dynamic>> acceptInvitedEvent(int eventId, {bool force = false}) async {
+    String endpoint = Endpoints.ACCEPT_INVITED_EVENT.replaceFirst(
       "{id}",
       eventId.toString(),
     );
 
-    print("👉 Accept request → $endpoint");
+    // Add force query parameter if true
+    if (force) {
+      endpoint = "$endpoint?force=true";
+    }
 
-    final response = await _handleApiCall(DioClient().putRequest(endpoint));
+    print("👉 Accept request → $endpoint (force: $force)");
+
+    // Use _dio.put directly so _handleApiCall can catch DioException and extract error response data
+    final response = await _handleApiCall(_dio.put(endpoint));
 
     return response;
   }
@@ -342,6 +361,73 @@ class PublicApiService {
     );
 
     return response;
+  }
+
+  // ==========================
+  // 🔗 Join Event by Token (Deep Link)
+  // ==========================
+  /// Joins/views an event using the invitation token from deep link
+  /// Token format: 27f54b203eb24afda6984b3862173c75
+  /// Returns event data if successful
+  Future<Map<String, dynamic>> joinEventByToken(String token) async {
+    final endpoint = Endpoints.JOIN_EVENT_BY_TOKEN.replaceFirst(
+      "{token}",
+      token,
+    );
+
+    print("🔗 Join event by token → $endpoint");
+
+    try {
+      final response = await _handleApiCall(
+        _dio.get(
+          endpoint,
+          options: Options(
+            headers: {
+              "Authorization": "Bearer ${Preference.token}",
+              "Accept": "application/json",
+            },
+          ),
+        ),
+      );
+
+      print("📦 Join Event Response: $response");
+
+      // Handle various response formats from backend
+      if (response["data"] != null) {
+        return {
+          "success": true,
+          "event": response["data"],
+        };
+      }
+
+      if (response["event"] != null) {
+        return {
+          "success": true,
+          "event": response["event"],
+        };
+      }
+
+      // If response contains event data directly (flat structure)
+      if (response["id"] != null || response["eventId"] != null) {
+        return {
+          "success": true,
+          "event": response,
+        };
+      }
+
+      // Check for success status
+      if (response["success"] == true || response["status"] == "success") {
+        return response;
+      }
+
+      return {
+        "success": false,
+        "message": response["message"] ?? "Failed to join event",
+      };
+    } catch (e) {
+      print("❌ Error joining event by token: $e");
+      return {"success": false, "message": "Failed to join event"};
+    }
   }
 
   // ==========================
@@ -663,6 +749,13 @@ class PublicApiService {
   /// Fetch latest terms and conditions content
   Future<Map<String, dynamic>> getTermsAndConditions() async {
     return await _handleApiCall(DioClient().getRequest(Endpoints.TERMS_LATEST));
+  }
+
+  /// Accept terms and conditions
+  Future<Map<String, dynamic>> acceptTermsAndConditions() async {
+    return await _handleApiCall(
+      DioClient().postRequest(Endpoints.ACCEPT_TERMS),
+    );
   }
 
   // ===============================================

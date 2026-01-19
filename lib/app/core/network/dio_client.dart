@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import '../constants/app_constant.dart';
+import '../constants/app_texts.dart';
 import '../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import 'auth_interceptor.dart';
 import 'retry_interceptor.dart';
@@ -18,8 +19,9 @@ class DioClient {
     _dio = Dio(
       BaseOptions(
         baseUrl: AppConstants.BASE_URL,
-        connectTimeout: const Duration(seconds: 20),
-        receiveTimeout: const Duration(seconds: 20),
+        connectTimeout: Duration(seconds: AppConstants.CONNECTION_TIMEOUT),
+        receiveTimeout: Duration(seconds: AppConstants.RECEIVE_TIMEOUT),
+        sendTimeout: Duration(seconds: AppConstants.SEND_TIMEOUT),
 
         /// ❗ IMPORTANT: DO NOT SET GLOBAL CONTENT-TYPE HERE
         /// JSON vs Multipart is decided per-request
@@ -81,6 +83,7 @@ class DioClient {
     dynamic data,
     ResponseType responseType = ResponseType.json,
     Options? options,
+    bool rethrowError = false,
   }) async {
     try {
       return await _dio.put(
@@ -92,6 +95,7 @@ class DioClient {
       );
     } catch (e) {
       _handleError(e as DioException);
+      if (rethrowError) rethrow;
       return null;
     }
   }
@@ -108,7 +112,7 @@ class DioClient {
 
   void _handleError(DioException e) {
     if (e.error is SocketException) {
-      showCustomSnackBar("No internet connection", SnackbarState.error);
+      showCustomSnackBar(AppTexts.NO_INTERNET, SnackbarState.error);
     }
     print("Dio Error: ${e.message}");
   }

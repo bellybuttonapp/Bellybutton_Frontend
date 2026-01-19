@@ -46,22 +46,35 @@ class EventCard extends StatelessWidget {
 
   /// Formats event date and time in user's LOCAL timezone
   /// Converts from UTC (stored) to local time for display
+  /// Shows both start and end time: "Mon, 20 January - 10:00 AM to 2:00 PM"
   String _formatEventDateTime() {
     try {
       // Use EventModel's built-in local time conversion
       // This converts UTC stored time to user's local timezone
-      final localDateTime = event.localStartDateTime;
-      final formattedDate = DateFormat('E, d MMMM').format(localDateTime);
-      final formattedTime = DateFormat('hh:mm a').format(localDateTime);
-      return "$formattedDate - $formattedTime";
+      final localStartDateTime = event.localStartDateTime;
+      final localEndDateTime = event.localEndDateTime;
+
+      final formattedDate = DateFormat('E, d MMMM').format(localStartDateTime);
+      final formattedStartTime = DateFormat('hh:mm a').format(localStartDateTime);
+      final formattedEndTime = DateFormat('hh:mm a').format(localEndDateTime);
+
+      return "$formattedDate - $formattedStartTime to $formattedEndTime";
     } catch (e) {
       // Fallback to raw display if conversion fails
       try {
         final formattedDate = DateFormat('E, d MMMM').format(event.eventDate);
         if (event.startTime.isNotEmpty) {
-          final time = DateFormat('HH:mm:ss').parse(event.startTime);
-          final formattedTime = DateFormat('hh:mm a').format(time);
-          return "$formattedDate - $formattedTime";
+          final startTime = DateFormat('HH:mm:ss').parse(event.startTime);
+          final formattedStartTime = DateFormat('hh:mm a').format(startTime);
+
+          // Try to parse end time as well
+          if (event.endTime.isNotEmpty) {
+            final endTime = DateFormat('HH:mm:ss').parse(event.endTime);
+            final formattedEndTime = DateFormat('hh:mm a').format(endTime);
+            return "$formattedDate - $formattedStartTime to $formattedEndTime";
+          }
+
+          return "$formattedDate - $formattedStartTime";
         }
         return formattedDate;
       } catch (_) {
@@ -330,7 +343,7 @@ class EventCard extends StatelessWidget {
   Widget _buildTitle(double width, double textScale, Color textColor) {
     return Text(
       event.title.isNotEmpty ? event.title : 'Untitled Event',
-      style: customBoldText.copyWith(
+      style: AppText.headingLg.copyWith(
         fontSize: Dimensions.fontSizeExtraLarge * textScale,
         fontWeight: FontWeight.bold,
         color: textColor,
@@ -341,7 +354,7 @@ class EventCard extends StatelessWidget {
   Widget _buildDateTime(double width, double textScale) {
     return Text(
       _formatEventDateTime(),
-      style: customBoldText.copyWith(
+      style: AppText.headingLg.copyWith(
         fontSize: Dimensions.fontSizeDefault * textScale,
         fontWeight: FontWeight.bold,
         color: AppColors.primaryColor,
@@ -352,7 +365,7 @@ class EventCard extends StatelessWidget {
   Widget _buildDescription(double textScale, Color color) {
     return Text(
       event.description,
-      style: customBoldText.copyWith(
+      style: AppText.headingLg.copyWith(
         fontSize: Dimensions.fontSizeDefault * textScale,
         fontWeight: FontWeight.w500,
         color: color,
@@ -378,7 +391,7 @@ class EventCard extends StatelessWidget {
           children: [
             Text(
               "View Photos",
-              style: customBoldText.copyWith(
+              style: AppText.headingLg.copyWith(
                 fontSize: Dimensions.fontSizeDefault * textScale,
                 color: AppColors.primaryColor,
               ),

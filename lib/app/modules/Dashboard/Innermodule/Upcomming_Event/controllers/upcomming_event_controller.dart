@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_print
 
 import 'package:get/get.dart';
+import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import '../../../../../api/PublicApiService.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_texts.dart';
@@ -15,12 +16,22 @@ import '../../../../../routes/app_pages.dart';
 class UpcommingEventController extends GetxController {
   final PublicApiService apiService = PublicApiService();
 
-  final isLoading = false.obs;
+  // Start with true to show shimmer while initializing
+  final isLoading = true.obs;
   final isProcessing = false.obs;
   final isDenyProcessing = false.obs;
   final eventData = <EventModel>[].obs;
   final unifiedEvents = <UnifiedEventModel>[].obs;
   final errorMessage = ''.obs;
+
+  // Pagination state
+  static const int _pageSize = 10;
+  final displayedEvents = <UnifiedEventModel>[].obs;
+  final isLoadingMore = false.obs;
+  final hasMoreEvents = true.obs;
+
+  // NOTE: RefreshController is now owned by the View, not the Controller.
+  // This prevents "Don't use one refreshController to multiple SmartRefresher" errors.
 
   /// Access to global invitations service
   EventInvitationsService get _invitationsService => EventInvitationsService.to;
@@ -32,11 +43,10 @@ class UpcommingEventController extends GetxController {
   }
 
   // ============================================================
-  // ✅ FIXED: Fetch Upcoming Events (Sort by real date + time)
+  // ✅ Fetch Upcoming Events (Sort by real date + time)
   // ============================================================
   Future<void> fetchUpcomingEvents() async {
-    if (isLoading.value) return;
-
+    // Allow fetch even if isLoading is true (for initial load)
     try {
       isLoading.value = true;
       errorMessage.value = '';
@@ -74,11 +84,57 @@ class UpcommingEventController extends GetxController {
       // Update both lists
       eventData.assignAll(events.where((e) => e.localEndDateTime.isAfter(now)).toList());
       unifiedEvents.assignAll(allUpcoming);
+
+      // Reset pagination
+      _resetPagination();
     } catch (e) {
       errorMessage.value = 'Something went wrong: $e';
       print("❌ Fetch Events Error: $e");
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  // ============================================================
+  // 📄 PAGINATION
+  // ============================================================
+  void _resetPagination() {
+    final initialCount = _pageSize.clamp(0, unifiedEvents.length);
+    displayedEvents.assignAll(unifiedEvents.take(initialCount).toList());
+    hasMoreEvents.value = unifiedEvents.length > initialCount;
+  }
+
+  /// Load more events for pagination
+  /// [refreshController] is passed from the View to avoid lifecycle issues
+  Future<void> loadMoreEvents(RefreshController refreshController) async {
+    if (isLoadingMore.value || !hasMoreEvents.value) {
+      refreshController.loadComplete();
+      return;
+    }
+
+    isLoadingMore.value = true;
+
+    // Simulate slight delay for smooth UX
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    // Check if still active after delay
+    if (isClosed) return;
+
+    final currentCount = displayedEvents.length;
+    final nextBatch = unifiedEvents
+        .skip(currentCount)
+        .take(_pageSize)
+        .toList();
+
+    displayedEvents.addAll(nextBatch);
+    hasMoreEvents.value = displayedEvents.length < unifiedEvents.length;
+
+    isLoadingMore.value = false;
+
+    if (hasMoreEvents.value) {
+      refreshController.loadComplete();
+    } else {
+      refreshController.loadNoData();
     }
   }
 
@@ -180,13 +236,20 @@ class UpcommingEventController extends GetxController {
     );
   }
 
-  Future<void> _acceptInvitation(InvitedEventModel event) async {
+  Future<void> _acceptInvitation(InvitedEventModel event, {bool force = false}) async {
     isProcessing.value = true;
     try {
-      final res = await apiService.acceptInvitedEvent(event.eventId);
+      final res = await apiService.acceptInvitedEvent(event.eventId, force: force);
 
       final status = res['headers']?['status'];
-      final isSuccess = status == "success" || res['message'] == "Event Accepted Successfully";
+      final message = res['message'] ?? '';
+      final isSuccess = status == "success" || message == "Event Accepted Successfully";
+
+      // Check for time conflict
+      final isTimeConflict = message.toString().toLowerCase().contains('time conflict');
+
+      // Extract conflicting event details if present
+      final conflictingEvent = res['conflictingEvent'] as Map<String, dynamic>?;
 
       if (isSuccess) {
         _invitationsService.markAsAccepted(event.eventId);
@@ -200,14 +263,66 @@ class UpcommingEventController extends GetxController {
 
         // Refresh the list
         await fetchUpcomingEvents();
+      } else if (isTimeConflict && !force) {
+        // Only show conflict dialog if not already forcing
+        isProcessing.value = false;
+        Get.back(); // Close the accept confirmation dialog
+        _showTimeConflictDialog(event, conflictingEvent: conflictingEvent);
       } else {
         isProcessing.value = false;
         showCustomSnackBar(AppTexts.FAILED_TO_ACCEPT_SHOOT, SnackbarState.error);
       }
     } catch (e) {
       isProcessing.value = false;
-      showCustomSnackBar(AppTexts.SOMETHING_WENT_WRONG, SnackbarState.error);
+      // Check if error message contains time conflict
+      if (e.toString().toLowerCase().contains('time conflict') && !force) {
+        Get.back();
+        _showTimeConflictDialog(event);
+      } else {
+        showCustomSnackBar(AppTexts.SOMETHING_WENT_WRONG, SnackbarState.error);
+      }
     }
+  }
+
+  /// Build conflict message with event details
+  String _buildConflictMessage(Map<String, dynamic>? conflictingEvent) {
+    if (conflictingEvent == null) {
+      return AppTexts.TIME_CONFLICT_MESSAGE;
+    }
+
+    final title = conflictingEvent['title'] ?? 'Unknown Shoot';
+    final date = conflictingEvent['date'] ?? '';
+    final startTime = conflictingEvent['startTime'] ?? '';
+    final endTime = conflictingEvent['endTime'] ?? '';
+
+    String timeRange = '';
+    if (startTime.toString().isNotEmpty && endTime.toString().isNotEmpty) {
+      timeRange = '$startTime - $endTime';
+    } else if (startTime.toString().isNotEmpty) {
+      timeRange = startTime.toString();
+    }
+
+    return "${AppTexts.TIME_CONFLICT_WITH_EVENT}\n\n"
+        "$title\n"
+        "${date.toString().isNotEmpty ? '$date\n' : ''}"
+        "${timeRange.isNotEmpty ? timeRange : ''}";
+  }
+
+  /// Show time conflict dialog with Accept Anyway option
+  void _showTimeConflictDialog(InvitedEventModel event, {Map<String, dynamic>? conflictingEvent}) {
+    Get.dialog(
+      CustomPopup(
+        title: AppTexts.TIME_CONFLICT_TITLE,
+        message: _buildConflictMessage(conflictingEvent),
+        confirmText: AppTexts.ACCEPT_ANYWAY,
+        cancelText: AppTexts.CANCEL,
+        onConfirm: () {
+          Get.back(); // Close conflict dialog
+          _acceptInvitation(event, force: true); // Force accept
+        },
+        isProcessing: isProcessing,
+      ),
+    );
   }
 
   /// Show deny confirmation popup

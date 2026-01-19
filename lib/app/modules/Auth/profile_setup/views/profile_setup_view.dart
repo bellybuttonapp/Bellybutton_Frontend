@@ -24,79 +24,158 @@ class ProfileSetupView extends GetView<ProfileSetupController> {
 
     return GetBuilder<ProfileSetupController>(
       builder: (controller) => Scaffold(
-        resizeToAvoidBottomInset: false,
+        resizeToAvoidBottomInset: true,
         backgroundColor: const Color(0xFFBACCCC),
-        body: Stack(
-          children: [
-            // Background Gradient - Full top area
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: screenHeight * 0.45,
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    stops: [0.0, 0.1399, 0.274],
-                    colors: [
-                      Color(0xFF070B17),
-                      Color(0xFF060F1E),
-                      Color(0xFF051938),
-                    ],
-                  ),
+        body: SingleChildScrollView(
+          child: Column(
+            children: [
+              // Top section with gradient background and profile pictures
+              SizedBox(
+                height: screenHeight * 0.38,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // Background Gradient - Full top area
+                    Positioned.fill(
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            stops: [0.0, 0.1399, 0.274],
+                            colors: [
+                              Color(0xFF070B17),
+                              Color(0xFF060F1E),
+                              Color(0xFF051938),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Profile Picture 1 - Top Left
+                    Positioned(
+                      top: screenHeight * 0.02,
+                      left: screenWidth * 0.02,
+                      child: _buildProfileCircle(
+                        AppImages.PROFILE_1,
+                        screenWidth * 0.14,
+                      ),
+                    ),
+
+                    // Profile Picture 2 - Top Right
+                    Positioned(
+                      top: screenHeight * 0.02,
+                      right: screenWidth * 0.02,
+                      child: _buildProfileCircle(
+                        AppImages.PROFILE_2,
+                        screenWidth * 0.12,
+                      ),
+                    ),
+
+                    // Profile Picture 3 - Bottom Left
+                    Positioned(
+                      top: screenHeight * 0.28,
+                      left: screenWidth * 0.02,
+                      child: _buildProfileCircle(
+                        AppImages.PROFILE_3,
+                        screenWidth * 0.11,
+                      ),
+                    ),
+
+                    // Profile Picture 4 - Bottom Right
+                    Positioned(
+                      top: screenHeight * 0.26,
+                      right: screenWidth * 0.02,
+                      child: _buildProfileCircle(
+                        AppImages.PROFILE_4,
+                        screenWidth * 0.15,
+                      ),
+                    ),
+
+                    // User Profile Image - Centered in the visible background area
+                    Positioned(
+                      top: screenHeight * 0.12,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: GestureDetector(
+                          onTap: controller.pickImage,
+                          child: Obx(() {
+                            final pickedImage = controller.pickedImage.value;
+
+                            return Stack(
+                              children: [
+                                Container(
+                                  height: screenWidth * 0.42,
+                                  width: screenWidth * 0.42,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.textColor3,
+                                    borderRadius: BorderRadius.circular(screenWidth * 0.5),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: 15,
+                                        spreadRadius: 2,
+                                        offset: const Offset(0, 5),
+                                      ),
+                                    ],
+                                  ),
+                                  child: pickedImage != null
+                                      ? ClipOval(
+                                          child: Image.file(
+                                            File(pickedImage.path),
+                                            fit: BoxFit.cover,
+                                            width: screenWidth * 0.42,
+                                            height: screenWidth * 0.42,
+                                          ),
+                                        )
+                                      : Center(
+                                          child: SvgPicture.asset(
+                                            AppImages.PERSON,
+                                            height: screenWidth * 0.15,
+                                            width: screenWidth * 0.15,
+                                            color: AppColors.tertiaryColor,
+                                          ),
+                                        ),
+                                ),
+                                // Camera icon overlay
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: Container(
+                                    padding: EdgeInsets.all(screenWidth * 0.025),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryColor,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      Icons.camera_alt,
+                                      color: Colors.white,
+                                      size: screenWidth * 0.05,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
 
-            // Profile Picture 1 - Top Left
-            Positioned(
-              top: screenHeight * 0.08,
-              left: screenWidth * 0.05,
-              child: _buildProfileCircle(
-                AppImages.PROFILE_1,
-                screenWidth * 0.14,
-              ),
-            ),
-
-            // Profile Picture 2 - Top Right
-            Positioned(
-              top: screenHeight * 0.06,
-              right: screenWidth * 0.08,
-              child: _buildProfileCircle(
-                AppImages.PROFILE_2,
-                screenWidth * 0.12,
-              ),
-            ),
-
-            // Profile Picture 3 - Middle Left
-            Positioned(
-              top: screenHeight * 0.22,
-              left: screenWidth * 0.12,
-              child: _buildProfileCircle(
-                AppImages.PROFILE_3,
-                screenWidth * 0.11,
-              ),
-            ),
-
-            // Profile Picture 4 - Middle Right
-            Positioned(
-              top: screenHeight * 0.18,
-              right: screenWidth * 0.05,
-              child: _buildProfileCircle(
-                AppImages.PROFILE_4,
-                screenWidth * 0.15,
-              ),
-            ),
-
-            // White Form Card - Overlaps background
-            Positioned(
-              top: screenHeight * 0.35,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
+              // White Form Card
+              Container(
+                width: double.infinity,
+                constraints: BoxConstraints(
+                  minHeight: screenHeight * 0.62,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.textColor3,
                   borderRadius: BorderRadius.vertical(
@@ -114,7 +193,7 @@ class ProfileSetupView extends GetView<ProfileSetupController> {
                       // Title
                       Text(
                         AppTexts.PROFILE_SETUP_TITLE,
-                        style: customBoldText.copyWith(
+                        style: AppText.headingLg.copyWith(
                           fontSize: screenWidth * 0.055,
                         ),
                       ),
@@ -123,7 +202,7 @@ class ProfileSetupView extends GetView<ProfileSetupController> {
                       // Subtitle
                       Text(
                         AppTexts.PROFILE_SETUP_SUBTITLE,
-                        style: customMediumText.copyWith(
+                        style: AppText.labelLg.copyWith(
                           fontSize: screenWidth * 0.035,
                           color: AppColors.tertiaryColor,
                         ),
@@ -172,82 +251,8 @@ class ProfileSetupView extends GetView<ProfileSetupController> {
                   ),
                 ),
               ),
-            ),
-
-            // User Profile Image - Centered in the visible background area
-            Positioned(
-              top: screenHeight * 0.12,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: GestureDetector(
-                  onTap: controller.pickImage,
-                  child: Obx(() {
-                    final pickedImage = controller.pickedImage.value;
-
-                    return Stack(
-                      children: [
-                        Container(
-                          height: screenWidth * 0.26,
-                          width: screenWidth * 0.26,
-                          decoration: BoxDecoration(
-                            color: AppColors.textColor3,
-                            borderRadius: BorderRadius.circular(screenWidth * 0.5),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 15,
-                                spreadRadius: 2,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
-                          ),
-                          child: pickedImage != null
-                              ? ClipOval(
-                                  child: Image.file(
-                                    File(pickedImage.path),
-                                    fit: BoxFit.cover,
-                                    width: screenWidth * 0.26,
-                                    height: screenWidth * 0.26,
-                                  ),
-                                )
-                              : Center(
-                                  child: SvgPicture.asset(
-                                    AppImages.PERSON,
-                                    height: screenWidth * 0.1,
-                                    width: screenWidth * 0.1,
-                                    color: AppColors.tertiaryColor,
-                                  ),
-                                ),
-                        ),
-                        // Camera icon overlay
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            padding: EdgeInsets.all(screenWidth * 0.02),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryColor,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white,
-                                width: 2,
-                              ),
-                            ),
-                            child: Icon(
-                              Icons.camera_alt,
-                              color: Colors.white,
-                              size: screenWidth * 0.04,
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  }),
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

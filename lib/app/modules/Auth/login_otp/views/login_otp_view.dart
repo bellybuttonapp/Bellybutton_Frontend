@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:pinput/pinput.dart';
 
@@ -45,286 +46,292 @@ class LoginOtpView extends GetView<LoginOtpController> {
 
     return GetBuilder<LoginOtpController>(
       builder: (controller) => Scaffold(
-      resizeToAvoidBottomInset: false,
-      backgroundColor: const Color(0xFFBACCCC),
-      body: Stack(
-        children: [
-          // Background Gradient - Full top area
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: screenHeight * 0.45,
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  stops: [0.0, 0.1399, 0.274],
-                  colors: [
-                    Color(0xFF070B17), // 0%
-                    Color(0xFF060F1E), // 13.99%
-                    Color(0xFF051938), // 27.4%
+        resizeToAvoidBottomInset: true,
+        backgroundColor: const Color(0xFFBACCCC),
+        body: SingleChildScrollView(
+          child: Column(
+            children: [
+              // Top section with gradient background and profile pictures
+              SizedBox(
+                height: screenHeight * 0.38,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // Background Gradient - Full top area
+                    Positioned.fill(
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            stops: [0.0, 0.1399, 0.274],
+                            colors: [
+                              Color(0xFF070B17), // 0%
+                              Color(0xFF060F1E), // 13.99%
+                              Color(0xFF051938), // 27.4%
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Back Button - Top Left
+                    Positioned(
+                      top: screenHeight * 0.05,
+                      left: screenWidth * 0.02,
+                      child: SafeArea(
+                        child: IconButton(
+                          onPressed: controller.goBack,
+                          icon: Icon(
+                            Icons.arrow_back_ios,
+                            color: Colors.white,
+                            size: screenWidth * 0.06,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Profile Picture 1 - Top Left
+                    Positioned(
+                      top: screenHeight * 0.02,
+                      left: screenWidth * 0.02,
+                      child: _buildProfileCircle(
+                        AppImages.PROFILE_1,
+                        screenWidth * 0.14,
+                      ),
+                    ),
+
+                    // Profile Picture 2 - Top Right
+                    Positioned(
+                      top: screenHeight * 0.02,
+                      right: screenWidth * 0.02,
+                      child: _buildProfileCircle(
+                        AppImages.PROFILE_2,
+                        screenWidth * 0.12,
+                      ),
+                    ),
+
+                    // Profile Picture 3 - Bottom Left
+                    Positioned(
+                      top: screenHeight * 0.28,
+                      left: screenWidth * 0.02,
+                      child: _buildProfileCircle(
+                        AppImages.PROFILE_3,
+                        screenWidth * 0.11,
+                      ),
+                    ),
+
+                    // Profile Picture 4 - Bottom Right
+                    Positioned(
+                      top: screenHeight * 0.26,
+                      right: screenWidth * 0.02,
+                      child: _buildProfileCircle(
+                        AppImages.PROFILE_4,
+                        screenWidth * 0.15,
+                      ),
+                    ),
+
+                    // App Icon - Centered in the visible background area
+                    Positioned(
+                      top: screenHeight * 0.12,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Container(
+                          height: screenWidth * 0.42,
+                          width: screenWidth * 0.42,
+                          decoration: BoxDecoration(
+                            color: AppColors.textColor3,
+                            borderRadius: BorderRadius.circular(screenWidth * 0.5),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 15,
+                                spreadRadius: 2,
+                                offset: const Offset(0, 5),
+                              ),
+                            ],
+                          ),
+                          child: ClipOval(
+                            child: Padding(
+                              padding: EdgeInsets.all(screenWidth * 0.03),
+                              child: SvgPicture.asset(
+                                AppImages.APP_ICON_WITH_TEXT,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ),
-          ),
 
-          // Back Button - Top Left
-          Positioned(
-            top: screenHeight * 0.05,
-            left: screenWidth * 0.02,
-            child: SafeArea(
-              child: IconButton(
-                onPressed: controller.goBack,
-                icon: Icon(
-                  Icons.arrow_back_ios,
-                  color: Colors.white,
-                  size: screenWidth * 0.06,
+              // White Form Card
+              Container(
+                width: double.infinity,
+                constraints: BoxConstraints(
+                  minHeight: screenHeight * 0.62,
                 ),
-              ),
-            ),
-          ),
-
-          // Profile Picture 1 - Top Left
-          Positioned(
-            top: screenHeight * 0.08,
-            left: screenWidth * 0.05,
-            child: _buildProfileCircle(
-              AppImages.PROFILE_1,
-              screenWidth * 0.14,
-            ),
-          ),
-
-          // Profile Picture 2 - Top Right
-          Positioned(
-            top: screenHeight * 0.06,
-            right: screenWidth * 0.08,
-            child: _buildProfileCircle(
-              AppImages.PROFILE_2,
-              screenWidth * 0.12,
-            ),
-          ),
-
-          // Profile Picture 3 - Middle Left
-          Positioned(
-            top: screenHeight * 0.22,
-            left: screenWidth * 0.12,
-            child: _buildProfileCircle(
-              AppImages.PROFILE_3,
-              screenWidth * 0.11,
-            ),
-          ),
-
-          // Profile Picture 4 - Middle Right
-          Positioned(
-            top: screenHeight * 0.18,
-            right: screenWidth * 0.05,
-            child: _buildProfileCircle(
-              AppImages.PROFILE_4,
-              screenWidth * 0.15,
-            ),
-          ),
-
-          // White Form Card - Overlaps background
-          Positioned(
-            top: screenHeight * 0.35,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.textColor3,
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(screenWidth * 0.07),
+                decoration: BoxDecoration(
+                  color: AppColors.textColor3,
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(screenWidth * 0.07),
+                  ),
                 ),
-              ),
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: screenWidth * 0.06,
-                  vertical: screenHeight * 0.035,
-                ),
-                child: AutofillGroup(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                    // Title
-                    Text(
-                      AppTexts.LOGIN_OTP_TITLE,
-                      style: customBoldText.copyWith(
-                        fontSize: screenWidth * 0.055,
-                      ),
-                    ),
-                    SizedBox(height: screenHeight * 0.008),
-
-                    // Subtitle with phone number
-                    Text(
-                      "${AppTexts.LOGIN_OTP_SUBTITLE}\n${controller.phone}",
-                      style: customMediumText.copyWith(
-                        fontSize: screenWidth * 0.035,
-                        color: AppColors.tertiaryColor,
-                      ),
-                    ),
-                    SizedBox(height: screenHeight * 0.03),
-
-                    // OTP Field with error
-                    Obx(
-                      () => Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          if (controller.otpError.value.isNotEmpty)
-                            Padding(
-                              padding: EdgeInsets.only(
-                                bottom: screenHeight * 0.01,
-                              ),
-                              child: Text(
-                                controller.otpError.value,
-                                style: customMediumText.copyWith(
-                                  color: Colors.red,
-                                  fontSize: screenWidth * 0.035,
-                                ),
-                              ),
-                            ),
-                          Center(
-                            child: Pinput(
-                              length: 6,
-                              controller: controller.otpController,
-                              defaultPinTheme: defaultPinTheme,
-                              focusedPinTheme: focusedPinTheme,
-                              errorPinTheme: errorPinTheme,
-                              showCursor: true,
-                              autofocus: true,
-                              keyboardType: TextInputType.number,
-                              pinAnimationType: PinAnimationType.scale,
-                              // Enable OTP autofill hints for keyboard suggestions
-                              autofillHints: const [AutofillHints.oneTimeCode],
-                              onChanged: (val) {
-                                if (controller.otpError.value.isNotEmpty) {
-                                  controller.otpError.value = '';
-                                }
-                              },
-                              onCompleted: (_) => controller.verifyOtp(),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    SizedBox(height: screenHeight * 0.035),
-
-                    // Verify Button
-                    Obx(
-                      () => global_button(
-                        loaderWhite: true,
-                        title: AppTexts.LOGIN_OTP_VERIFY,
-                        onTap: controller.isLoading.value
-                            ? null
-                            : controller.verifyOtp,
-                        isLoading: controller.isLoading.value,
-                        backgroundColor: isDarkMode
-                            ? AppTheme.darkTheme.scaffoldBackgroundColor
-                            : AppTheme.lightTheme.primaryColor,
-                        textColor: Colors.white,
-                      ),
-                    ),
-
-                    SizedBox(height: screenHeight * 0.025),
-
-                    // Resend Row with timer
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: screenWidth * 0.06,
+                    vertical: screenHeight * 0.035,
+                  ),
+                  child: AutofillGroup(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Title
                         Text(
-                          AppTexts.LOGIN_OTP_DIDNT_GET,
-                          style: customMediumText.copyWith(
-                            color: AppColors.textColor,
+                          AppTexts.LOGIN_OTP_TITLE,
+                          style: AppText.headingLg.copyWith(
+                            fontSize: screenWidth * 0.055,
                           ),
                         ),
+                        SizedBox(height: screenHeight * 0.008),
+
+                        // Subtitle with phone number
+                        Text(
+                          "${AppTexts.LOGIN_OTP_SUBTITLE}\n${controller.phone}",
+                          style: AppText.labelLg.copyWith(
+                            fontSize: screenWidth * 0.035,
+                            color: AppColors.tertiaryColor,
+                          ),
+                        ),
+                        SizedBox(height: screenHeight * 0.03),
+
+                        // OTP Field with error
                         Obx(
-                          () => GestureDetector(
-                            onTap: controller.canResend.value
-                                ? controller.resendOtp
-                                : null,
-                            child: controller.canResend.value
-                                ? Text(
-                                    AppTexts.LOGIN_OTP_RESEND,
-                                    style: customBoldText.copyWith(
-                                      color: AppColors.primaryColor,
-                                      fontSize: screenWidth * 0.04,
-                                    ),
-                                  )
-                                : Text(
-                                    "${AppTexts.LOGIN_OTP_RESEND_IN} ${controller.resendSeconds.value}s",
-                                    style: customMediumText.copyWith(
-                                      color: Colors.grey,
-                                      fontSize: screenWidth * 0.04,
+                          () => Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              if (controller.otpError.value.isNotEmpty)
+                                Padding(
+                                  padding: EdgeInsets.only(
+                                    bottom: screenHeight * 0.01,
+                                  ),
+                                  child: Text(
+                                    controller.otpError.value,
+                                    style: AppText.labelLg.copyWith(
+                                      color: Colors.red,
+                                      fontSize: screenWidth * 0.035,
                                     ),
                                   ),
+                                ),
+                              Center(
+                                child: Pinput(
+                                  length: 6,
+                                  controller: controller.otpController,
+                                  defaultPinTheme: defaultPinTheme,
+                                  focusedPinTheme: focusedPinTheme,
+                                  errorPinTheme: errorPinTheme,
+                                  showCursor: true,
+                                  autofocus: true,
+                                  keyboardType: TextInputType.number,
+                                  pinAnimationType: PinAnimationType.scale,
+                                  // Enable OTP autofill hints for keyboard suggestions
+                                  autofillHints: const [AutofillHints.oneTimeCode],
+                                  onChanged: (val) {
+                                    if (controller.otpError.value.isNotEmpty) {
+                                      controller.otpError.value = '';
+                                    }
+                                  },
+                                  onCompleted: (_) => controller.verifyOtp(),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        SizedBox(height: screenHeight * 0.035),
+
+                        // Verify Button
+                        Obx(
+                          () => global_button(
+                            loaderWhite: true,
+                            title: AppTexts.LOGIN_OTP_VERIFY,
+                            onTap: controller.isLoading.value
+                                ? null
+                                : controller.verifyOtp,
+                            isLoading: controller.isLoading.value,
+                            backgroundColor: isDarkMode
+                                ? AppTheme.darkTheme.scaffoldBackgroundColor
+                                : AppTheme.lightTheme.primaryColor,
+                            textColor: Colors.white,
+                          ),
+                        ),
+
+                        SizedBox(height: screenHeight * 0.025),
+
+                        // Resend Row with timer
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              AppTexts.LOGIN_OTP_DIDNT_GET,
+                              style: AppText.labelLg.copyWith(
+                                color: AppColors.textColor,
+                              ),
+                            ),
+                            Obx(
+                              () => GestureDetector(
+                                onTap: controller.canResend.value
+                                    ? controller.resendOtp
+                                    : null,
+                                child: controller.canResend.value
+                                    ? Text(
+                                        AppTexts.LOGIN_OTP_RESEND,
+                                        style: AppText.headingLg.copyWith(
+                                          color: AppColors.primaryColor,
+                                          fontSize: screenWidth * 0.04,
+                                        ),
+                                      )
+                                    : Text(
+                                        "${AppTexts.LOGIN_OTP_RESEND_IN} ${controller.resendSeconds.value}s",
+                                        style: AppText.labelLg.copyWith(
+                                          color: Colors.grey,
+                                          fontSize: screenWidth * 0.04,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        SizedBox(height: screenHeight * 0.02),
+
+                        // Change Number Link
+                        Center(
+                          child: GestureDetector(
+                            onTap: controller.goBack,
+                            child: Text(
+                              AppTexts.LOGIN_OTP_CHANGE_NUMBER,
+                              style: AppText.headingLg.copyWith(
+                                color: AppColors.primaryColor,
+                                fontSize: screenWidth * 0.035,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
                           ),
                         ),
                       ],
                     ),
-
-                    SizedBox(height: screenHeight * 0.02),
-
-                    // Change Number Link
-                    Center(
-                      child: GestureDetector(
-                        onTap: controller.goBack,
-                        child: Text(
-                          AppTexts.LOGIN_OTP_CHANGE_NUMBER,
-                          style: customBoldText.copyWith(
-                            color: AppColors.primaryColor,
-                            fontSize: screenWidth * 0.035,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                    ),
-                    ],
                   ),
                 ),
               ),
-            ),
+            ],
           ),
-
-          // App Icon - Centered in the visible background area
-          Positioned(
-            top: screenHeight * 0.12,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                height: screenWidth * 0.26,
-                width: screenWidth * 0.26,
-                decoration: BoxDecoration(
-                  color: AppColors.textColor3,
-                  borderRadius: BorderRadius.circular(screenWidth * 0.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 15,
-                      spreadRadius: 2,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: ClipOval(
-                  child: Padding(
-                    padding: EdgeInsets.all(screenWidth * 0.03),
-                    child: Image.asset(
-                      AppImages.APP_ICON,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
-    ));
+    );
   }
 
   // Helper method to build profile circle images

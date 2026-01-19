@@ -1,5 +1,6 @@
 // ignore_for_file: avoid_print, deprecated_member_use, depend_on_referenced_packages
 
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:screen_protector/screen_protector.dart';
 import '../../../api/PublicApiService.dart';
@@ -64,10 +65,18 @@ class SharedEventGalleryController extends GetxController {
     }
 
     if (galleryToken.value.isEmpty) {
-      print("❌ No token provided to SharedEventGalleryController");
-      showCustomSnackBar(AppTexts.DEEPLINK_INVALID_LINK, SnackbarState.error);
-      return;
-    }
+  print("❌ No token provided to SharedEventGalleryController");
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    showCustomSnackBar(
+      AppTexts.DEEPLINK_INVALID_LINK,
+      SnackbarState.error,
+    );
+  });
+
+  return;
+}
+
 
     print("📌 SharedEventGallery opened for token: ${galleryToken.value}");
 
@@ -143,9 +152,16 @@ class SharedEventGalleryController extends GetxController {
 
       print("🔼 Loaded: $loadedCount / ${_allPhotos.length}");
     } catch (e) {
-      print("❌ Error fetching photos: $e");
-      showCustomSnackBar(AppTexts.FAILED_TO_LOAD_PHOTOS, SnackbarState.error);
-    } finally {
+  print("❌ Error fetching photos: $e");
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    showCustomSnackBar(
+      AppTexts.FAILED_TO_LOAD_PHOTOS,
+      SnackbarState.error,
+    );
+  });
+}
+  finally {
       isLoading.value = false;
     }
   }

@@ -123,7 +123,7 @@ class CustomBottomSheet extends StatelessWidget {
                                   children: [
                                     Text(
                                       title!,
-                                      style: customBoldText.copyWith(
+                                      style: AppText.headingLg.copyWith(
                                         fontSize: 18 * textScale,
                                         fontWeight: FontWeight.w700,
                                         color:
@@ -135,7 +135,7 @@ class CustomBottomSheet extends StatelessWidget {
                                     if (subtitle != null)
                                       Text(
                                         subtitle!,
-                                        style: customBoldText.copyWith(
+                                        style: AppText.headingLg.copyWith(
                                           fontSize: 14 * textScale,
                                           fontWeight: FontWeight.w500,
                                           color: AppColors.primaryColor,
@@ -221,7 +221,7 @@ class CustomBottomSheet extends StatelessWidget {
                                       : null,
                               title: Text(
                                 a.label,
-                                style: customBoldText.copyWith(
+                                style: AppText.headingLg.copyWith(
                                   color:
                                       a.destructive
                                           ? theme.colorScheme.error

@@ -5,10 +5,10 @@ class AppTexts {
   // ONBOARDING
   // ═══════════════════════════════════════════════════════════════════════════
   static const String ONBOARDING_BUTTON = "Get Started"; // CTA button
-  static const String ONBOARDING_SUBTITLE1 = "Receive photo requests from hosts and \n"
-      "upload only what you choose — within a set \n"
-      "time frame."; // Intro description
-  static const String ONBOARDING_TITLE1 = "Get Photo Requests. Share in Seconds."; // Intro headline
+  static const String ONBOARDING_SUBTITLE1 = "Turn guests into your photo crew. They\n"
+      "capture the moments you'd miss — and share\n"
+      "before time runs out."; // Intro description
+  static const String ONBOARDING_TITLE1 = "Turn your Friends Into Camera Crew"; // Intro headline
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PROFILE FORM FIELDS (Used in Account Details)
@@ -117,6 +117,7 @@ class AppTexts {
   // ═══════════════════════════════════════════════════════════════════════════
   static const String SHOOT = "Shoot"; // Label
   static const String SHOOT_GALLERY = "Shoot Gallery"; // Screen title
+  static const String PHOTOS = "Photos"; // Photos label
   static const String SHARE_GROUP_TITLE = "Share Group – Select Permissions"; // Share sheet title
   static const String VIEW_ONLY = "View only"; // Permission option
   static const String VIEW_ONLY_DESC = "Can only see the photos."; // Permission desc
@@ -163,6 +164,9 @@ class AppTexts {
   static const String UPLOADED_N_PHOTOS_SUCCESSFULLY = "Uploaded %d photos successfully"; // Notification body
   static const String UPLOAD_FAILED_TITLE = "Upload Failed"; // Failed upload popup title
   static const String PHOTOS_FAILED_TO_UPLOAD = "photos failed to upload"; // Failed upload message suffix
+  static const String SYNC_FAILED_TITLE = "Sync Failed"; // Failed sync popup title
+  static const String PHOTOS_FAILED_TO_DOWNLOAD = "photos failed to download"; // Failed download message suffix
+  static const String RETRYING_DOWNLOAD = "Retrying Download..."; // Retry in progress
 
   // ═══════════════════════════════════════════════════════════════════════════
   // SHOOT GALLERY STATES (ADMIN/HOST VIEW)
@@ -301,7 +305,7 @@ class AppTexts {
   static const String SHOOT_DIRECTORS = "Shoot Directors"; // Admin badge
   static const String SHOOT_DIRECTOR = "Shoot Director"; // Admin badge
 
-  // ══════════════════════════════════════════ ═════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
   // INVITED ADMINS LIST
   // ═══════════════════════════════════════════════════════════════════════════
   static const String ADMIN = "Admin"; // Screen title
@@ -311,6 +315,33 @@ class AppTexts {
   // ═══════════════════════════════════════════════════════════════════════════
   static const String NO_MEMBERS_TITLE = "No members found"; // Empty title
   static const String NO_MEMBERS_DESCRIPTION = "There are currently no members in this list.\nTry adding or inviting someone to see them here."; // Empty desc
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INVITED EVENT CARD
+  // ═══════════════════════════════════════════════════════════════════════════
+  static const String GO_FOR_SHOOT = "Go For Shoot"; // Accepted event button
+  static const String LOAD_FAILED_TAP_RETRY = "Load failed, tap to retry"; // Load more error
+  static const String REINVITING_CREW = "Reinviting Crew"; // Badge text for reinvite flow
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NOTIFICATION SECTIONS
+  // ═══════════════════════════════════════════════════════════════════════════
+  static const String NOTIFICATION_TODAY = "Today"; // Today section header
+  static const String NOTIFICATION_YESTERDAY = "Yesterday"; // Yesterday section header
+  static const String NOTIFICATION_EARLIER = "Earlier"; // Earlier section header
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INVITED GALLERY BUTTONS
+  // ═══════════════════════════════════════════════════════════════════════════
+  static const String UPLOAD_ALL = "Upload All"; // Upload all button base text
+  static const String CLEAR = "Clear"; // Clear button base text
+  static const String UPLOAD = "Upload"; // Upload button base text
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CONTACT SECTIONS
+  // ═══════════════════════════════════════════════════════════════════════════
+  static const String AVAILABLE_CONTACTS = "Available Contacts"; // Section header
+  static const String ADD_TO_CREW = "Add to Crew"; // Section header for selected users
 
   // ═══════════════════════════════════════════════════════════════════════════
   // INVITED SHOOTS
@@ -329,6 +360,14 @@ class AppTexts {
   static const String DENY = "Deny"; // Deny button
   static const String FAILED_TO_DENY_SHOOT = "Failed to deny shoot"; // Deny error
   static const String UNABLE_TO_PROCESS_REQUEST = "Unable to process request"; // Request error
+
+  // TIME CONFLICT
+  static const String TIME_CONFLICT_TITLE = "Time Conflict"; // Conflict popup title
+  static const String TIME_CONFLICT_MESSAGE = "You already have another shoot at this time. If you accept this shoot, the conflicting shoot will be automatically removed."; // Conflict message
+  static const String TIME_CONFLICT_WITH_EVENT = "You already accepted another shoot at this time. If you accept, the conflicting shoot will be removed:"; // Conflict with event details
+  static const String TIME_CONFLICT_CREATE_MESSAGE = "You already have another event at this time. Please choose a different time slot."; // Conflict when creating event
+  static const String CONFLICTING_SHOOT = "Conflicting Shoot"; // Conflicting shoot label
+  static const String ACCEPT_ANYWAY = "Accept Anyway"; // Force accept button
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PHOTO PREVIEW / MEDIA INFO
@@ -424,6 +463,12 @@ class AppTexts {
   static const String PREMIUM_PLAN3_BENEFIT4 = "Best suited for larger events, teams, and active groups who share often."; // Plan 3 benefit
   static const String PREMIUM_PLAN3_PRICE = "\$49.9"; // Plan 3 price
 
+  // Upgrade Required Dialog
+  static const String UPGRADE_REQUIRED_TITLE = "Upgrade Required"; // Dialog title
+  static const String UPGRADE_REQUIRED_MESSAGE = "Free users can create up to 4 events. Paid plans allow unlimited or higher event limits."; // Dialog message
+  static const String UPGRADE_REQUIRED_CANCEL = "Cancel"; // Cancel button
+  static const String UPGRADE_REQUIRED_UPGRADE = "Upgrade"; // Upgrade button
+
   // ═══════════════════════════════════════════════════════════════════════════
   // DEEP LINK
   // ═══════════════════════════════════════════════════════════════════════════
@@ -442,6 +487,7 @@ class AppTexts {
   static const String VIEW_ONLY_ACCESS = "You have view-only access"; // View only warning
   static const String VIEW_ONLY_ACCESS_MESSAGE = "You have view-only access. Download is not available for this shared gallery."; // View only message
   static const String FAILED_TO_LOAD_PHOTOS = "Failed to load photos"; // Load error
+  static const String FAILED_TO_LOAD = "Failed to load"; // Generic load error
 
   // ═══════════════════════════════════════════════════════════════════════════
   // SHOOT CREATION SUGGESTIONS
@@ -590,4 +636,15 @@ class AppTexts {
   static const String LOGIN_OTP_SUCCESS = "Login successful!";
   static const String LOGIN_OTP_INVALID = "Invalid OTP. Please try again.";
   static const String LOGIN_OTP_EXPIRED = "OTP expired. Please request a new one.";
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TERMS & CONDITIONS
+  // ═══════════════════════════════════════════════════════════════════════════
+  static const String TERMS_TITLE = "Terms & Conditions";
+  static const String TERMS_I_UNDERSTAND = "I Understand";
+  static const String TERMS_ACCEPT_CHECKBOX = "I agree to the ";
+  static const String TERMS_LINK_TEXT = "Terms & Conditions";
+  static const String TERMS_ACCEPT_REQUIRED = "Please accept the Terms & Conditions";
+  static const String TERMS_LOAD_FAILED = "Failed to load Terms & Conditions";
+  static const String TERMS_LOAD_ERROR = "Unable to load Terms & Conditions";
 }

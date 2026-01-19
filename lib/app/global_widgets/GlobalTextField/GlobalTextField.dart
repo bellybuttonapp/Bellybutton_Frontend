@@ -75,38 +75,21 @@ class GlobalTextField extends StatelessWidget {
 
               // Inside TextFormField
               maxLength: maxLength,
-              //This limits input but hides the counter.
-              buildCounter: (
-                _, {
-                required currentLength,
-                maxLength,
-                required isFocused,
-              }) {
-                if (currentLength == maxLength) {
-                  return Text(
-                    '$currentLength / $maxLength',
-                    style: TextStyle(
-                      color: AppColors.primaryColor1,
-                      fontSize: screenWidth * 0.03,
-                    ),
-                  );
-                } else {
-                  return null; // hide counter until max is reached
-                }
-              },
-              style: customBoldText.copyWith(
+              //This limits input but hides the counter completely
+              buildCounter: (_, {required currentLength, maxLength, required isFocused}) => null,
+              style: AppText.headingLg.copyWith(
                 fontSize: screenWidth * 0.035,
                 color: AppColors.tertiaryColor,
               ),
               decoration: InputDecoration(
                 helperText: tooltip,
                 hintText: hintText,
-                hintStyle: customBoldText.copyWith(
+                hintStyle: AppText.headingLg.copyWith(
                   color: AppColors.tertiaryColor,
                   fontSize: screenWidth * 0.035,
                 ),
                 labelText: labelText,
-                labelStyle: customBoldText.copyWith(
+                labelStyle: AppText.headingLg.copyWith(
                   color: AppColors.tertiaryColor,
                   fontSize: screenWidth * 0.035,
                   fontStyle: FontStyle.italic,
@@ -154,7 +137,7 @@ class GlobalTextField extends StatelessWidget {
             right: 0,
             child: Text(
               errorText!,
-              style: customBoldText.copyWith(
+              style: AppText.headingLg.copyWith(
                 color: AppColors.primaryColor1,
                 fontSize: screenWidth * 0.03,
               ),

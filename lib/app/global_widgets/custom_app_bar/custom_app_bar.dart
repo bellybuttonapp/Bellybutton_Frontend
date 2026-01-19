@@ -112,7 +112,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               ? null
               : Text(
                 title ?? '',
-                style: customBoldText.copyWith(
+                style: AppText.headingLg.copyWith(
                   color: iconColor,
                   fontSize: size.width * 0.05,
                 ),
@@ -331,7 +331,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                       color: Colors.transparent,
                       child: Text(
                         displayName,
-                        style: customBoldText.copyWith(
+                        style: AppText.headingLg.copyWith(
                           color: textColor,
                           fontSize: size.width * 0.035,
                           shadows: [

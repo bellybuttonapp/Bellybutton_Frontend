@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:bellybutton/app/core/constants/app_colors.dart';
 import 'package:bellybutton/app/core/constants/app_images.dart';
+import 'package:bellybutton/app/core/constants/app_texts.dart';
 import '../../../core/utils/themes/font_style.dart';
 import '../../../database/models/InvitedEventModel.dart';
 import '../../Button/global_button.dart';
@@ -27,18 +28,34 @@ class InvitedEventCard extends StatelessWidget {
 
   /// Formats event date and time in user's LOCAL timezone
   /// Converts from UTC (stored) to local time for display
+  /// Shows both start and end time: "Mon, 20 January - 10:00 AM to 2:00 PM"
   String formatEventDateTime() {
     try {
       // Use InvitedEventModel's built-in local time conversion
       // This converts UTC stored time to user's local timezone
-      final localDateTime = event.localStartDateTime;
-      return DateFormat("EEE, d MMMM - hh:mm a").format(localDateTime);
+      final localStartDateTime = event.localStartDateTime;
+      final localEndDateTime = event.localEndDateTime;
+
+      final formattedDate = DateFormat("EEE, d MMMM").format(localStartDateTime);
+      final formattedStartTime = DateFormat("hh:mm a").format(localStartDateTime);
+      final formattedEndTime = DateFormat("hh:mm a").format(localEndDateTime);
+
+      return "$formattedDate - $formattedStartTime to $formattedEndTime";
     } catch (_) {
       // Fallback to raw display if conversion fails
       try {
-        return DateFormat(
-          "EEE, d MMMM - hh:mm a",
-        ).format(DateTime.parse("${event.eventDate} ${event.startTime}"));
+        final startDateTime = DateTime.parse("${event.eventDate} ${event.startTime}");
+        final formattedDate = DateFormat("EEE, d MMMM").format(startDateTime);
+        final formattedStartTime = DateFormat("hh:mm a").format(startDateTime);
+
+        // Try to parse end time as well
+        if (event.endTime.isNotEmpty) {
+          final endDateTime = DateTime.parse("${event.eventDate} ${event.endTime}");
+          final formattedEndTime = DateFormat("hh:mm a").format(endDateTime);
+          return "$formattedDate - $formattedStartTime to $formattedEndTime";
+        }
+
+        return "$formattedDate - $formattedStartTime";
       } catch (_) {
         return "${event.eventDate} ${event.startTime}";
       }
@@ -125,7 +142,7 @@ class InvitedEventCard extends StatelessWidget {
                 /// TITLE
                 Text(
                   event.title,
-                  style: customBoldText.copyWith(
+                  style: AppText.headingLg.copyWith(
                     fontSize: w * .045,
                     fontWeight: FontWeight.w700,
                     color: textColor,
@@ -137,7 +154,7 @@ class InvitedEventCard extends StatelessWidget {
                 /// DATE
                 Text(
                   formatEventDateTime(),
-                  style: customBoldText.copyWith(
+                  style: AppText.headingLg.copyWith(
                     fontSize: w * .036,
                     fontWeight: FontWeight.w600,
                     color: AppColors.primaryColor,
@@ -151,7 +168,7 @@ class InvitedEventCard extends StatelessWidget {
                     event.description!.trim().isNotEmpty)
                   Text(
                     event.description!,
-                    style: customBoldText.copyWith(
+                    style: AppText.headingLg.copyWith(
                       fontSize: w * .032,
                       fontWeight: FontWeight.w500,
                       color:
@@ -185,8 +202,8 @@ class InvitedEventCard extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                "View Photos",
-                                style: customBoldText.copyWith(
+                                AppTexts.GO_FOR_SHOOT,
+                                style: AppText.headingLg.copyWith(
                                   fontSize: w * .032,
                                   color: AppColors.primaryColor,
                                 ),
@@ -207,7 +224,7 @@ class InvitedEventCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: global_button(
-                            title: "Deny",
+                            title: AppTexts.DENY,
                             onTap: onDenyTap,
                             removeMargin: true,
                             textColor: Colors.red,
@@ -217,7 +234,7 @@ class InvitedEventCard extends StatelessWidget {
                         SizedBox(width: w * .03),
                         Expanded(
                           child: global_button(
-                            title: "Accept",
+                            title: AppTexts.ACCEPT,
                             onTap: onAcceptTap,
                             removeMargin: true,
                             backgroundColor: AppColors.success.withOpacity(.12),

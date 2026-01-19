@@ -145,6 +145,7 @@ class ProfileSetupController extends GetxController {
         imageFile = File(pickedImage.value!.path);
       }
 
+      // Update profile
       final resp = await PublicApiService().updateProfile(
         userId: Preference.userId,
         email: Preference.email,

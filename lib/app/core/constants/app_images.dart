@@ -5,6 +5,7 @@ class AppImages {
   // APP ICON
   // ═══════════════════════════════════════════════════════════════════════════
   static const APP_ICON = 'assets/Icons/Appicon.png'; // App icon/logo
+  static const APP_ICON_WITH_TEXT = 'assets/images/Logo_Wid_text.svg'; // App icon/logo
 
   // ═══════════════════════════════════════════════════════════════════════════
   // AUTHENTICATION & ONBOARDING

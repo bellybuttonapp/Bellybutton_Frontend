@@ -54,13 +54,14 @@ class Endpoints {
   static const String UPDATE_EVENT = "/eventresource/update/event/{id}"; // PUT: Update event by ID
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // EVENT INVITATIONS (5)
+  // EVENT INVITATIONS (6)
   // ═══════════════════════════════════════════════════════════════════════════
   static const String LIST_INVITED_EVENTS = "/eventresource/list/invited/events"; // GET: List invited events
   static const String ACCEPT_INVITED_EVENT = "/eventresource/accept/event/{id}"; // POST: Accept invitation
   static const String DENY_INVITED_EVENT = "/eventresource/deny/event/{id}"; // POST: Deny invitation
   static const String INVITE_USERS_TO_EVENT = "/eventresource/admin/invite/{eventId}"; // POST: Invite users to existing event
   static const String REMOVE_INVITED_USER = "/eventresource/admin/remove-invite/{eventId}/{inviteId}"; // DELETE: Remove invited user from event
+  static const String JOIN_EVENT_BY_TOKEN = "/eventresource/join/event/{token}"; // GET: Join event by invitation token (deep link)
 
   // ═══════════════════════════════════════════════════════════════════════════
   // EVENT PHOTOS (3)
@@ -84,9 +85,10 @@ class Endpoints {
   static const String GET_ALL_INVITATIONS = "/eventresource/event/invitations/{eventId}"; // GET: Fetch ALL invitations (PENDING + ACCEPTED)
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // TERMS & CONDITIONS (1)
+  // TERMS & CONDITIONS (2)
   // ═══════════════════════════════════════════════════════════════════════════
   static const String TERMS_LATEST = "/terms/latest"; // GET: Fetch latest T&C
+  static const String ACCEPT_TERMS = "/terms/accept"; // POST: Accept terms & conditions
 
   // ═══════════════════════════════════════════════════════════════════════════
   // NOTIFICATIONS (2)

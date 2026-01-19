@@ -7,6 +7,7 @@ class UpcommingEventBinding extends Bindings {
   void dependencies() {
     Get.lazyPut<UpcommingEventController>(
       () => UpcommingEventController(),
+      fenix: false, // Don't auto-recreate - let GetBuilder manage lifecycle
     );
   }
 }

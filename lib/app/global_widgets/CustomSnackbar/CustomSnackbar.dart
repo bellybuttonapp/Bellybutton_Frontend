@@ -98,7 +98,7 @@ void showCustomSnackBar(
               children: [
                 Text(
                   message,
-                  style: customBoldText.copyWith(
+                  style: AppText.headingLg.copyWith(
                     color: config.textColor,
                     fontSize: screenWidth * 0.035,
                     fontWeight: FontWeight.w700,
@@ -107,7 +107,7 @@ void showCustomSnackBar(
                 if (subTitle != null)
                   Text(
                     subTitle,
-                    style: customBoldText.copyWith(
+                    style: AppText.headingLg.copyWith(
                       color: config.textColor.withOpacity(0.8),
                       fontSize: screenWidth * 0.03,
                       fontWeight: FontWeight.w500,

@@ -46,6 +46,7 @@ import '../modules/terms_and_conditions/bindings/terms_and_conditions_binding.da
 import '../modules/terms_and_conditions/views/terms_and_conditions_view.dart';
 import '../modules/onboarding/bindings/onboarding_binding.dart';
 import '../modules/onboarding/views/onboarding_view.dart';
+import '../modules/splash/views/splash_view.dart';
 
 
 // ignore_for_file: constant_identifier_names
@@ -55,10 +56,17 @@ part 'app_routes.dart';
 class AppPages {
   AppPages._();
 
-  // Default initial route (actual route determined by MainInitializer.getInitialRoute)
-  static const INITIAL = Routes.PHONE_LOGIN;
+  // Default initial route - starts with splash screen
+  static const INITIAL = Routes.SPLASH;
 
   static final routes = [
+    GetPage(
+      name: _Paths.SPLASH,
+      page: () => const SplashView(),
+      // No binding needed - SplashView is a StatefulWidget that handles its own logic
+      transition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 300),
+    ),
     GetPage(
       name: _Paths.HOME,
       page: () => const HomeView(),

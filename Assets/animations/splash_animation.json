@@ -1,0 +1,890 @@
+[{
+  "version": "1.0",
+  "image": {
+    "name": "/var/www/imageconvert_usr/data/www/imageconvert.org/image/public/uploadt/Bellysplash2.gif",
+    "permissions": 644,
+    "format": "GIF",
+    "formatDescription": "CompuServe graphics interchange format",
+    "mimeType": "image/gif",
+    "class": "PseudoClass",
+    "geometry": {
+      "width": 412,
+      "height": 908,
+      "x": 0,
+      "y": 0
+    },
+    "units": "Undefined",
+    "type": "Palette",
+    "endianness": "Undefined",
+    "colorspace": "sRGB",
+    "depth": 8,
+    "baseDepth": 8,
+    "channelDepth": {
+      "red": 8,
+      "green": 8,
+      "blue": 8
+    },
+    "pixels": 374096,
+    "imageStatistics": {
+      "all": {
+        "min": 2,
+        "max": 254,
+        "mean": 176.09,
+        "standardDeviation": 83.5358,
+        "kurtosis": -1.42155,
+        "skewness": -0.452116,
+        "entropy": 0.639868
+      }
+    },
+    "channelStatistics": {
+      "red": {
+        "min": 7,
+        "max": 254,
+        "mean": 192.569,
+        "standardDeviation": 78.6798,
+        "kurtosis": -0.523412,
+        "skewness": -0.946638,
+        "entropy": 0.645318
+      },
+      "green": {
+        "min": 2,
+        "max": 254,
+        "mean": 171.044,
+        "standardDeviation": 85.823,
+        "kurtosis": -1.3662,
+        "skewness": -0.412173,
+        "entropy": 0.640017
+      },
+      "blue": {
+        "min": 51,
+        "max": 254,
+        "mean": 164.657,
+        "standardDeviation": 86.1045,
+        "kurtosis": -1.84267,
+        "skewness": -0.0603259,
+        "entropy": 0.634268
+      }
+    },
+    "colormapEntries": 256,
+    "colormap": [
+        "#000000","#070257","#070257","#070257","#070257",
+      "#181362","#25216B","#3A3576","#434080","#484D8E",
+      "#4F4C7C","#4D496B","#484059","#3F4352","#3E4751",
+      "#404B55","#444A51","#444950","#434951","#434951",
+      "#434950","#454247","#464144","#473E42","#413F41",
+      "#3E3C3E","#3D3B39","#3E3D3A","#413E3A","#443C3A",
+      "#493D3B","#4C3C3A","#503D3A","#543D39","#593F3B",
+      "#5D3D39","#633C39","#693D3A","#694147","#674842",
+      "#604741","#594841","#534541","#4F4840","#4D483F",
+      "#4C473E","#4B4641","#4B4744","#4E4943","#4F4B45",
+      "#514C46","#4E4D49","#4F504C","#4E5152","#524F53",
+      "#56484F","#594E47","#5C5249","#604F48","#674F44",
+      "#6A5147","#64544B","#62574F","#685A4F","#6B5C53",
+      "#6C5F56","#636260","#65676A","#706660","#746257",
+      "#7A6456","#80685A","#7C6D62","#79726C","#797973",
+      "#71787C","#797C78","#7D807A","#808680","#878A78",
+      "#908679","#9B887C","#A28D80","#AD748C","#BF64A9",
+      "#9A59A8","#7E59A3","#6B66A2","#5269A8","#4577AA",
+      "#3E7EBF","#4888D5","#3DA1DA","#37BEE0","#45BFDD",
+      "#65BAD4","#81AEC1","#939FBF","#8F8DB0","#89939E",
+      "#95A095","#A49B8D","#B09692","#B29E99","#B2AAA5",
+      "#B8B0AF","#C4BAB1","#CEB8A4","#E0A49B","#F59294",
+      "#E9858B","#D98583","#D59580","#D89F80","#DAA786",
+      "#D5AC7C","#C8AC8C","#BEA687","#B9977E","#C29A75",
+      "#CF9A72","#CF8E6F","#C28C6A","#B48F6D","#B38469",
+      "#C0756E","#D5786C","#CE7D61","#CB7956","#C76A4B",
+      "#C8773E","#BA733B","#A17A43","#A08447","#AB864C",
+      "#AF7555","#AE695B","#A76F62","#A57861","#A47F66",
+      "#967E6B","#917766","#8C7362","#906463","#946D59",
+      "#8D6954","#87644E","#825D4E","#7A5E4B","#73614A",
+      "#73564B","#79504D","#794249","#773F3E","#733B37",
+      "#7E3A36","#863B37","#903B37","#8A4144","#8A434D",
+      "#8F3E49","#943D48","#993C49","#984947","#9D5942",
+      "#9D4A3C","#9C3B38","#A13A48","#AA3948","#AB3B3E",
+      "#AF463C","#B55840","#AD5A50","#B24B65","#BF3B6D",
+      "#B6395B","#B63947","#BE3A43","#C43B41","#CB3D42",
+      "#D03C3A","#D5403F","#DB423B","#E03C40","#E4373E",
+      "#E9373E","#EF373D","#ED3E3B","#E64A39","#ED4F39",
+      "#F05636","#F46137","#F86B34","#FA7434","#FC7C34",
+      "#FA8236","#FB8834","#FB8E34","#EC933F","#F7A039",
+      "#FCA533","#FCAB35","#FDB234","#FDB834","#F0C736",
+      "#FBC03D","#FCC03D","#FCC03F","#FBC03F","#F9C448",
+      "#F6CC53","#F4BB4F","#EAB545","#DEAC43","#CFA142",
+      "#D19D4B","#E2A15D","#F2A16F","#F5A17B","#F5AB89",
+      "#E5AF8B","#DCAD93","#D7B490","#E0B694","#E8BF93",
+      "#F6BF95","#EABCA8","#E3B8A5","#DEC3A4","#DCC4AF",
+      "#E7C2B3","#EDC7BD","#E0CCC1","#DED5CF","#CFD1D2",
+      "#BECACF","#A5C9D1","#9CD2E7","#C3CFEB","#D2D2EE",
+      "#DAD7F0","#DFDDEE","#E4E3EA","#EDE5DD","#F0EBE6",
+      "#ECEFF3","#EBF2F6","#F0F3F5","#FCFCFB","#FEFEFE",
+      "#FEFEFE","#FEFEFE","#FEFEFE","#FEFEFD","#FEFDFC",
+      "#FEFDFC"
+    ],
+    "renderingIntent": "Perceptual",
+    "gamma": 0.454545,
+    "chromaticity": {
+      "redPrimary": {
+        "x": 0.64,
+        "y": 0.33
+      },
+      "greenPrimary": {
+        "x": 0.3,
+        "y": 0.6
+      },
+      "bluePrimary": {
+        "x": 0.15,
+        "y": 0.06
+      },
+      "whitePrimary": {
+        "x": 0.3127,
+        "y": 0.329
+      }
+    },
+    "backgroundColor": "#000000",
+    "borderColor": "#DFDFDF",
+    "matteColor": "#BDBDBD",
+    "transparentColor": "#000000",
+    "interlace": "None",
+    "intensity": "Undefined",
+    "compose": "Over",
+    "pageGeometry": {
+      "width": 412,
+      "height": 908,
+      "x": 0,
+      "y": 0
+    },
+    "dispose": "Undefined",
+    "delay": "100x100",
+    "iterations": 0,
+    "scene": 0,
+    "scenes": 5,
+    "compression": "LZW",
+    "orientation": "Undefined",
+    "properties": {
+      "date:create": "2026-01-09T09:25:57+00:00",
+      "date:modify": "2026-01-09T09:25:57+00:00",
+      "date:timestamp": "2026-01-09T09:26:02+00:00",
+      "signature": "b5b4f08e044f7e61b236e0a0c3f03767ff39662be224e8c2bf1e8cb1ce9385ce"
+    },
+    "tainted": false,
+    "filesize": "0B",
+    "numberPixels": "374096",
+    "pixelsPerSecond": "21.8845MB",
+    "userTime": "0.010u",
+    "elapsedTime": "0:01.017",
+    "version": "ImageMagick 6.9.12-98 Q16 x86_64 18038 https://legacy.imagemagick.org"
+  }
+}
+,
+{
+  "version": "1.0",
+  "image": {
+    "name": "/var/www/imageconvert_usr/data/www/imageconvert.org/image/public/uploadt/Bellysplash2.gif",
+    "permissions": 644,
+    "format": "GIF",
+    "formatDescription": "CompuServe graphics interchange format",
+    "mimeType": "image/gif",
+    "class": "PseudoClass",
+    "geometry": {
+      "width": 412,
+      "height": 908,
+      "x": 0,
+      "y": 0
+    },
+    "units": "Undefined",
+    "type": "Palette",
+    "endianness": "Undefined",
+    "colorspace": "sRGB",
+    "depth": 8,
+    "baseDepth": 8,
+    "channelDepth": {
+      "red": 8,
+      "green": 8,
+      "blue": 8
+    },
+    "pixels": 374096,
+    "imageStatistics": {
+      "all": {
+        "min": 2,
+        "max": 255,
+        "mean": 215.954,
+        "standardDeviation": 68.6316,
+        "kurtosis": 0.277882,
+        "skewness": -1.42164,
+        "entropy": 0.378345
+      }
+    },
+    "channelStatistics": {
+      "red": {
+        "min": 7,
+        "max": 255,
+        "mean": 226.742,
+        "standardDeviation": 55.9673,
+        "kurtosis": 2.00668,
+        "skewness": -1.85621,
+        "entropy": 0.388874
+      },
+      "green": {
+        "min": 2,
+        "max": 255,
+        "mean": 212.784,
+        "standardDeviation": 72.3578,
+        "kurtosis": -0.0512403,
+        "skewness": -1.30757,
+        "entropy": 0.374651
+      },
+      "blue": {
+        "min": 52,
+        "max": 255,
+        "mean": 208.337,
+        "standardDeviation": 77.5696,
+        "kurtosis": -0.54884,
+        "skewness": -1.15163,
+        "entropy": 0.371509
+      }
+    },
+    "colormapEntries": 256,
+    "colormap": [
+        "#070257","#252857","#434B56","#444A51","#434951",
+      "#434951","#434951","#44494E","#454446","#464243",
+      "#433F42","#413E40","#403D3D","#3E3C3A","#3F3C39",
+      "#423D39","#463C39","#493D3A","#4D3D39","#513D3B",
+      "#553D39","#5B3C39","#633C38","#623E3B","#5F4340",
+      "#584540","#504740","#4D473F","#4D4841","#4E4945",
+      "#534C45","#4E4D4A","#4E5051","#54514D","#5B5049",
+      "#605149","#63554C","#66594F","#695B51","#705B51",
+      "#7B5A4E","#76544A","#6F5149","#694D47","#674746",
+      "#6E434A","#704040","#6C3B37","#723A37","#793B37",
+      "#803C38","#843A37","#8D3A36","#973B37","#8F3E3C",
+      "#854144","#884149","#8F404A","#943D49","#984546",
+      "#9C3B49","#A43948","#A33D42","#A33E39","#A93D3C",
+      "#AD3946","#AF4440","#B8413B","#B7394A","#BF3B44",
+      "#C33B52","#C63B42","#CB3D41","#CE3F3D","#D5413D",
+      "#DB403D","#E3393E","#EA373E","#EF373D","#E9423A",
+      "#E34839","#EA4E38","#F05536","#F35D36","#F76635",
+      "#FA7134","#FB7934","#FC8135","#FC8A34","#FA9638",
+      "#FAB23B","#FCBF3C","#FCC03E","#FBC03F","#F9C143",
+      "#F7C851","#EBC453","#E6AC4F","#DFA24A","#D5934C",
+      "#D0834F","#CB785A","#C76D53","#BE6B55","#BC5D48",
+      "#AC5F52","#9D5A49","#9F6D4A","#A28146","#9D7951",
+      "#966F60","#8D7160","#836D5F","#896756","#7F6357",
+      "#796558","#736256","#6D615A","#606464","#6C6A69",
+      "#74716F","#797974","#7D7D76","#7E817B","#81867F",
+      "#7B7885","#6F6993","#5D6FA6","#537CBB","#6E84B3",
+      "#8094AD","#909AA3","#A0A4A9","#A5A7A2","#AEACA4",
+      "#B9A9A3","#B69B99","#B57E9A","#A37C96","#A4968B",
+      "#979085","#97867A","#987F6E","#A47C62","#AF8366",
+      "#BC8369","#B78C71","#B69B71","#C29572","#C98E6E",
+      "#D08C6B","#D88F6A","#DD926F","#E29079","#DC987D",
+      "#DA9C80","#D39C7F","#CD987E","#C49C80","#C6A387",
+      "#CEA77E","#CFB17D","#DCBE81","#EEC087","#F6B98E",
+      "#F6A988","#EB968C","#DCA487","#DBAB89","#D9B091",
+      "#DFB390","#DFB395","#E1BA97","#E1BC9E","#E0B7A1",
+      "#E0B7A7","#E6BDAA","#E3C1AE","#EDC2B4","#F2C6B8",
+      "#ECC9BE","#E1C8BC","#DACDBF","#CFC6B6","#C3C9B8",
+      "#B9C5B9","#AEC5C1","#A3C3C5","#85C9D8","#72CADF",
+      "#87CEE2","#AED5E0","#C2D4DB","#CDD5DD","#D1D3E7",
+      "#D2D1ED","#D8D5ED","#DBD8EA","#DEDCE6","#E2DCDB",
+      "#E8DED9","#EEDED6","#F1E4D8","#EEE6DD","#EFE8E1",
+      "#F0EBE6","#EDEAE8","#E8EAEB","#E5EAEF","#E9EEF3",
+      "#EBF1F5","#EBF2F6","#ECF2F6","#ECF2F6","#EDF2F6",
+      "#F3F4F4","#FAF7F5","#FDFAF6","#FEFAF8","#FEFCFB",
+      "#FEFEFE","#FEFEFE","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FEFEFE",
+      "#FEFEFE"
+    ],
+    "renderingIntent": "Perceptual",
+    "gamma": 0.454545,
+    "chromaticity": {
+      "redPrimary": {
+        "x": 0.64,
+        "y": 0.33
+      },
+      "greenPrimary": {
+        "x": 0.3,
+        "y": 0.6
+      },
+      "bluePrimary": {
+        "x": 0.15,
+        "y": 0.06
+      },
+      "whitePrimary": {
+        "x": 0.3127,
+        "y": 0.329
+      }
+    },
+    "backgroundColor": "#FFFFFF",
+    "borderColor": "#DFDFDF",
+    "matteColor": "#BDBDBD",
+    "transparentColor": "#000000",
+    "interlace": "None",
+    "intensity": "Undefined",
+    "compose": "Over",
+    "pageGeometry": {
+      "width": 412,
+      "height": 908,
+      "x": 0,
+      "y": 0
+    },
+    "dispose": "Undefined",
+    "delay": "100x100",
+    "iterations": 0,
+    "scene": 1,
+    "scenes": 5,
+    "compression": "LZW",
+    "orientation": "Undefined",
+    "properties": {
+      "date:create": "2026-01-09T09:25:57+00:00",
+      "date:modify": "2026-01-09T09:25:57+00:00",
+      "date:timestamp": "2026-01-09T09:26:02+00:00",
+      "signature": "b64df05b8573897cce4eb4f8ec45e4df87d56d804cf73efa03078ec3ecdc8083"
+    },
+    "tainted": false,
+    "filesize": "0B",
+    "numberPixels": "374096",
+    "pixelsPerSecond": "8.03688MB",
+    "userTime": "0.050u",
+    "elapsedTime": "0:01.046",
+    "version": "ImageMagick 6.9.12-98 Q16 x86_64 18038 https://legacy.imagemagick.org"
+  }
+}
+,
+{
+  "version": "1.0",
+  "image": {
+    "name": "/var/www/imageconvert_usr/data/www/imageconvert.org/image/public/uploadt/Bellysplash2.gif",
+    "permissions": 644,
+    "format": "GIF",
+    "formatDescription": "CompuServe graphics interchange format",
+    "mimeType": "image/gif",
+    "class": "PseudoClass",
+    "geometry": {
+      "width": 412,
+      "height": 908,
+      "x": 0,
+      "y": 0
+    },
+    "units": "Undefined",
+    "type": "Palette",
+    "endianness": "Undefined",
+    "colorspace": "sRGB",
+    "depth": 8,
+    "baseDepth": 8,
+    "channelDepth": {
+      "red": 8,
+      "green": 8,
+      "blue": 8
+    },
+    "pixels": 374096,
+    "imageStatistics": {
+      "all": {
+        "min": 2,
+        "max": 254,
+        "mean": 229.272,
+        "standardDeviation": 57.5876,
+        "kurtosis": 2.9247,
+        "skewness": -2.14236,
+        "entropy": 0.261449
+      }
+    },
+    "channelStatistics": {
+      "red": {
+        "min": 7,
+        "max": 254,
+        "mean": 235.35,
+        "standardDeviation": 48.3979,
+        "kurtosis": 5.37845,
+        "skewness": -2.59099,
+        "entropy": 0.265117
+      },
+      "green": {
+        "min": 2,
+        "max": 254,
+        "mean": 227.938,
+        "standardDeviation": 59.3486,
+        "kurtosis": 2.59956,
+        "skewness": -2.0592,
+        "entropy": 0.258428
+      },
+      "blue": {
+        "min": 52,
+        "max": 254,
+        "mean": 224.527,
+        "standardDeviation": 65.0163,
+        "kurtosis": 1.59909,
+        "skewness": -1.8548,
+        "entropy": 0.260802
+      }
+    },
+    "colormapEntries": 256,
+    "colormap": [
+        "#070257","#191757","#3E4352","#434951","#434951",
+      "#434951","#444A51","#444A51","#444A51","#474B50",
+      "#4F504E","#4E5151","#4B536A","#4D557C","#56557B",
+      "#5D5964","#615954","#63574F","#63544C","#694F49",
+      "#694F45","#624C44","#5D5047","#5A4D45","#574E48",
+      "#524E48","#4E4B47","#4E4A45","#4F4943","#524741",
+      "#4E4840","#4D483F","#4B4641","#474342","#454143",
+      "#423F41","#3F3D3F","#3E3C3B","#3D3C39","#403D3A",
+      "#433C39","#483D3A","#4C3D3A","#503E3A","#553E3B",
+      "#5C3D39","#633D3A","#693C3B","#6F3E3E","#753E3C",
+      "#793B38","#823A38","#8F3A37","#8B403C","#8E4044",
+      "#8C4049","#953D48","#9B3B46","#9C3F3C","#9D4B40",
+      "#A35544","#AD5145","#AC4640","#A53C41","#A33A48",
+      "#A93946","#B03846","#B7384B","#BD3945","#C03A4E",
+      "#C83C4D","#CC3D3F","#D33E3C","#DD3D3E","#E53A3F",
+      "#EC3B3D","#E84938","#EC5037","#EF5737","#F46136",
+      "#F76B35","#FA7334","#FB7A34","#F98036","#FC8535",
+      "#FC8D35","#F4943C","#F5A740","#F6B53E","#FBBC3B",
+      "#F8C33D","#FCC03E","#FCC03F","#FBC040","#FAC242",
+      "#F5C44D","#EBBF4E","#E5AF55","#D9A950","#D1A34B",
+      "#C99A49","#C18E4E","#C68456","#C67A59","#C77150",
+      "#C4664D","#B86651","#AE6956","#A77657","#A1804A",
+      "#9B7B50","#977355","#94705D","#906E61","#886D60",
+      "#806E5E","#7B685B","#796457","#816355","#805F50",
+      "#7B5D4D","#755B4D","#6E5B4E","#6B5C52","#6D5F55",
+      "#6B635C","#696762","#696969","#6F6C70","#736F75",
+      "#767573","#797974","#7A7B76","#7B7E78","#7D817B",
+      "#7F847F","#82807E","#888078","#8E867B","#928477",
+      "#9A8978","#A18772","#A5836D","#A77F66","#B08368",
+      "#B88B69","#BC8C6D","#BA9074","#BA9578","#BE9F73",
+      "#C79F71","#C7976F","#CA9070","#CF916C","#D59569",
+      "#DC9269","#DE8972","#E08383","#E0808C","#E7818E",
+      "#F08989","#F1928B","#F59B8A","#F5A282","#F6A985",
+      "#F7B089","#F9B98E","#F6C48E","#F3CC8F","#E9C999",
+      "#E4C4A1","#E5BAA5","#E0B6A0","#DFB59A","#DEB394",
+      "#DBB393","#DBB38E","#DAB685","#D8AE87","#D7A887",
+      "#D7A57F","#D49E7E","#CE9F81","#C9A286","#C5A58D",
+      "#C6AC97","#C1ACA1","#BBA4A2","#B79D99","#B29E98",
+      "#A9A69A","#A1A4A2","#9BA1A0","#929A9F","#989B93",
+      "#9D978B","#9F9187","#A78A87","#AB7A8E","#AD6F93",
+      "#9A6F9D","#8478A4","#7E83AC","#617CB1","#5487BD",
+      "#539CCB","#59BDDC","#72C6DD","#87C9DA","#97BED1",
+      "#9CB8C3","#9FB3BA","#AEB2B4","#B9B3B5","#BFB6B7",
+      "#C7B9B6","#D0C1B8","#D6C4B7","#DEC7B6","#E5C7B5",
+      "#ECC7B5","#F2CABB","#EECFC2","#EAD5CA","#E1D5D0",
+      "#D8D3CF","#CFD2D1","#C7D0CF","#C5CAD1","#BFC5D7",
+      "#C4CBDF","#C2D2EA","#D0D2ED","#D4D4EF","#D8D7EF",
+      "#DDDBEE","#DEDFEA","#DBE1E7","#DEE1E3","#E5E2DF",
+      "#EBE5DE","#EDE8E3","#EFEBE6","#F0EDE9","#F0EFEE",
+      "#ECF1F5","#EBF2F6","#ECF2F6","#ECF3F6","#F3F5F5",
+      "#FAF9F9","#FCFCFB","#FEFEFE","#FEFEFE","#FEFEFE",
+      "#FEFEFE"
+    ],
+    "renderingIntent": "Perceptual",
+    "gamma": 0.454545,
+    "chromaticity": {
+      "redPrimary": {
+        "x": 0.64,
+        "y": 0.33
+      },
+      "greenPrimary": {
+        "x": 0.3,
+        "y": 0.6
+      },
+      "bluePrimary": {
+        "x": 0.15,
+        "y": 0.06
+      },
+      "whitePrimary": {
+        "x": 0.3127,
+        "y": 0.329
+      }
+    },
+    "backgroundColor": "#FFFFFF",
+    "borderColor": "#DFDFDF",
+    "matteColor": "#BDBDBD",
+    "transparentColor": "#000000",
+    "interlace": "None",
+    "intensity": "Undefined",
+    "compose": "Over",
+    "pageGeometry": {
+      "width": 412,
+      "height": 908,
+      "x": 0,
+      "y": 0
+    },
+    "dispose": "Undefined",
+    "delay": "100x100",
+    "iterations": 0,
+    "scene": 2,
+    "scenes": 5,
+    "compression": "LZW",
+    "orientation": "Undefined",
+    "properties": {
+      "date:create": "2026-01-09T09:25:57+00:00",
+      "date:modify": "2026-01-09T09:25:57+00:00",
+      "date:timestamp": "2026-01-09T09:26:02+00:00",
+      "signature": "0fd4af1c6fb73928185639b3260612a0c33e7563a74af55641a8dba0eb975a0d"
+    },
+    "tainted": false,
+    "filesize": "0B",
+    "numberPixels": "374096",
+    "pixelsPerSecond": "4.33535MB",
+    "userTime": "0.110u",
+    "elapsedTime": "0:01.086",
+    "version": "ImageMagick 6.9.12-98 Q16 x86_64 18038 https://legacy.imagemagick.org"
+  }
+}
+,
+{
+  "version": "1.0",
+  "image": {
+    "name": "/var/www/imageconvert_usr/data/www/imageconvert.org/image/public/uploadt/Bellysplash2.gif",
+    "permissions": 644,
+    "format": "GIF",
+    "formatDescription": "CompuServe graphics interchange format",
+    "mimeType": "image/gif",
+    "class": "PseudoClass",
+    "geometry": {
+      "width": 412,
+      "height": 908,
+      "x": 0,
+      "y": 0
+    },
+    "units": "Undefined",
+    "type": "Palette",
+    "endianness": "Undefined",
+    "colorspace": "sRGB",
+    "depth": 8,
+    "baseDepth": 8,
+    "channelDepth": {
+      "red": 8,
+      "green": 8,
+      "blue": 8
+    },
+    "pixels": 374096,
+    "imageStatistics": {
+      "all": {
+        "min": 2,
+        "max": 254,
+        "mean": 243,
+        "standardDeviation": 39.7321,
+        "kurtosis": 12.8649,
+        "skewness": -3.73076,
+        "entropy": 0.140673
+      }
+    },
+    "channelStatistics": {
+      "red": {
+        "min": 7,
+        "max": 254,
+        "mean": 245.219,
+        "standardDeviation": 35.4102,
+        "kurtosis": 18.4492,
+        "skewness": -4.34486,
+        "entropy": 0.141167
+      },
+      "green": {
+        "min": 2,
+        "max": 254,
+        "mean": 242.986,
+        "standardDeviation": 39.0052,
+        "kurtosis": 13.4838,
+        "skewness": -3.75075,
+        "entropy": 0.139816
+      },
+      "blue": {
+        "min": 58,
+        "max": 254,
+        "mean": 240.795,
+        "standardDeviation": 44.7808,
+        "kurtosis": 9.05862,
+        "skewness": -3.27038,
+        "entropy": 0.141037
+      }
+    },
+    "colormapEntries": 256,
+    "colormap": [
+        "#000000","#080357","#070257","#070257","#070257",
+      "#0E085B","#1B1562","#2D286C","#3A3771","#404167",
+      "#444953","#444A51","#434951","#434951","#434950",
+      "#43464B","#434243","#403E3E","#3F3C3A","#433D3B",
+      "#4B443E","#4C4740","#4D483F","#4E4941","#514940",
+      "#514B44","#4E4B45","#4E4C48","#4E4E4A","#4E4F4D",
+      "#4F5150","#4F5354","#525561","#5B5756","#5D544D",
+      "#5B5048","#614E4A","#6D444F","#7E4049","#874241",
+      "#844A42","#775646","#725A49","#6B594D","#6C5D51",
+      "#6E5F54","#706357","#756357","#796357","#7E6453",
+      "#866855","#886C5E","#847062","#7C6C66","#726967",
+      "#756E6E","#7F7771","#807B74","#7F7D79","#7F7E7D",
+      "#7E7E80","#756F91","#6C649C","#62629F","#5E6BAF",
+      "#5C75BA","#5782C1","#568DC4","#5D99C6","#6C9DBB",
+      "#7D9EB2","#8A9BB0","#8E91AC","#958FAE","#9E99B3",
+      "#A8A6AC","#B7ACAD","#BEADAE","#BEAAA9","#BBA49F",
+      "#B8A09A","#B4A198","#ADA295","#A7A092","#A99D8F",
+      "#AC998D","#A8968A","#A39788","#999785","#989280",
+      "#968D80","#97897D","#998378","#9E847A","#A5827F",
+      "#AB7F85","#B2768C","#B46C90","#AB6391","#B64F81",
+      "#BD4475","#C13C6B","#BC3B67","#B93E62","#AE4C51",
+      "#AC544A","#AA5B45","#AD6245","#AE6746","#AD714B",
+      "#A17750","#9D7A55","#9A7B56","#9C8050","#A0834A",
+      "#A7854D","#AE865F","#B08568","#B08B6C","#B59471",
+      "#BB966F","#C1976D","#C5936A","#CA8B63","#C9895B",
+      "#C78B53","#C58F4D","#C68C47","#CD8542","#D98540",
+      "#E6893D","#E59543","#E09C45","#DFA34A","#E1AC4B",
+      "#E1B44A","#E8B447","#F4B445","#F9BA3D","#FCBD3A",
+      "#FBC03C","#F5C43D","#FBC13D","#FCC03D","#FCC03E",
+      "#FCC03F","#FCC040","#FAC041","#F9C245","#F8C54B",
+      "#F4C652","#EDC55E","#EABB64","#EDAE6B","#F0AF75",
+      "#F1B37D","#F1BD88","#F4BF92","#F8BE96","#F7B694",
+      "#F6AD95","#F3A090","#F2978B","#F3918B","#EF8C87",
+      "#E78583","#DE8582","#D4897F","#CD9480","#CA9D7F",
+      "#CEA380","#D2AD82","#D3B08B","#D2B897","#D3BCA0",
+      "#D8C1A3","#E2C4A7","#E2C5B1","#E5C6BA","#DCC7BD",
+      "#D5C8C6","#DACACB","#DDCCCF","#E3D3D2","#E5D9D5",
+      "#EAE0D8","#EFE6DA","#EDE7DF","#F1EBE4","#F5F0EA",
+      "#FBF9F5","#FEFEFE","#FEFEFE","#FEFEFE","#FEFEFE",
+      "#FEFEFE","#FEFEFE","#FEFEFE","#FEFEFE","#FEFEFE",
+      "#FEFEFE","#FEFEFE","#FEFEFE","#FEFEFE","#FEFEFE",
+      "#FEFEFE","#FEFEFE","#FEFEFE","#FEFEFE","#FEFEFE",
+      "#FEFEFE","#FEFEFE","#FEFEFE","#FEFEFE","#FEFEFE",
+      "#FEFEFE","#FEFEFE","#FEFEFE","#FEFDFE","#FDFDFD",
+      "#FCFBFB","#FAF9F9","#F8F7F7","#F5F4F5","#F3F2F3",
+      "#F1F0F2","#EFF0F2","#EEF0F4","#EDF1F5","#ECF2F6",
+      "#EBF2F6","#EBF1F5","#E9EFF3","#E6EAF0","#E2E3EC",
+      "#E0DFEA","#E0DEEA","#DFDDEC","#DDDAEE","#D9D6EF",
+      "#D3D4EF","#D0D3EF","#D0D3ED","#D1D4EB","#D1D8E6",
+      "#CFD8E1","#CDD3E0","#C6CCDD","#C1C5D9","#BEC0D4",
+      "#B9BECE","#ADBBCD","#A1C0CE","#96C9D9","#8ACBDF",
+      "#7FCCE3"
+    ],
+    "renderingIntent": "Perceptual",
+    "gamma": 0.454545,
+    "chromaticity": {
+      "redPrimary": {
+        "x": 0.64,
+        "y": 0.33
+      },
+      "greenPrimary": {
+        "x": 0.3,
+        "y": 0.6
+      },
+      "bluePrimary": {
+        "x": 0.15,
+        "y": 0.06
+      },
+      "whitePrimary": {
+        "x": 0.3127,
+        "y": 0.329
+      }
+    },
+    "backgroundColor": "#FFFFFF",
+    "borderColor": "#DFDFDF",
+    "matteColor": "#BDBDBD",
+    "transparentColor": "#000000",
+    "interlace": "None",
+    "intensity": "Undefined",
+    "compose": "Over",
+    "pageGeometry": {
+      "width": 412,
+      "height": 908,
+      "x": 0,
+      "y": 0
+    },
+    "dispose": "Undefined",
+    "delay": "100x100",
+    "iterations": 0,
+    "scene": 3,
+    "scenes": 5,
+    "compression": "LZW",
+    "orientation": "Undefined",
+    "properties": {
+      "date:create": "2026-01-09T09:25:57+00:00",
+      "date:modify": "2026-01-09T09:25:57+00:00",
+      "date:timestamp": "2026-01-09T09:26:02+00:00",
+      "signature": "5650ec1b8d26319c346c67a4ceffd9f79ba7f9a8fd8dd0910995a382666a6b70"
+    },
+    "tainted": false,
+    "filesize": "0B",
+    "numberPixels": "374096",
+    "pixelsPerSecond": "3.00803MB",
+    "userTime": "0.150u",
+    "elapsedTime": "0:01.124",
+    "version": "ImageMagick 6.9.12-98 Q16 x86_64 18038 https://legacy.imagemagick.org"
+  }
+}
+,
+{
+  "version": "1.0",
+  "image": {
+    "name": "/var/www/imageconvert_usr/data/www/imageconvert.org/image/public/uploadt/Bellysplash2.gif",
+    "permissions": 644,
+    "format": "JSON",
+    "formatDescription": "The image format and characteristics",
+    "mimeType": "application/json",
+    "class": "PseudoClass",
+    "geometry": {
+      "width": 412,
+      "height": 908,
+      "x": 0,
+      "y": 0
+    },
+    "units": "Undefined",
+    "type": "Palette",
+    "endianness": "Undefined",
+    "colorspace": "sRGB",
+    "depth": 8,
+    "baseDepth": 8,
+    "channelDepth": {
+      "red": 8,
+      "green": 8,
+      "blue": 8
+    },
+    "pixels": 374096,
+    "imageStatistics": {
+      "all": {
+        "min": 2,
+        "max": 255,
+        "mean": 252.588,
+        "standardDeviation": 21.3488,
+        "kurtosis": 98.9122,
+        "skewness": -9.79269,
+        "entropy": 0.0383632
+      }
+    },
+    "channelStatistics": {
+      "red": {
+        "min": 7,
+        "max": 255,
+        "mean": 252.318,
+        "standardDeviation": 23.7359,
+        "kurtosis": 89.3416,
+        "skewness": -9.40663,
+        "entropy": 0.0385475
+      },
+      "green": {
+        "min": 2,
+        "max": 255,
+        "mean": 252.262,
+        "standardDeviation": 24.2264,
+        "kurtosis": 89.2806,
+        "skewness": -9.40353,
+        "entropy": 0.0379945
+      },
+      "blue": {
+        "min": 87,
+        "max": 255,
+        "mean": 253.182,
+        "standardDeviation": 16.0842,
+        "kurtosis": 89.2998,
+        "skewness": -9.40446,
+        "entropy": 0.0385475
+      }
+    },
+    "colormapEntries": 256,
+    "colormap": [
+        "#000000","#070257","#070257","#070257","#070257",
+      "#070257","#070257","#070257","#0A0559","#0E095C",
+      "#120D5F","#151060","#161161","#161161","#181362",
+      "#1A1564","#1D1866","#221D69","#241F6A","#25216B",
+      "#25216B","#25216B","#26216C","#26216C","#26216C",
+      "#26216C","#29246E","#2E2A71","#343075","#3B377A",
+      "#413D7E","#444080","#454180","#454181","#474382",
+      "#4C4885","#534F8A","#56538C","#5B588F","#5F5C92",
+      "#625F95","#636095","#636095","#646196","#666397",
+      "#6A679A","#6E6B9C","#706D9E","#726F9F","#726FA0",
+      "#7370A0","#7371A0","#7572A1","#7875A3","#7B78A6",
+      "#7F7DA8","#827FAA","#8280AA","#8280AA","#8280AA",
+      "#8280AA","#8380AB","#8481AC","#8B89B0","#908EB4",
+      "#918FB5","#928FB5","#9290B5","#9290B5","#9693B8",
+      "#9B99BB","#9F9CBD","#A09EBF","#A19FBF","#A19FBF",
+      "#A2A0C0","#A3A1C1","#A7A5C3","#AAA9C5","#ADACC7",
+      "#AFAEC9","#B1B0CA","#B3B2CB","#B5B4CD","#B9B7CF",
+      "#BCBAD1","#BFBED3","#C0BFD4","#C1BFD5","#C1BFD5",
+      "#C1BFD5","#C3C2D6","#CAC9DB","#CFCEDE","#D0CFDE",
+      "#D2D1E0","#D5D4E2","#D8D7E4","#DCDCE7","#DEDDE9",
+      "#DFDEE9","#DFDEE9","#DFDEE9","#DFDEE9","#DFDEE9",
+      "#DFDEE9","#DFDEE9","#DFDEE9","#E0DFEA","#E0DFEA",
+      "#E0DFEA","#E0DFEA","#E1E0EB","#E5E4ED","#E9E8F0",
+      "#ECECF2","#EEEEF3","#EEEEF3","#EEEEF3","#EEEEF3",
+      "#EEEEF3","#EEEEF3","#EEEEF3","#EEEEF3","#EFEFF4",
+      "#EFEFF4","#EFEFF4","#EFEFF4","#EFEFF4","#F0F0F4",
+      "#F0F0F5","#F3F3F7","#F5F5F8","#F9F9FB","#FDFDFE",
+      "#FEFEFE","#FEFEFE","#FEFEFE","#FEFEFE","#FEFEFE",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF",
+      "#FFFFFF"
+    ],
+    "renderingIntent": "Perceptual",
+    "gamma": 0.454545,
+    "chromaticity": {
+      "redPrimary": {
+        "x": 0.64,
+        "y": 0.33
+      },
+      "greenPrimary": {
+        "x": 0.3,
+        "y": 0.6
+      },
+      "bluePrimary": {
+        "x": 0.15,
+        "y": 0.06
+      },
+      "whitePrimary": {
+        "x": 0.3127,
+        "y": 0.329
+      }
+    },
+    "backgroundColor": "#FFFFFF",
+    "borderColor": "#DFDFDF",
+    "matteColor": "#BDBDBD",
+    "transparentColor": "#000000",
+    "interlace": "None",
+    "intensity": "Undefined",
+    "compose": "Over",
+    "pageGeometry": {
+      "width": 412,
+      "height": 908,
+      "x": 0,
+      "y": 0
+    },
+    "dispose": "Undefined",
+    "delay": "100x100",
+    "iterations": 0,
+    "scene": 4,
+    "scenes": 5,
+    "compression": "LZW",
+    "orientation": "Undefined",
+    "properties": {
+      "date:create": "2026-01-09T09:25:57+00:00",
+      "date:modify": "2026-01-09T09:25:57+00:00",
+      "date:timestamp": "2026-01-09T09:26:02+00:00",
+      "signature": "25e7c80f43600c6227c97fdccc11d1a5ac42e13e65bcd751a75fe27009c5cc4b"
+    },
+    "tainted": false,
+    "filesize": "267241B",
+    "numberPixels": "374096",
+    "pixelsPerSecond": "2.19724MB",
+    "userTime": "0.210u",
+    "elapsedTime": "0:01.170",
+    "version": "ImageMagick 6.9.12-98 Q16 x86_64 18038 https://legacy.imagemagick.org"
+  }
+}
+]

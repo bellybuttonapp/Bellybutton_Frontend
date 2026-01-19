@@ -13,6 +13,7 @@ import '../../../../../database/models/EventModel.dart';
 import '../../../../../global_widgets/CustomPopup/CustomPopup.dart';
 import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../../../core/utils/helpers/date_converter.dart';
+import '../../../../../routes/app_pages.dart';
 import '../../inviteuser/controllers/inviteuser_controller.dart';
 import '../../inviteuser/models/invite_user_arguments.dart';
 import '../../inviteuser/views/inviteuser_view.dart';
@@ -432,16 +433,6 @@ class CreateEventController extends GetxController {
     isLoading.value = true;
 
     try {
-      // 🔥 IMPORTANT: Fetch ALL invitations (PENDING + ACCEPTED) BEFORE update
-      // The update API response returns empty invitedPeople, so we preserve the current list
-      List<Map<String, dynamic>> preservedInvitedPeople = [];
-      try {
-        preservedInvitedPeople = await _apiService.getAllInvitations(editingEvent!.id!);
-        print("📋 Preserved ${preservedInvitedPeople.length} invited users before update (PENDING + ACCEPTED)");
-      } catch (e) {
-        print("⚠️ Could not fetch current invited users: $e");
-      }
-
       // Parse date from locale-aware format
       final parsedDate = DateConverter.parseDate(dateController.text);
 
@@ -517,37 +508,16 @@ class CreateEventController extends GetxController {
       final success = headers?["status"] == "success";
 
       if (success && data != null) {
-        // Don't show snackbar here - it will be shown after inviting users
-
-        // 🔥 Use the preserved invited people (fetched BEFORE update)
-        // The update API response returns empty invitedPeople, which is a backend limitation
-        print("✅ Using ${preservedInvitedPeople.length} preserved invited users after update");
-
-        // Create event model with preserved invited people
-        final updatedEvent = EventModel(
-          id: data["id"],
-          title: data["title"],
-          description: data["description"],
-          eventDate: DateTime.parse(data["eventDate"]),
-          startTime: data["startTime"],
-          endTime: data["endTime"],
-          invitedPeople: preservedInvitedPeople,
-          timezone: data["timezone"] ?? timezoneName,
-          timezoneOffset: data["timezoneOffset"] ?? timezoneOffset,
+        // Show success message
+        showCustomSnackBar(
+          AppTexts.SHOOT_UPDATED,
+          SnackbarState.success,
         );
 
         clearForm();
 
-        // Navigate to invite users screen for reinviting with type-safe arguments
-        Get.off(
-          () {
-            // Initialize controller with fresh instance
-            Get.delete<InviteuserController>();
-            Get.put(InviteuserController());
-            return InviteuserView();
-          },
-          arguments: InviteUserArguments.update(updatedEvent, showNotification: true),
-        );
+        // Navigate to dashboard and clear the navigation stack
+        Get.offAllNamed(Routes.DASHBOARD);
       } else {
         showCustomSnackBar(
           AppTexts.FAILED_TO_UPDATE_SHOOT,

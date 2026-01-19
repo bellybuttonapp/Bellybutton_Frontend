@@ -43,13 +43,11 @@ class OnboardingView extends GetView<OnboardingController> {
 
                     /// Title & Subtitle
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: Dimensions.PADDING_SIZE_LARGE,
-                      ),
+                      padding: AppInsets.horizontalLg,
                       child: Column(
                         children: [
                           _buildTitle(size),
-                          const SizedBox(height: 12),
+                          AppGap.v12,
                           _buildSubtitle(size),
                         ],
                       ),
@@ -59,10 +57,7 @@ class OnboardingView extends GetView<OnboardingController> {
 
                     /// Bottom Button
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: Dimensions.PADDING_SIZE_LARGE,
-                        vertical: Dimensions.PADDING_SIZE_LARGE,
-                      ),
+                      padding: AppInsets.all20,
                       child: Obx(
                         () => global_button(
                           isLoading: controller.isLoading.value,
@@ -88,7 +83,7 @@ class OnboardingView extends GetView<OnboardingController> {
     return Text(
       AppTexts.ONBOARDING_TITLE1,
       textAlign: TextAlign.center,
-      style: customBoldText.copyWith(
+      style: AppText.headingLg.copyWith(
         color: AppColors.textColor3,
         fontSize: Dimensions.fontSizeLarge,
       ),
@@ -100,7 +95,7 @@ class OnboardingView extends GetView<OnboardingController> {
     return Text(
       AppTexts.ONBOARDING_SUBTITLE1,
       textAlign: TextAlign.center,
-      style: customBoldText.copyWith(
+      style: AppText.headingLg.copyWith(
         color: AppColors.tertiaryColor,
         fontSize: Dimensions.fontSizeSmall,
         fontWeight: FontWeight.normal,

@@ -55,7 +55,7 @@ class PremiumView extends GetView<PremiumController> {
                   children: [
                     Text(
                       AppTexts.PREMIUM_SUBTITLE,
-                      style: customBoldText.copyWith(
+                      style: AppText.headingLg.copyWith(
                         color: AppColors.textColor,
                         fontSize: screenWidth * 0.05,
                       ),
@@ -76,7 +76,7 @@ class PremiumView extends GetView<PremiumController> {
                             Expanded(
                               child: Text(
                                 benefit.text,
-                                style: customBoldText.copyWith(
+                                style: AppText.headingLg.copyWith(
                                   color: AppColors.tertiaryColor,
                                   fontSize: screenWidth * 0.045,
                                 ),
@@ -93,7 +93,7 @@ class PremiumView extends GetView<PremiumController> {
             SizedBox(height: screenHeight * 0.03),
             Text(
               AppTexts.PREMIUM_CHOOSE_PLAN,
-              style: customBoldText.copyWith(
+              style: AppText.headingLg.copyWith(
                 color: AppColors.textColor,
                 fontSize: screenWidth * 0.06,
               ),
@@ -132,7 +132,7 @@ class PremiumView extends GetView<PremiumController> {
             SizedBox(height: screenHeight * 0.03),
             Text(
               AppTexts.PREMIUM_CANCEL_ANYTIME,
-              style: customBoldText.copyWith(
+              style: AppText.headingLg.copyWith(
                 color: AppColors.tertiaryColor,
                 fontSize: screenWidth * 0.035,
               ),
@@ -185,7 +185,7 @@ class PremiumView extends GetView<PremiumController> {
             children: [
               Text(
                 label,
-                style: customBoldText.copyWith(
+                style: AppText.headingLg.copyWith(
                   fontSize: screenWidth * 0.035,
                   color:
                       isSelected ? Colors.blue.shade900 : Colors.grey.shade800,
@@ -195,7 +195,7 @@ class PremiumView extends GetView<PremiumController> {
               SizedBox(height: screenWidth * 0.03),
               Text(
                 price,
-                style: customBoldText.copyWith(
+                style: AppText.headingLg.copyWith(
                   fontSize: screenWidth * 0.045,
                   color:
                       isSelected ? Colors.blue.shade900 : Colors.grey.shade800,

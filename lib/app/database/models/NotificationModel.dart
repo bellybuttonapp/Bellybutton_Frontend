@@ -8,6 +8,8 @@ class NotificationModel {
   final String fullName;
   final String? profileImageUrl;
   final bool read;
+  final String? type; // Notification type for navigation (e.g., 'event_invite', 'photo_uploaded')
+  final int? eventId; // Associated event ID for navigation
 
   NotificationModel({
     required this.id,
@@ -17,6 +19,8 @@ class NotificationModel {
     required this.fullName,
     this.profileImageUrl,
     required this.read,
+    this.type,
+    this.eventId,
   });
 
   /// Parse UTC timestamp and store as UTC DateTime
@@ -31,6 +35,8 @@ class NotificationModel {
       fullName: json['fullName'] ?? '',
       profileImageUrl: json['profileImageUrl'],
       read: json['read'] ?? false,
+      type: json['type'],
+      eventId: json['eventId'],
     );
   }
 
@@ -70,6 +76,8 @@ class NotificationModel {
       'fullName': fullName,
       'profileImageUrl': profileImageUrl,
       'read': read,
+      'type': type,
+      'eventId': eventId,
     };
   }
 
@@ -81,6 +89,8 @@ class NotificationModel {
     String? fullName,
     String? profileImageUrl,
     bool? read,
+    String? type,
+    int? eventId,
   }) {
     return NotificationModel(
       id: id ?? this.id,
@@ -90,6 +100,8 @@ class NotificationModel {
       fullName: fullName ?? this.fullName,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       read: read ?? this.read,
+      type: type ?? this.type,
+      eventId: eventId ?? this.eventId,
     );
   }
 }

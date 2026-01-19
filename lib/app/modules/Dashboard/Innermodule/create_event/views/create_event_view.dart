@@ -13,7 +13,7 @@ import 'package:table_calendar/table_calendar.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/services/showcase_service.dart';
 import '../../../../../core/utils/themes/font_style.dart';
-import '../../../../../core/utils/themes/custom_color.g.dart';
+import '../../../../../core/utils/themes/dimensions.dart';
 import '../../../../../global_widgets/Button/global_button.dart';
 import '../../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../../../global_widgets/GlobalTextField/GlobalTextField.dart';
@@ -75,38 +75,39 @@ class CreateEventView extends GetView<CreateEventController> {
               isDarkMode
                   ? AppTheme.darkTheme.scaffoldBackgroundColor
                   : AppTheme.lightTheme.scaffoldBackgroundColor,
+          resizeToAvoidBottomInset: true,
           appBar: CustomAppBar(
             title: controller.isEditMode.value ? AppTexts.UPDATE_SHOOT : AppTexts.CREATE_SHOOT,
             onBackPressed: controller.discardChanges,
           ),
-        body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: SingleChildScrollView(
+        body: SingleChildScrollView(
+          padding: AppInsets.all16.copyWith(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+          ),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildTitleField(),
-                const SizedBox(height: 12),
+                AppGap.v12,
                 _buildDescriptionField(),
-                const SizedBox(height: 12),
+                AppGap.v12,
                 _buildDatePicker(size, isDarkMode),
-                const SizedBox(height: 12),
+                AppGap.v12,
                 _buildTimeRangePicker(context, isDarkMode),
-                const SizedBox(height: 12),
+                AppGap.v12,
                 Divider(
                   color:
                       isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300,
                   height: 32,
                 ),
-                const SizedBox(height: 12),
+                AppGap.v12,
                 _buildcreateeventButton(isDarkMode),
               ],
             ),
           ),
         ),
-      ),
         ),
       ),
     );
@@ -213,7 +214,7 @@ class CreateEventView extends GetView<CreateEventController> {
                 controller.showCalendar.value = !controller.showCalendar.value;
               },
             ),
-            const SizedBox(height: 8),
+            AppGap.v8,
             if (controller.showCalendar.value) _buildInlineCalendar(size, isDarkMode),
           ],
         ),
@@ -250,7 +251,7 @@ class CreateEventView extends GetView<CreateEventController> {
             border: Border.all(
               color: isDarkMode
                   ? Colors.grey[700]!.withOpacity(0.6)
-                  : gray_textfield.withOpacity(0.6),
+                  : AppColors.inputBorder.withOpacity(0.6),
             ),
             boxShadow: [
               BoxShadow(
@@ -264,7 +265,7 @@ class CreateEventView extends GetView<CreateEventController> {
           ),
           titleCentered: true,
           formatButtonVisible: false,
-          titleTextStyle: customBoldText.copyWith(
+          titleTextStyle: AppText.headingLg.copyWith(
             fontSize: size.height * 0.022,
             fontWeight: FontWeight.w600,
             color: isDarkMode ? Colors.white : AppColors.textColor,
@@ -353,12 +354,12 @@ class CreateEventView extends GetView<CreateEventController> {
         children: [
           Text(
             AppTexts.SET_TIME_RANGE,
-            style: customBoldText.copyWith(
+            style: AppText.headingLg.copyWith(
               fontSize: 16,
               color: isDarkMode ? Colors.white : AppColors.textColor,
             ),
           ),
-          const SizedBox(height: 8),
+          AppGap.v8,
           Row(
           children: [
             Expanded(
@@ -395,7 +396,7 @@ class CreateEventView extends GetView<CreateEventController> {
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            AppGap.h16,
             Expanded(
               child: Obx(
                 () => GlobalTextField(

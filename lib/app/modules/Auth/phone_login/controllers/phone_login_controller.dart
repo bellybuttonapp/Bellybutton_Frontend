@@ -8,12 +8,13 @@ import 'package:get/get.dart';
 import 'package:sms_autofill/sms_autofill.dart';
 
 import '../../../../Controllers/oauth.dart';
+import '../../../../api/PublicApiService.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_constant.dart';
 import '../../../../core/constants/app_texts.dart';
 import '../../../../core/utils/helpers/validation_utils.dart';
 import '../../../../core/utils/themes/font_style.dart';
 import '../../../../global_widgets/CustomBottomSheet/CustomBottomsheet.dart';
+import '../../../../global_widgets/CustomPopup/CustomPopup.dart';
 import '../../../../global_widgets/CustomSnackbar/CustomSnackbar.dart';
 import '../../../../global_widgets/GlobalTextField/GlobalTextField.dart';
 import '../../../../routes/app_pages.dart';
@@ -34,6 +35,7 @@ class PhoneLoginController extends GetxController {
   final isLoading = false.obs;
   var selectedCountry = Country.parse('US').obs;
   final filteredCountries = <Country>[].obs;
+  final termsAccepted = false.obs; // Terms & Conditions checkbox
 
   @override
   void onInit() {
@@ -120,6 +122,15 @@ class PhoneLoginController extends GetxController {
 
     if (phoneError.value != null) return;
 
+    // Check if terms accepted
+    if (!termsAccepted.value) {
+      showCustomSnackBar(
+        AppTexts.TERMS_ACCEPT_REQUIRED,
+        SnackbarState.error,
+      );
+      return;
+    }
+
     // Check connectivity
     final connectivityResult = await Connectivity().checkConnectivity();
     if (connectivityResult.contains(ConnectivityResult.none)) {
@@ -145,7 +156,7 @@ class PhoneLoginController extends GetxController {
         );
 
         // Navigate to OTP screen with phone number
-        Get.toNamed(
+        final navResult = await Get.toNamed(
           Routes.LOGIN_OTP,
           arguments: {
             'phone': result['phone'] ?? fullPhone, // Use phone from API response
@@ -153,6 +164,13 @@ class PhoneLoginController extends GetxController {
             'phoneNumber': phoneNumber,
           },
         );
+
+        // Clear phone field if user tapped "Change Number"
+        if (navResult == 'clear') {
+          phoneController.clear();
+          phoneError.value = null;
+          termsAccepted.value = false;
+        }
       } else {
         showCustomSnackBar(
           result['message'] ?? AppTexts.PHONE_LOGIN_OTP_FAILED,
@@ -168,6 +186,94 @@ class PhoneLoginController extends GetxController {
   }
 
   //----------------------------------------------------
+  // SHOW TERMS & CONDITIONS
+  //----------------------------------------------------
+  Future<void> showTermsDialog() async {
+    try {
+      // Hide keyboard before showing dialog to prevent overflow issues
+      hideKeyboard();
+
+      // Fetch terms without affecting the Send OTP button loading state
+      final resp = await PublicApiService().getTermsAndConditions();
+
+      if (resp["data"] != null || resp["content"] != null) {
+        final content = resp["data"]?["content"] ?? resp["content"] ?? "";
+        final isProcessing = false.obs;
+
+        // Strip HTML tags from content
+        final cleanContent = content.toString().replaceAll(RegExp(r'<[^>]*>'), '');
+
+        // Add small delay to ensure keyboard is dismissed
+        await Future.delayed(const Duration(milliseconds: 100));
+
+        Get.dialog(
+          CustomPopup(
+            title: AppTexts.TERMS_TITLE,
+            messageWidget: RichText(
+              text: TextSpan(
+                children: [
+                  WidgetSpan(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        // Calculate available height considering keyboard and screen size
+                        final screenHeight = MediaQuery.of(context).size.height;
+                        final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+                        final availableHeight = screenHeight - keyboardHeight;
+
+                        // Use 40% of available height, max 400px
+                        final maxHeight = (availableHeight * 0.4).clamp(200.0, 400.0);
+
+                        return Container(
+                          constraints: BoxConstraints(
+                            maxHeight: maxHeight,
+                            maxWidth: MediaQuery.of(context).size.width * 0.8,
+                          ),
+                          child: SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                              child: Text(
+                                cleanContent,
+                                style: AppText.labelLg.copyWith(
+                                  fontSize: 14,
+                                  color: AppColors.tertiaryColor,
+                                  height: 1.6,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            confirmText: AppTexts.TERMS_I_UNDERSTAND,
+            cancelText: null,
+            onConfirm: () => Get.back(),
+            isProcessing: isProcessing,
+            barrierDismissible: true,
+            confirmButtonColor: AppColors.primaryColor,
+          ),
+          barrierDismissible: true,
+        );
+      } else {
+        showCustomSnackBar(
+          AppTexts.TERMS_LOAD_ERROR,
+          SnackbarState.error,
+        );
+      }
+    } catch (e) {
+      print("showTermsDialog() error: $e");
+      showCustomSnackBar(
+        AppTexts.TERMS_LOAD_FAILED,
+        SnackbarState.error,
+      );
+    }
+  }
+
+  //----------------------------------------------------
   // HIDE KEYBOARD
   //----------------------------------------------------
   void hideKeyboard() {
@@ -178,9 +284,11 @@ class PhoneLoginController extends GetxController {
   // COUNTRY PICKER
   //----------------------------------------------------
   List<Country> _getAllowedCountries() {
+    // Only allow India and US
+    const allowedCodes = ['IN', 'US'];
     return CountryService()
         .getAll()
-        .where((c) => !AppConstants.BLOCKED_COUNTRY_CODES.contains(c.countryCode))
+        .where((c) => allowedCodes.contains(c.countryCode))
         .toList();
   }
 
@@ -210,7 +318,7 @@ class PhoneLoginController extends GetxController {
             padding: const EdgeInsets.all(16),
             child: Text(
               AppTexts.NO_COUNTRIES_FOUND,
-              style: customBoldText.copyWith(
+              style: AppText.headingLg.copyWith(
                 fontWeight: FontWeight.w500,
                 color: AppColors.primaryColor,
               ),
@@ -253,7 +361,7 @@ class PhoneLoginController extends GetxController {
                             ),
                             title: Text(
                               "${c.name} (+${c.phoneCode})",
-                              style: customBoldText.copyWith(
+                              style: AppText.headingLg.copyWith(
                                 fontWeight: FontWeight.w500,
                                 color: AppColors.textColor,
                               ),

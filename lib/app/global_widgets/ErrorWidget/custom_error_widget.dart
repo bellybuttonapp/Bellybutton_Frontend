@@ -51,7 +51,7 @@ class CustomErrorWidget extends StatelessWidget {
                 Text(
                   AppTexts.ERROR_TITLE,
                   textAlign: TextAlign.center,
-                  style: customBoldText.copyWith(
+                  style: AppText.headingLg.copyWith(
                     fontSize: size.width * 0.05,
                     color: isDark ? Colors.white : AppColors.textColor,
                   ),
@@ -63,7 +63,7 @@ class CustomErrorWidget extends StatelessWidget {
                 Text(
                   message ?? AppTexts.ERROR_DEFAULT_MESSAGE,
                   textAlign: TextAlign.center,
-                  style: customTextNormal.copyWith(
+                  style: AppText.bodyMd.copyWith(
                     fontSize: size.width * 0.035,
                     color: isDark ? Colors.grey.shade400 : AppColors.tertiaryColor,
                   ),
@@ -78,7 +78,7 @@ class CustomErrorWidget extends StatelessWidget {
                     icon: const Icon(Icons.refresh, color: Colors.white),
                     label: Text(
                       AppTexts.ERROR_TRY_AGAIN,
-                      style: customBoldText.copyWith(
+                      style: AppText.headingLg.copyWith(
                         color: Colors.white,
                         fontSize: size.width * 0.04,
                       ),
@@ -131,7 +131,7 @@ class MinimalErrorWidget extends StatelessWidget {
             Text(
               message ?? AppTexts.ERROR_MINIMAL_MESSAGE,
               textAlign: TextAlign.center,
-              style: customTextNormal.copyWith(
+              style: AppText.bodyMd.copyWith(
                 fontSize: 14,
                 color: AppColors.tertiaryColor,
               ),

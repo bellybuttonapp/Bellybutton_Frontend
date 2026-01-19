@@ -9,6 +9,7 @@ import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_texts.dart';
 import '../../../core/utils/themes/font_style.dart';
+import '../../../core/utils/themes/dimensions.dart';
 import '../../../core/utils/storage/preference.dart';
 import '../../../global_widgets/Button/global_button.dart';
 import '../../../global_widgets/Shimmers/ProfileHeaderShimmer.dart';
@@ -183,7 +184,7 @@ class ProfileView extends GetView<ProfileController> {
                                   maxLines: 1,
                                   minFontSize: 12,
                                   overflow: TextOverflow.ellipsis,
-                                  style: customBoldText.copyWith(
+                                  style: AppText.headingLg.copyWith(
                                     fontSize: screenWidth * 0.045,
                                   ),
                                 ),
@@ -193,7 +194,7 @@ class ProfileView extends GetView<ProfileController> {
                               phone.isNotEmpty ? phone : "-",
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: customBoldText.copyWith(
+                              style: AppText.headingLg.copyWith(
                                 fontSize: screenWidth * 0.035,
                                 color: AppColors.tertiaryColor,
                               ),
@@ -232,7 +233,7 @@ class ProfileView extends GetView<ProfileController> {
                             ),
                             title: Text(
                               AppTexts.AUTO_SYNC_SETTINGS,
-                              style: customBoldText.copyWith(
+                              style: AppText.headingLg.copyWith(
                                 fontSize: screenWidth * 0.035,
                                 color: isDark ? Colors.white : Colors.black,
                               ),
@@ -298,7 +299,7 @@ class _SectionDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: width * 0.04, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: width * 0.04, vertical: Dimensions.spacing4),
       child: const Divider(height: 1, thickness: 0.5),
     );
   }
@@ -335,7 +336,7 @@ class _ProfileMenuTile extends StatelessWidget {
         ),
         title: Text(
           title,
-          style: customBoldText.copyWith(
+          style: AppText.headingLg.copyWith(
             fontSize: width * 0.035,
             color: titleColor ?? Colors.black,
           ),

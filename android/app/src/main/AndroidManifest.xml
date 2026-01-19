@@ -2,7 +2,8 @@
 
     <!-- Notifications + Alarm (Required for scheduled notification / terminated mode) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
     <!-- CAMERA -->
     <uses-permission android:name="android.permission.CAMERA" />
@@ -16,8 +17,8 @@
     <uses-permission android:name="android.permission.WRITE_CONTACTS" />
 
     <!-- STORAGE (deprecated after Android 13, but safe for older devices) -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" /> <!-- Android 11+ -->
 
     <!-- NEW ANDROID 13+ PERMISSIONS -->

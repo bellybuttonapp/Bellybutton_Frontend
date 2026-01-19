@@ -32,31 +32,31 @@ class EmptyJobsPlaceholder extends StatelessWidget {
 
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
+        padding: AppInsets.horizontalLg,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
             if (imagePath != null) ...[
               _buildImage(size),
-              SizedBox(height: size.height * 0.025),
+              AppGap.v20,
             ],
 
             if (title != null) ...[
               Text(
                 title!,
-                style: customBoldText.copyWith(
+                style: AppText.headingLg.copyWith(
                   color: AppColors.textColor,
                   fontSize: size.width * 0.05,
                 ),
               ),
-              SizedBox(height: size.height * 0.015),
+              AppGap.v12,
             ],
 
             Text(
               description,
               textAlign: TextAlign.center,
-              style: customBoldText.copyWith(
+              style: AppText.headingLg.copyWith(
                 color: AppColors.textColor2,
                 fontSize: size.width * 0.04,
               ),

@@ -127,8 +127,8 @@ class InviteuserView extends GetView<InviteuserController> {
                           body = const SizedBox.shrink();
                         } else if (mode == LoadStatus.failed) {
                           body = Text(
-                            'Load failed, tap to retry',
-                            style: customBoldText.copyWith(color: Colors.grey),
+                            AppTexts.LOAD_FAILED_TAP_RETRY,
+                            style: AppText.headingLg.copyWith(color: Colors.grey),
                           );
                         } else {
                           body = const SizedBox.shrink();
@@ -212,7 +212,7 @@ class InviteuserView extends GetView<InviteuserController> {
               size: 14,
               color: progressColor,
             ),
-            const SizedBox(width: 8),
+            AppGap.h8,
             Expanded(
               child: Stack(
                 children: [
@@ -236,7 +236,7 @@ class InviteuserView extends GetView<InviteuserController> {
                 ],
               ),
             ),
-            const SizedBox(width: 8),
+            AppGap.h8,
             Text(
               "$total/4",
               style: TextStyle(
@@ -247,7 +247,7 @@ class InviteuserView extends GetView<InviteuserController> {
               ),
             ),
             if (isLimitReached) ...[
-              const SizedBox(width: 6),
+              AppGap.h6,
               Icon(
                 Icons.warning_rounded,
                 size: 14,
@@ -268,7 +268,7 @@ class InviteuserView extends GetView<InviteuserController> {
 
     // Determine badge text and icon based on flow
     final badgeText = controller.isReinviteFlow.value
-        ? "Reinviting Crew"
+        ? AppTexts.REINVITING_CREW
         : AppTexts.UPDATING_SHOOT_BADGE;
     final badgeIcon = controller.isReinviteFlow.value
         ? Icons.group_add_outlined
@@ -299,7 +299,7 @@ class InviteuserView extends GetView<InviteuserController> {
                 ),
                 child: Text(
                   badgeText,
-                  style: customBoldText.copyWith(
+                  style: AppText.headingLg.copyWith(
                     fontSize: 11,
                     color: Colors.white,
                   ),
@@ -313,10 +313,10 @@ class InviteuserView extends GetView<InviteuserController> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          AppGap.v8,
           Text(
             event.title,
-            style: customBoldText.copyWith(
+            style: AppText.headingLg.copyWith(
               fontSize: isSmallScreen ? 14 : 16,
               color: isDark ? Colors.white : AppColors.textColor,
             ),
@@ -326,10 +326,10 @@ class InviteuserView extends GetView<InviteuserController> {
           if (event.description.isNotEmpty &&
               event.description.toLowerCase() != 'active' &&
               event.description.toLowerCase() != 'inactive') ...[
-            const SizedBox(height: 4),
+            AppGap.v4,
             Text(
               event.description,
-              style: customTextNormal.copyWith(
+              style: AppText.bodyMd.copyWith(
                 fontSize: isSmallScreen ? 12 : 13,
                 color: isDark ? Colors.white70 : AppColors.textColor.withOpacity(0.7),
               ),
@@ -337,7 +337,7 @@ class InviteuserView extends GetView<InviteuserController> {
               overflow: TextOverflow.ellipsis,
             ),
           ],
-          const SizedBox(height: 8),
+          AppGap.v8,
           Row(
             children: [
               Icon(
@@ -345,11 +345,11 @@ class InviteuserView extends GetView<InviteuserController> {
                 size: 14,
                 color: isDark ? Colors.white60 : AppColors.textColor.withOpacity(0.6),
               ),
-              const SizedBox(width: 6),
+              AppGap.h6,
               Expanded(
                 child: Text(
                   "${event.getLocalDateString()} • ${event.getLocalTimeRangeString()}",
-                  style: customTextNormal.copyWith(
+                  style: AppText.bodyMd.copyWith(
                     fontSize: 12,
                     color: isDark ? Colors.white60 : AppColors.textColor.withOpacity(0.6),
                   ),
@@ -378,7 +378,7 @@ class InviteuserView extends GetView<InviteuserController> {
         controller: controller.searchController,
         hintText: AppTexts.SEARCH_BY_NAME_OR_NUMBER,
         prefixIcon: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: AppInsets.all12,
           child: SvgPicture.asset(AppImages.SEARCH, width: 22),
         ),
         onChanged: controller.validateSearch,
@@ -408,15 +408,15 @@ class InviteuserView extends GetView<InviteuserController> {
                   size: 18,
                   color: isDark ? Colors.white70 : Colors.grey[700],
                 ),
-                const SizedBox(width: 8),
+                AppGap.h8,
                 Text(
-                  "Camera Crew",
-                  style: customBoldText.copyWith(
+                  AppTexts.CAMERA_CREW,
+                  style: AppText.headingLg.copyWith(
                     fontSize: Dimensions.fontSizeDefault,
                     color: isDark ? Colors.white : Colors.grey[800],
                   ),
                 ),
-                const SizedBox(width: 8),
+                AppGap.h8,
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
@@ -459,7 +459,7 @@ class InviteuserView extends GetView<InviteuserController> {
                             backgroundColor: Colors.grey.withOpacity(0.3),
                             child: Text(
                               initial,
-                              style: customBoldText.copyWith(
+                              style: AppText.headingLg.copyWith(
                                 fontSize: Dimensions.fontSizeSmall,
                                 color: Colors.grey[700],
                               ),
@@ -469,7 +469,7 @@ class InviteuserView extends GetView<InviteuserController> {
                             backgroundColor: Colors.grey.withOpacity(0.3),
                             child: Text(
                               initial,
-                              style: customBoldText.copyWith(
+                              style: AppText.headingLg.copyWith(
                                 fontSize: Dimensions.fontSizeSmall,
                                 color: Colors.grey[700],
                               ),
@@ -481,7 +481,7 @@ class InviteuserView extends GetView<InviteuserController> {
                         backgroundColor: Colors.grey.withOpacity(0.3),
                         child: Text(
                           initial,
-                          style: customBoldText.copyWith(
+                          style: AppText.headingLg.copyWith(
                             fontSize: Dimensions.fontSizeSmall,
                             color: Colors.grey[700],
                           ),
@@ -489,7 +489,7 @@ class InviteuserView extends GetView<InviteuserController> {
                       ),
                 label: Text(
                   displayName,
-                  style: customBoldText.copyWith(color: Colors.grey[700]),
+                  style: AppText.headingLg.copyWith(color: Colors.grey[700]),
                 ),
                 deleteIcon: controller.isRemovingUser.value
                     ? const Global_Loader(size: 16, strokeWidth: 2)
@@ -506,7 +506,7 @@ class InviteuserView extends GetView<InviteuserController> {
               );
             }).toList(),
           ),
-          const SizedBox(height: 12),
+          AppGap.v12,
         ],
       );
     });
@@ -558,15 +558,15 @@ class InviteuserView extends GetView<InviteuserController> {
                 color: isDark ? Colors.white70 : AppColors.primaryColor,
               ),
             ),
-            const SizedBox(width: 10),
+            AppGap.h10,
             Text(
-              "Available Contacts",
-              style: customBoldText.copyWith(
+              AppTexts.AVAILABLE_CONTACTS,
+              style: AppText.headingLg.copyWith(
                 fontSize: Dimensions.fontSizeLarge,
                 color: isDark ? Colors.white70 : AppColors.textColor,
               ),
             ),
-            const SizedBox(width: 8),
+            AppGap.h8,
             Expanded(
               child: Container(
                 height: 1,
@@ -606,15 +606,15 @@ class InviteuserView extends GetView<InviteuserController> {
                   size: 18,
                   color: AppColors.primaryColor,
                 ),
-                const SizedBox(width: 8),
+                AppGap.h8,
                 Text(
-                  "Add to Crew",
-                  style: customBoldText.copyWith(
+                  AppTexts.ADD_TO_CREW,
+                  style: AppText.headingLg.copyWith(
                     fontSize: Dimensions.fontSizeDefault,
                     color: isDark ? Colors.white : AppColors.textColor,
                   ),
                 ),
-                const SizedBox(width: 8),
+                AppGap.h8,
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
@@ -650,16 +650,16 @@ class InviteuserView extends GetView<InviteuserController> {
                       ? null
                       : Text(
                           displayName[0].toUpperCase(),
-                          style: customBoldText,
+                          style: AppText.headingLg,
                         ),
                 ),
-                label: Text(displayName, style: customBoldText),
+                label: Text(displayName, style: AppText.headingLg),
                 deleteIcon: SvgPicture.asset(AppImages.CLOSE),
                 onDeleted: () => controller.toggleUserSelection(contact),
               );
             }).toList(),
           ),
-          const SizedBox(height: 12),
+          AppGap.v12,
         ],
       );
     });
@@ -688,10 +688,10 @@ class InviteuserView extends GetView<InviteuserController> {
                   size: 48,
                   color: Colors.grey[400],
                 ),
-                const SizedBox(height: 12),
+                AppGap.v12,
                 Text(
                   controller.contactsPermissionError.value,
-                  style: customBoldText.copyWith(
+                  style: AppText.headingLg.copyWith(
                     fontSize: Dimensions.fontSizeLarge,
                     color: Colors.grey,
                   ),
@@ -709,7 +709,7 @@ class InviteuserView extends GetView<InviteuserController> {
           hasScrollBody: false,
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.all(24),
+              padding: AppInsets.all24,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -729,22 +729,22 @@ class InviteuserView extends GetView<InviteuserController> {
                           : AppColors.primaryColor.withOpacity(0.6),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  AppGap.v20,
                   Text(
                     controller.searchQuery.value.isEmpty
                         ? "No Contacts Yet"
                         : "No Matching Contacts",
-                    style: customBoldText.copyWith(
+                    style: AppText.headingLg.copyWith(
                       fontSize: Dimensions.fontSizeOverLarge,
                       color: isDark ? Colors.white : AppColors.textColor,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  AppGap.v12,
                   Text(
                     controller.searchQuery.value.isEmpty
                         ? "Add contacts to your phone to build\nyour camera crew for shoots."
                         : "No contacts found matching\n\"${controller.searchQuery.value}\"",
-                    style: customTextNormal.copyWith(
+                    style: AppText.bodyMd.copyWith(
                       fontSize: Dimensions.fontSizeDefault,
                       color: isDark
                           ? Colors.white60
@@ -753,7 +753,7 @@ class InviteuserView extends GetView<InviteuserController> {
                     textAlign: TextAlign.center,
                   ),
                   if (controller.searchQuery.value.isNotEmpty) ...[
-                    const SizedBox(height: 20),
+                    AppGap.v20,
                     TextButton.icon(
                       onPressed: () {
                         controller.searchController.clear();
@@ -848,10 +848,10 @@ class InviteuserView extends GetView<InviteuserController> {
               ? null
               : Text(
                   displayName[0].toUpperCase(),
-                  style: customBoldText,
+                  style: AppText.headingLg,
                 ),
         ),
-        title: Text(displayName, style: customBoldText),
+        title: Text(displayName, style: AppText.headingLg),
         trailing: Checkbox(
           value: isSelected,
           activeColor: AppColors.primaryColor,

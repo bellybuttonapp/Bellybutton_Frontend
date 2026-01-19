@@ -1,7 +1,6 @@
 // ignore_for_file: annotate_overrides, deprecated_member_use
 
 import 'dart:io';
-import 'package:adaptive_scrollbar/adaptive_scrollbar.dart';
 import 'package:bellybutton/app/global_widgets/custom_app_bar/custom_app_bar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -10,200 +9,238 @@ import 'package:intl/intl.dart';
 import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_images.dart';
 import '../../../core/constants/app_texts.dart';
 import '../../../core/utils/index.dart';
 import '../../../database/models/NotificationModel.dart';
-import '../../../global_widgets/EmptyJobsPlaceholder/EmptyJobsPlaceholder.dart';
 import '../../../global_widgets/Shimmers/NotificationShimmer.dart';
 import '../../../global_widgets/loader/global_loader.dart';
 import '../controllers/notifications_controller.dart';
 
-class NotificationsView extends GetView<NotificationsController> {
-  final NotificationsController controller = Get.put(NotificationsController());
-  NotificationsView({super.key});
+class NotificationsView extends StatelessWidget {
+  NotificationsView({super.key})
+      : controller = Get.put(
+          NotificationsController(),
+          tag: 'notifications_${DateTime.now().millisecondsSinceEpoch}',
+        );
+
+  final NotificationsController controller;
 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final size = MediaQuery.of(context).size;
 
+    final c = controller;
+
     return Scaffold(
-      backgroundColor:
-          isDarkMode
-              ? AppTheme.darkTheme.scaffoldBackgroundColor
-              : AppTheme.lightTheme.scaffoldBackgroundColor,
+      backgroundColor: isDarkMode
+          ? AppTheme.darkTheme.scaffoldBackgroundColor
+          : AppTheme.lightTheme.scaffoldBackgroundColor,
       appBar: CustomAppBar(title: AppTexts.NOTIFICATION),
       body: Obx(() {
-        if (controller.isLoading.value && controller.notifications.isEmpty) {
+        if (c.isLoading.value && c.notifications.isEmpty) {
           return const NotificationShimmer(count: 5);
         }
 
-        if (!controller.hasNotifications) {
-          return SmartRefresher(
-            controller: controller.refreshController,
-            enablePullDown: true,
-            onRefresh: controller.refreshNotifications,
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: EmptyJobsPlaceholder(
-                      imagePath: AppImages.OBJECT,
-                      title: AppTexts.NO_NOTIFICATION,
-                      description: AppTexts.NOTIFICATION_SUBTITLE,
-                      isLoading: controller.isLoading,
-                      buttonText: AppTexts.GO_BACK,
-                      onButtonTap: controller.goToBack,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return _buildNotificationList(context, isDarkMode, size);
+        return _buildNotificationList(context, isDarkMode, size, c);
       }),
     );
   }
 
-  Widget _buildNotificationList(BuildContext context, bool isDarkMode, Size size) {
-    return AdaptiveScrollbar(
-      controller: controller.scrollController,
-      position: ScrollbarPosition.right,
-      width: 10,
-      sliderSpacing: const EdgeInsets.symmetric(vertical: 6),
-      sliderDefaultColor: AppColors.primaryColor,
-      sliderActiveColor: AppColors.primaryColor.withOpacity(0.8),
-      underColor: isDarkMode
-          ? Colors.white.withOpacity(0.05)
-          : Colors.black.withOpacity(0.05),
-      sliderHeight: 100,
-      child: SmartRefresher(
-        controller: controller.refreshController,
-        enablePullDown: true,
-        onRefresh: controller.refreshNotifications,
-        child: CustomScrollView(
+  Widget _buildNotificationList(
+    BuildContext context,
+    bool isDarkMode,
+    Size size,
+    NotificationsController controller,
+  ) {
+    return SmartRefresher(
+      controller: controller.refreshController,
+      enablePullDown: true,
+      enablePullUp: true,
+      onRefresh: controller.refreshNotifications,
+      onLoading: controller.loadMoreNotifications,
+      footer: CustomFooter(
+        builder: (context, mode) {
+          Widget body;
+          if (mode == LoadStatus.loading) {
+            body = const NotificationShimmer(count: 2);
+          } else if (mode == LoadStatus.noMore) {
+            body = const SizedBox.shrink();
+          } else if (mode == LoadStatus.failed) {
+            body = Text(
+              AppTexts.LOAD_FAILED_TAP_RETRY,
+              style: AppText.bodySm.copyWith(color: AppColors.textColor2),
+            );
+          } else {
+            body = const SizedBox.shrink();
+          }
+          return Padding(
+            padding: AppInsets.verticalSm,
+            child: body,
+          );
+        },
+      ),
+      child: Obx(() {
+        final hasToday = controller.todayNotifications.isNotEmpty;
+        final hasYesterday = controller.yesterdayNotifications.isNotEmpty;
+        final hasOlder = controller.olderNotifications.isNotEmpty;
+        final hasAny = hasToday || hasYesterday || hasOlder;
+
+        return CustomScrollView(
           controller: controller.scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            // Today section
-            if (controller.todayNotifications.isNotEmpty) ...[
-              SliverPadding(
-                padding: EdgeInsets.only(
-                  left: size.width * 0.05,
-                  right: size.width * 0.05,
-                  top: size.height * 0.02,
-                ),
-                sliver: SliverToBoxAdapter(
-                  child: _buildSectionHeader(
-                    'Today',
-                    isDarkMode,
-                    size,
-                  ),
-                ),
+            // Empty state
+            if (!hasAny)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: _buildEmptyState(isDarkMode, size),
               ),
-              SliverPadding(
-                padding: EdgeInsets.symmetric(horizontal: size.width * 0.05),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => _buildNotificationItem(
-                      controller.todayNotifications[index],
-                      isDarkMode,
-                      size,
-                    ),
-                    childCount: controller.todayNotifications.length,
-                  ),
-                ),
+
+            // Today section
+            if (hasToday) ...[
+              _buildSectionHeader(AppTexts.NOTIFICATION_TODAY, isDarkMode, size),
+              _buildNotificationSection(
+                controller.todayNotifications,
+                isDarkMode,
+                size,
+                controller,
               ),
             ],
 
             // Yesterday section
-            if (controller.yesterdayNotifications.isNotEmpty) ...[
-              SliverPadding(
-                padding: EdgeInsets.only(
-                  left: size.width * 0.05,
-                  right: size.width * 0.05,
-                  top: size.height * 0.02,
-                ),
-                sliver: SliverToBoxAdapter(
-                  child: _buildSectionHeader(
-                    'Yesterday',
-                    isDarkMode,
-                    size,
-                  ),
-                ),
-              ),
-              SliverPadding(
-                padding: EdgeInsets.symmetric(horizontal: size.width * 0.05),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => _buildNotificationItem(
-                      controller.yesterdayNotifications[index],
-                      isDarkMode,
-                      size,
-                    ),
-                    childCount: controller.yesterdayNotifications.length,
-                  ),
-                ),
+            if (hasYesterday) ...[
+              _buildSectionHeader(AppTexts.NOTIFICATION_YESTERDAY, isDarkMode, size),
+              _buildNotificationSection(
+                controller.yesterdayNotifications,
+                isDarkMode,
+                size,
+                controller,
               ),
             ],
 
             // Older section
-            if (controller.olderNotifications.isNotEmpty) ...[
-              SliverPadding(
-                padding: EdgeInsets.only(
-                  left: size.width * 0.05,
-                  right: size.width * 0.05,
-                  top: size.height * 0.02,
-                ),
-                sliver: SliverToBoxAdapter(
-                  child: _buildSectionHeader(
-                    'Earlier',
-                    isDarkMode,
-                    size,
-                  ),
-                ),
-              ),
-              SliverPadding(
-                padding: EdgeInsets.only(
-                  left: size.width * 0.05,
-                  right: size.width * 0.05,
-                  bottom: size.height * 0.02,
-                ),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => _buildNotificationItem(
-                      controller.olderNotifications[index],
-                      isDarkMode,
-                      size,
-                    ),
-                    childCount: controller.olderNotifications.length,
-                  ),
-                ),
+            if (hasOlder) ...[
+              _buildSectionHeader(AppTexts.NOTIFICATION_EARLIER, isDarkMode, size),
+              _buildNotificationSection(
+                controller.olderNotifications,
+                isDarkMode,
+                size,
+                controller,
+                isLast: !controller.hasMoreNotifications.value,
               ),
             ],
+
+            // Loading more indicator at bottom
+            if (controller.hasMoreNotifications.value)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: size.height * 0.02),
+                  child: Center(
+                    child: Text(
+                      'Pull up to load more',
+                      style: AppText.bodySm.copyWith(
+                        color: isDarkMode ? Colors.white38 : AppColors.textColor2,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      }),
+    );
+  }
+
+  Widget _buildEmptyState(bool isDarkMode, Size size) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(size.width * 0.08),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.notifications_none_rounded,
+              size: size.width * 0.2,
+              color: isDarkMode ? Colors.white24 : Colors.grey.shade300,
+            ),
+            SizedBox(height: size.height * 0.02),
+            Text(
+              AppTexts.NO_NOTIFICATION,
+              style: AppText.titleMd.copyWith(
+                fontSize: 18,
+                color: isDarkMode ? Colors.white70 : AppColors.textColor,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: size.height * 0.01),
+            Text(
+              AppTexts.NOTIFICATION_SUBTITLE,
+              style: AppText.bodyMd.copyWith(
+                fontSize: 14,
+                color: isDarkMode ? Colors.white38 : AppColors.textColor2,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSectionHeader(
-    String title,
+  Widget _buildSectionHeader(String title, bool isDarkMode, Size size) {
+    return SliverToBoxAdapter(
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(
+          horizontal: size.width * 0.04,
+          vertical: size.height * 0.012,
+        ),
+        decoration: BoxDecoration(
+          color: isDarkMode
+              ? Colors.white.withOpacity(0.03)
+              : Colors.grey.shade100,
+          border: Border(
+            bottom: BorderSide(
+              color: isDarkMode
+                  ? Colors.white.withOpacity(0.08)
+                  : Colors.grey.shade200,
+              width: 0.5,
+            ),
+          ),
+        ),
+        child: Text(
+          title,
+          style: AppText.titleMd.copyWith(
+            fontSize: 13,
+            color: isDarkMode ? Colors.white60 : AppColors.textColor2,
+            letterSpacing: 0.3,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotificationSection(
+    List<NotificationModel> notifications,
     bool isDarkMode,
     Size size,
-  ) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: size.height * 0.015),
-      child: Text(
-        title,
-        style: customSemiBoldText.copyWith(
-          color: isDarkMode ? Colors.white70 : AppColors.textColor2,
-        ),
+    NotificationsController controller, {
+    bool isLast = false,
+  }) {
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          final isLastItem = index == notifications.length - 1;
+          return _buildNotificationItem(
+            notifications[index],
+            isDarkMode,
+            size,
+            controller,
+            showDivider: !isLastItem || !isLast,
+          );
+        },
+        childCount: notifications.length,
       ),
     );
   }
@@ -212,74 +249,159 @@ class NotificationsView extends GetView<NotificationsController> {
     NotificationModel notification,
     bool isDarkMode,
     Size size,
-  ) {
-    return Container(
-        margin: EdgeInsets.only(bottom: size.height * 0.015),
-        padding: EdgeInsets.all(size.width * 0.04),
-        decoration: BoxDecoration(
-        color:
-            isDarkMode
-                ? Colors.white.withOpacity(0.05)
-                : Colors.grey.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(size.width * 0.03),
-        border:
-            !notification.read
-                ? Border.all(
-                    color: AppColors.primaryColor.withOpacity(0.3),
-                    width: 1,
-                  )
-                : null,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Notification indicator (blue dot for unread)
-          if (!notification.read)
-            Container(
-              width: size.width * 0.025,
-              height: size.width * 0.025,
-              margin: EdgeInsets.only(
-                top: size.height * 0.005,
-                right: size.width * 0.03,
+    NotificationsController controller, {
+    bool showDivider = true,
+  }) {
+    // Unread: primaryColor tinted background, Read: transparent
+    final backgroundColor = notification.read
+        ? Colors.transparent
+        : (isDarkMode
+            ? AppColors.primaryColor.withOpacity(0.12)
+            : AppColors.primaryColor.withOpacity(0.08));
+
+    // Time color based on read status
+    final timeColor = notification.read
+        ? (isDarkMode ? Colors.white30 : AppColors.tertiaryColor)
+        : (isDarkMode ? Colors.white54 : AppColors.textColor2);
+
+    return Material(
+      color: backgroundColor,
+      child: InkWell(
+        onTap: () => controller.onNotificationTap(notification),
+        splashColor: AppColors.primaryColor.withOpacity(0.1),
+        highlightColor: AppColors.primaryColor.withOpacity(0.05),
+        child: Column(
+          children: [
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: size.width * 0.04,
+                vertical: size.height * 0.016,
               ),
-              decoration: const BoxDecoration(
-                color: AppColors.primaryColor,
-                shape: BoxShape.circle,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Unread indicator dot
+                  if (!notification.read)
+                    Container(
+                      width: 8,
+                      height: 8,
+                      margin: EdgeInsets.only(
+                        top: size.height * 0.008,
+                        right: size.width * 0.025,
+                      ),
+                      decoration: const BoxDecoration(
+                        color: AppColors.primaryColor,
+                        shape: BoxShape.circle,
+                      ),
+                    )
+                  else
+                    SizedBox(width: size.width * 0.055),
+
+                  // Profile avatar
+                  _buildProfileAvatar(notification, isDarkMode, size),
+
+                  SizedBox(width: size.width * 0.03),
+
+                  // Content
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Message with name highlighted
+                        RichText(
+                          text: TextSpan(
+                            children: _buildMessageSpans(
+                              notification,
+                              isDarkMode,
+                              isRead: notification.read,
+                            ),
+                          ),
+                        ),
+
+                        SizedBox(height: size.height * 0.006),
+
+                        // Time
+                        Text(
+                          _formatNotificationTime(notification),
+                          style: AppText.bodySm.copyWith(
+                            fontSize: 12,
+                            color: timeColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            )
-          else
-            SizedBox(width: size.width * 0.055),
-
-          // Profile avatar with caching
-          _buildProfileAvatar(notification, isDarkMode, size),
-
-          SizedBox(width: size.width * 0.035),
-
-          // Notification content
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  notification.message,
-                  style: (notification.read ? customTextNormal : customMediumText).copyWith(
-                    color: isDarkMode ? Colors.white : AppColors.textColor,
-                    height: 1.4,
-                  ),
-                ),
-                SizedBox(height: size.height * 0.008),
-                Text(
-                  _formatNotificationTime(notification),
-                  style: customTextSmall.copyWith(
-                    color: isDarkMode ? Colors.white54 : AppColors.textColor2,
-                  ),
-                ),
-              ],
             ),
-          ),
-        ],
+
+            // Divider
+            if (showDivider)
+              Divider(
+                height: 1,
+                thickness: 0.5,
+                indent: size.width * 0.17,
+                color: isDarkMode
+                    ? Colors.white.withOpacity(0.08)
+                    : Colors.grey.shade200,
+              ),
+          ],
+        ),
       ),
     );
+  }
+
+  List<TextSpan> _buildMessageSpans(
+    NotificationModel notification,
+    bool isDarkMode, {
+    bool isRead = false,
+  }) {
+    final message = notification.message;
+    final fullName = notification.fullName;
+
+    // Colors based on read status
+    final nameColor = isRead
+        ? (isDarkMode ? Colors.white70 : AppColors.textColor2)
+        : (isDarkMode ? Colors.white : AppColors.textColor);
+
+    final textColor = isRead
+        ? (isDarkMode ? Colors.white54 : AppColors.tertiaryColor)
+        : (isDarkMode ? Colors.white.withOpacity(0.85) : AppColors.textColor);
+
+    // Style for the name (bold)
+    final nameStyle = AppText.labelLg.copyWith(
+      fontSize: 14,
+      color: nameColor,
+      fontWeight: isRead ? FontWeight.w500 : FontWeight.w600,
+      height: 1.4,
+    );
+
+    // Style for the rest of the message
+    final messageStyle = AppText.bodyMd.copyWith(
+      fontSize: 14,
+      color: textColor,
+      height: 1.4,
+    );
+
+    // If the message contains the full name, highlight it
+    if (fullName.isNotEmpty && message.contains(fullName)) {
+      final parts = message.split(fullName);
+      final spans = <TextSpan>[];
+
+      for (int i = 0; i < parts.length; i++) {
+        if (parts[i].isNotEmpty) {
+          spans.add(TextSpan(text: parts[i], style: messageStyle));
+        }
+        if (i < parts.length - 1) {
+          spans.add(TextSpan(text: fullName, style: nameStyle));
+        }
+      }
+
+      return spans;
+    }
+
+    // Fallback: just return the message as is
+    return [TextSpan(text: message, style: messageStyle)];
   }
 
   Widget _buildProfileAvatar(
@@ -287,19 +409,23 @@ class NotificationsView extends GetView<NotificationsController> {
     bool isDarkMode,
     Size size,
   ) {
-    final radius = size.width * 0.065;
-    final iconSize = size.width * 0.07;
-    final bgColor = isDarkMode ? Colors.grey.shade700 : Colors.grey.shade300;
-    final iconColor = isDarkMode ? Colors.white70 : Colors.grey.shade600;
+    final avatarSize = size.width * 0.12;
+    final iconSize = size.width * 0.06;
+    final bgColor = isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200;
+    final iconColor = isDarkMode ? Colors.white54 : Colors.grey.shade500;
     final imageUrl = notification.profileImageUrl?.trim();
 
     // No image URL
     if (imageUrl == null || imageUrl.isEmpty) {
-      return CircleAvatar(
-        radius: radius,
-        backgroundColor: bgColor,
+      return Container(
+        width: avatarSize,
+        height: avatarSize,
+        decoration: BoxDecoration(
+          color: bgColor,
+          shape: BoxShape.circle,
+        ),
         child: Icon(
-          Icons.person,
+          Icons.person_outline_rounded,
           size: iconSize,
           color: iconColor,
         ),
@@ -310,17 +436,27 @@ class NotificationsView extends GetView<NotificationsController> {
     if (!imageUrl.startsWith('http')) {
       final file = File(imageUrl);
       if (file.existsSync()) {
-        return CircleAvatar(
-          radius: radius,
-          backgroundColor: bgColor,
-          backgroundImage: FileImage(file),
+        return Container(
+          width: avatarSize,
+          height: avatarSize,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            image: DecorationImage(
+              image: FileImage(file),
+              fit: BoxFit.cover,
+            ),
+          ),
         );
       }
-      return CircleAvatar(
-        radius: radius,
-        backgroundColor: bgColor,
+      return Container(
+        width: avatarSize,
+        height: avatarSize,
+        decoration: BoxDecoration(
+          color: bgColor,
+          shape: BoxShape.circle,
+        ),
         child: Icon(
-          Icons.person,
+          Icons.person_outline_rounded,
           size: iconSize,
           color: iconColor,
         ),
@@ -330,24 +466,38 @@ class NotificationsView extends GetView<NotificationsController> {
     // Network image with caching
     return CachedNetworkImage(
       imageUrl: imageUrl,
-      imageBuilder: (context, imageProvider) => CircleAvatar(
-        radius: radius,
-        backgroundColor: bgColor,
-        backgroundImage: imageProvider,
+      imageBuilder: (context, imageProvider) => Container(
+        width: avatarSize,
+        height: avatarSize,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          image: DecorationImage(
+            image: imageProvider,
+            fit: BoxFit.cover,
+          ),
+        ),
       ),
-      placeholder: (context, url) => CircleAvatar(
-        radius: radius,
-        backgroundColor: bgColor,
+      placeholder: (context, url) => Container(
+        width: avatarSize,
+        height: avatarSize,
+        decoration: BoxDecoration(
+          color: bgColor,
+          shape: BoxShape.circle,
+        ),
         child: Global_Loader(
-          size: iconSize * 0.6,
+          size: iconSize * 0.5,
           strokeWidth: 2,
         ),
       ),
-      errorWidget: (context, url, error) => CircleAvatar(
-        radius: radius,
-        backgroundColor: bgColor,
+      errorWidget: (context, url, error) => Container(
+        width: avatarSize,
+        height: avatarSize,
+        decoration: BoxDecoration(
+          color: bgColor,
+          shape: BoxShape.circle,
+        ),
         child: Icon(
-          Icons.person,
+          Icons.person_outline_rounded,
           size: iconSize,
           color: iconColor,
         ),
@@ -355,29 +505,42 @@ class NotificationsView extends GetView<NotificationsController> {
     );
   }
 
-  /// Formats notification time in user's LOCAL timezone
-  /// Uses localCreatedAt which converts UTC to local time
+  /// Formats notification time in a LinkedIn-style format
   String _formatNotificationTime(NotificationModel notification) {
-    // Use localCreatedAt for proper timezone conversion
     final localDateTime = notification.localCreatedAt;
-
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final yesterday = today.subtract(const Duration(days: 1));
-    final notificationDate = DateTime(
-      localDateTime.year,
-      localDateTime.month,
-      localDateTime.day,
-    );
+    final difference = now.difference(localDateTime);
 
-    final timeFormat = DateFormat('h:mm a');
-
-    if (notificationDate == today) {
-      return timeFormat.format(localDateTime);
-    } else if (notificationDate == yesterday) {
-      return timeFormat.format(localDateTime);
-    } else {
-      return '${DateFormat('MMMM dd/yyyy').format(localDateTime)} at ${timeFormat.format(localDateTime)}';
+    // Less than 1 minute
+    if (difference.inMinutes < 1) {
+      return 'Just now';
     }
+
+    // Less than 1 hour
+    if (difference.inHours < 1) {
+      final minutes = difference.inMinutes;
+      return '${minutes}m ago';
+    }
+
+    // Less than 24 hours
+    if (difference.inHours < 24) {
+      final hours = difference.inHours;
+      return '${hours}h ago';
+    }
+
+    // Less than 7 days
+    if (difference.inDays < 7) {
+      final days = difference.inDays;
+      return '${days}d ago';
+    }
+
+    // Less than 30 days
+    if (difference.inDays < 30) {
+      final weeks = (difference.inDays / 7).floor();
+      return '${weeks}w ago';
+    }
+
+    // More than 30 days - show date
+    return DateFormat('MMM d').format(localDateTime);
   }
 }

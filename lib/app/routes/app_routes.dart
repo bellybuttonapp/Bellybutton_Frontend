@@ -6,6 +6,9 @@ part of 'app_pages.dart';
 abstract class Routes {
   Routes._();
 
+  // 🎬 Splash
+  static const SPLASH = _Paths.SPLASH;
+
   // 🌟 Main Screens
   static const HOME = _Paths.HOME;
   static const DASHBOARD = _Paths.DASHBOARD;
@@ -48,6 +51,7 @@ abstract class Routes {
 abstract class _Paths {
   _Paths._();
 
+  static const SPLASH = '/splash';
   static const HOME = '/home';
   static const DASHBOARD = '/dashboard';
   static const NOTIFICATIONS = '/notifications';

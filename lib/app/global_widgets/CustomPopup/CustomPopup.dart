@@ -88,7 +88,7 @@ class CustomPopup extends StatelessWidget {
                         Text(
                           title,
                           textAlign: TextAlign.center,
-                          style: customBoldText.copyWith(
+                          style: AppText.headingLg.copyWith(
                             fontSize: size.width * 0.05,
                             fontWeight: FontWeight.w700,
                           ),
@@ -109,7 +109,7 @@ class CustomPopup extends StatelessWidget {
 
                           Text(
                             "${savedCount!.value}/${totalCount!.value} Saved",
-                            style: customBoldText.copyWith(
+                            style: AppText.headingLg.copyWith(
                               fontSize: size.width * 0.045,
                             ),
                           ),
@@ -143,7 +143,7 @@ class CustomPopup extends StatelessWidget {
                               Text(
                                 message ?? "",
                                 textAlign: TextAlign.center,
-                                style: customBoldText.copyWith(
+                                style: AppText.headingLg.copyWith(
                                   fontSize: size.width * 0.04,
                                 ),
                               ),
@@ -169,7 +169,7 @@ class CustomPopup extends StatelessWidget {
                                   ),
                                   child: Text(
                                     cancelText!,
-                                    style: customBoldText.copyWith(
+                                    style: AppText.headingLg.copyWith(
                                       fontSize: size.width * 0.035,
                                       color: cancelButtonColor ?? AppColors.error,
                                     ),

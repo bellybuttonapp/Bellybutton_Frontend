@@ -62,27 +62,39 @@ class FirebaseNotificationService {
 
   /// =============================================================
   /// MAIN INIT FUNCTION (called inside main BEFORE runApp)
+  /// NOTE: Permission request is deferred to avoid widget tree conflict
   /// =============================================================
   static Future<void> init() async {
-  debugPrint('🔥 FirebaseNotificationService.init() start');
+    debugPrint('🔥 FirebaseNotificationService.init() start');
 
-  try {
-    final token = await FirebaseMessaging.instance.getToken();
-    debugPrint('🔥 FCM TOKEN → $token');
-  } catch (e) {
-    debugPrint('⚠️ FCM token not ready yet (iOS): $e');
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      debugPrint('🔥 FCM TOKEN → $token');
+    } catch (e) {
+      debugPrint('⚠️ FCM token not ready yet (iOS): $e');
+    }
+
+    // DO NOT request permission here - it causes widget tree conflict on deep link cold start
+    // Permission will be requested after runApp() via requestPermissionDeferred()
+
+    await _initLocalNotifications();
+    await _createNotificationChannel();
+
+    _setupForegroundListener();
+    _setupOnMessageOpenedAppListener();
+    await _handleInitialMessageIfAny();
+
+    debugPrint('🔥 FirebaseNotificationService.init() done');
   }
 
-  await _requestPermission();
-  await _initLocalNotifications();
-  await _createNotificationChannel();
-
-  _setupForegroundListener();
-  _setupOnMessageOpenedAppListener();
-  await _handleInitialMessageIfAny();
-
-  debugPrint('🔥 FirebaseNotificationService.init() done');
-}
+  /// =============================================================
+  /// REQUEST PERMISSION DEFERRED (call AFTER runApp)
+  /// =============================================================
+  static Future<void> requestPermissionDeferred() async {
+    // Wait for widget tree to be stable before requesting permission
+    await Future.delayed(const Duration(milliseconds: 1500));
+    await _requestPermission();
+  }
 
 
 

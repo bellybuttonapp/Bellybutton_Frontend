@@ -11,6 +11,7 @@ import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_images.dart';
 import '../../../../../core/constants/app_texts.dart';
 import '../../../../../core/services/showcase_service.dart';
+import '../../../../../core/utils/themes/dimensions.dart';
 import '../../../../../global_widgets/AppFloatingButton/AppFloatingButton.dart';
 import '../../../../../global_widgets/Button/global_button.dart';
 import '../../../../../global_widgets/EmptyJobsPlaceholder/EmptyJobsPlaceholder.dart';
@@ -77,28 +78,41 @@ class EventGalleryView extends GetView<EventGalleryController> {
       description: c.event.description,
 
       // ------------------------------------------------------
-      // 👥 USERS COUNT BADGE (TOP RIGHT IN APPBAR)
+      // 👥 USERS COUNT BADGE (next to title)
       // ------------------------------------------------------
-      suffixWidget: Showcase(
-        key: _membersKey,
-        title: AppTexts.SHOWCASE_GALLERY_MEMBERS_TITLE,
-        description: AppTexts.SHOWCASE_GALLERY_MEMBERS_DESC,
-        tooltipBackgroundColor: ShowcaseService.tooltipBackgroundColor,
-        textColor: ShowcaseService.textColor,
-        titleTextStyle: ShowcaseService.titleStyle,
-        descTextStyle: ShowcaseService.descriptionStyle,
-        child: Obx(() {
-          final currentMembers = controller.invitedCount.value;
-          final maxCapacity = controller.totalCapacity.value;
+      suffixWidget: Obx(() {
+        final currentMembers = controller.invitedCount.value;
+        final maxCapacity = controller.totalCapacity.value;
 
-          return buildSuffixWidget(
+        return Showcase(
+          key: _membersKey,
+          title: AppTexts.SHOWCASE_GALLERY_MEMBERS_TITLE,
+          description: AppTexts.SHOWCASE_GALLERY_MEMBERS_DESC,
+          tooltipBackgroundColor: ShowcaseService.tooltipBackgroundColor,
+          textColor: ShowcaseService.textColor,
+          titleTextStyle: ShowcaseService.titleStyle,
+          descTextStyle: ShowcaseService.descriptionStyle,
+          child: buildSuffixWidget(
             count: "${currentMembers.toString().padLeft(2, '0')}/${maxCapacity.toString().padLeft(2, '0')}",
             iconPath: AppImages.USERS_COUNT,
             onTap: controller.onInvitedUsersTap,
             screenWidth: width,
-          );
-        }),
-      ),
+          ),
+        );
+      }),
+
+      // ------------------------------------------------------
+      // 📸 PHOTO COUNT BADGE (below description, right corner)
+      // ------------------------------------------------------
+      belowDescriptionWidget: Obx(() {
+        final photoCount = c.photos.length;
+        return buildSuffixWidget(
+          count: photoCount.toString().padLeft(2, '0'),
+          iconPath: AppImages.GALLERY,
+          onTap: () {}, // No action needed
+          screenWidth: width,
+        );
+      }),
 
       // ------------------------------------------------------
       // 📸 GALLERY GRID VIEW + SHIMMER + REFRESH
@@ -249,7 +263,7 @@ class EventGalleryView extends GetView<EventGalleryController> {
             _refresh.refreshCompleted();
           },
           child: Padding(
-            padding: const EdgeInsets.all(8),
+            padding: AppInsets.all8,
             child: MasonryGridView.count(
               controller: _scrollController,
               shrinkWrap: false,
@@ -319,86 +333,96 @@ class EventGalleryView extends GetView<EventGalleryController> {
       }),
 
       // ------------------------------------------------------
-      // 🔄 BOTTOM SYNC BUTTON (FINAL WORKING LOGIC)
-      // Show only when auto-sync is OFF, otherwise auto-sync handles it
+      // 🔄 BOTTOM SYNC BUTTON (Only show after event ends)
+      // One-time sync to prevent photo duplication
       // ------------------------------------------------------
-      bottomButton: Showcase(
-        key: _syncKey,
-        title: AppTexts.SHOWCASE_GALLERY_SYNC_TITLE,
-        description: AppTexts.SHOWCASE_GALLERY_SYNC_DESC,
-        tooltipBackgroundColor: ShowcaseService.tooltipBackgroundColor,
-        textColor: ShowcaseService.textColor,
-        titleTextStyle: ShowcaseService.titleStyle,
-        descTextStyle: ShowcaseService.descriptionStyle,
-        child: Obx(() {
-          // Check permanent sync completion saved in Hive (event-specific)
-          bool syncedOnce = c.allSynced;
+      bottomButton: Builder(builder: (_) {
+        // Hide sync button if event hasn't ended yet
+        if (!c.eventEnded) {
+          return const SizedBox.shrink();
+        }
 
-          // Also check live runtime values
-          bool fullySynced =
-              c.savedCount.value == c.totalToSave.value && c.totalToSave.value != 0;
-
-          // Check if auto-sync is enabled
-          bool isAutoSyncOn = c.isAutoSyncEnabled.value;
-          bool isCurrentlySyncing = c.isAutoSyncing.value;
-
-          // If auto-sync is ON and already synced, show completed status
-          if (isAutoSyncOn && (syncedOnce || fullySynced)) {
-            return global_button(
-              title: AppTexts.AUTO_SYNC_COMPLETED,
-              backgroundColor: AppColors.success,
-              loaderWhite: true,
-              onTap: null,
-            );
-          }
-
-          // If auto-sync is ON and currently syncing (includes initial state)
-          if (isAutoSyncOn && isCurrentlySyncing) {
-            return global_button(
-              title: c.savedCount.value > 0
-                  ? "${AppTexts.AUTO_SYNCING} (${c.savedCount}/${c.totalToSave})"
-                  : AppTexts.AUTO_SYNCING,
-              backgroundColor: AppColors.primaryColor,
-              loaderWhite: true,
-              isLoading: true,
-              onTap: null,
-            );
-          }
-
-          // If auto-sync is OFF, show manual Sync Now button
-          return global_button(
-            title: (syncedOnce || fullySynced)
-                ? "${AppTexts.SYNC_COMPLETED} (${c.savedCount}/${c.totalToSave})"
-                : AppTexts.SYNC_NOW,
-            backgroundColor: (syncedOnce || fullySynced) ? AppColors.success : AppColors.primaryColor,
-            loaderWhite: true,
-            isLoading: !c.enableOK.value &&
-                c.savedCount.value > 0 &&
-                c.savedCount.value < c.totalToSave.value,
-            onTap: (syncedOnce || fullySynced) ? null : c.syncNow,
-          );
-        }),
-      ),
-
-      // ------------------------------------------------------
-      // ⚡ FLOATING ACTIONS
-      // ------------------------------------------------------
-      floatingButtons: [
-        Showcase(
-          key: _shareKey,
-          title: AppTexts.SHOWCASE_GALLERY_SHARE_TITLE,
-          description: AppTexts.SHOWCASE_GALLERY_SHARE_DESC,
+        return Showcase(
+          key: _syncKey,
+          title: AppTexts.SHOWCASE_GALLERY_SYNC_TITLE,
+          description: AppTexts.SHOWCASE_GALLERY_SYNC_DESC,
           tooltipBackgroundColor: ShowcaseService.tooltipBackgroundColor,
           textColor: ShowcaseService.textColor,
           titleTextStyle: ShowcaseService.titleStyle,
           descTextStyle: ShowcaseService.descriptionStyle,
-          child: AppFloatingButton(
-            backgroundColor: AppColors.primaryColor,
-            iconPath: AppImages.EXPORT_ICON,
-            onTap: c.fabOneAction,
+          child: Obx(() {
+            // Check permanent sync completion saved in Hive (event-specific)
+            bool syncedOnce = c.allSynced;
+
+            // Also check live runtime values
+            bool fullySynced =
+                c.savedCount.value == c.totalToSave.value && c.totalToSave.value != 0;
+
+            // Check if auto-sync is enabled
+            bool isAutoSyncOn = c.isAutoSyncEnabled.value;
+            bool isCurrentlySyncing = c.isAutoSyncing.value;
+
+            // If already synced (one-time sync completed), show grey completed status but still tappable
+            if (syncedOnce || fullySynced) {
+              return global_button(
+                title: "${AppTexts.SYNC_COMPLETED} (${c.savedCount}/${c.totalToSave})",
+                backgroundColor: Colors.grey.shade400,
+                loaderWhite: true,
+                onTap: c.syncNow, // Still tappable to re-sync if needed
+              );
+            }
+
+            // If auto-sync is ON and currently syncing
+            if (isAutoSyncOn && isCurrentlySyncing) {
+              return global_button(
+                title: c.savedCount.value > 0
+                    ? "${AppTexts.AUTO_SYNCING} (${c.savedCount}/${c.totalToSave})"
+                    : AppTexts.AUTO_SYNCING,
+                backgroundColor: AppColors.primaryColor,
+                loaderWhite: true,
+                isLoading: true,
+                onTap: null,
+              );
+            }
+
+            // Show manual Sync Now button (one-time sync)
+            return global_button(
+              title: AppTexts.SYNC_NOW,
+              backgroundColor: AppColors.primaryColor,
+              loaderWhite: true,
+              isLoading: !c.enableOK.value &&
+                  c.savedCount.value > 0 &&
+                  c.savedCount.value < c.totalToSave.value,
+              onTap: c.syncNow,
+            );
+          }),
+        );
+      }),
+
+      // ------------------------------------------------------
+      // ⚡ FLOATING ACTIONS
+      // Share button only shows after event ends (to prevent duplicates)
+      // Upload/Invite button always visible
+      // ------------------------------------------------------
+      floatingButtons: [
+        // Share FAB - Only show after event ends, grey when synced but still tappable
+        if (c.eventEnded)
+          Showcase(
+            key: _shareKey,
+            title: AppTexts.SHOWCASE_GALLERY_SHARE_TITLE,
+            description: AppTexts.SHOWCASE_GALLERY_SHARE_DESC,
+            tooltipBackgroundColor: ShowcaseService.tooltipBackgroundColor,
+            textColor: ShowcaseService.textColor,
+            titleTextStyle: ShowcaseService.titleStyle,
+            descTextStyle: ShowcaseService.descriptionStyle,
+            child: AppFloatingButton(
+              backgroundColor: c.allSynced ? Colors.grey.shade400 : AppColors.primaryColor,
+              iconPath: AppImages.EXPORT_ICON,
+              onTap: c.fabOneAction,
+            ),
           ),
-        ),
-        const SizedBox(height: 20),
+        if (c.eventEnded) AppGap.v20,
+        // Upload/Invite FAB - Always visible
         Showcase(
           key: _uploadKey,
           title: AppTexts.SHOWCASE_GALLERY_UPLOAD_TITLE,

@@ -187,7 +187,7 @@ class MembersListWidget<T extends GetxController> extends StatelessWidget {
                     backgroundColor: AppColors.primaryColor,
                     child: Text(
                       letter,
-                      style: customBoldText.copyWith(
+                      style: AppText.headingLg.copyWith(
                         color: Colors.white,
                         fontSize: w(.04),
                       ),
@@ -199,7 +199,7 @@ class MembersListWidget<T extends GetxController> extends StatelessWidget {
                   backgroundColor: AppColors.primaryColor,
                   child: Text(
                     letter,
-                    style: customBoldText.copyWith(
+                    style: AppText.headingLg.copyWith(
                       color: Colors.white,
                       fontSize: w(.04),
                     ),
@@ -211,7 +211,7 @@ class MembersListWidget<T extends GetxController> extends StatelessWidget {
           Expanded(
             child: Text(
               name,
-              style: customBoldText.copyWith(
+              style: AppText.headingLg.copyWith(
                 fontSize: w(.038),
                 color: AppColors.textColor,
               ),
@@ -231,7 +231,7 @@ class MembersListWidget<T extends GetxController> extends StatelessWidget {
               ),
               child: Text(
                 AppTexts.SHOOT_DIRECTOR,
-                style: customBoldText.copyWith(
+                style: AppText.headingLg.copyWith(
                   color: Colors.orange, 
                   fontSize: w(.032),
                 ),

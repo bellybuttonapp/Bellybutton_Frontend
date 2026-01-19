@@ -165,6 +165,9 @@ class LoginOtpController extends GetxController with CodeAutoFill {
         // Fetch full profile from API
         await _fetchUserProfile();
 
+        // Accept terms and conditions
+        await _acceptTerms();
+
         // Upload FCM token
         await _uploadFcmToken();
 
@@ -238,6 +241,21 @@ class LoginOtpController extends GetxController with CodeAutoFill {
   }
 
   //----------------------------------------------------
+  // ACCEPT TERMS & CONDITIONS
+  //----------------------------------------------------
+  Future<void> _acceptTerms() async {
+    try {
+      final termsResp = await PublicApiService().acceptTermsAndConditions();
+      if (termsResp["accepted"] == true) {
+        Preference.termsAccepted = true;
+        print("✅ Terms & Conditions accepted");
+      }
+    } catch (e) {
+      print("⚠️ Terms acceptance failed (non-blocking): $e");
+    }
+  }
+
+  //----------------------------------------------------
   // UPLOAD FCM TOKEN
   //----------------------------------------------------
   Future<void> _uploadFcmToken() async {
@@ -291,7 +309,7 @@ class LoginOtpController extends GetxController with CodeAutoFill {
   // GO BACK TO CHANGE NUMBER
   //----------------------------------------------------
   void goBack() {
-    Get.back();
+    Get.back(result: 'clear');
   }
 
   @override

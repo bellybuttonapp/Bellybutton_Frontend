@@ -13,6 +13,9 @@ class DashboardController extends GetxController {
   // Timer for periodic refresh
   Timer? _refreshTimer;
 
+  // Tab index for navigation (0 = Upcoming, 1 = Past)
+  final initialTabIndex = 0.obs;
+
   // Access the shared services (use Get.find with null safety for race conditions)
   NotificationService get _notificationService => NotificationService.to;
 
@@ -22,15 +25,26 @@ class DashboardController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // Fetch notifications when entering Dashboard
-    _fetchData();
-    // Set up periodic refresh every 30 seconds
-    _startPeriodicRefresh();
+    // Check if initial tab index was passed via arguments
+    final args = Get.arguments;
+    if (args != null && args is Map<String, dynamic>) {
+      initialTabIndex.value = args['initialTabIndex'] ?? 0;
+    }
+    // Defer data fetching to avoid setState during build
+    Future.microtask(() {
+      // Fetch notifications when entering Dashboard
+      _fetchData();
+      // Set up periodic refresh every 30 seconds
+      _startPeriodicRefresh();
+    });
   }
 
   @override
   void onClose() {
     _refreshTimer?.cancel();
+    // Note: Child controllers (UpcommingEventController, PastEventController)
+    // are managed by GetBuilder in their respective views.
+    // Do NOT delete them here - let GetX handle their lifecycle automatically.
     super.onClose();
   }
 

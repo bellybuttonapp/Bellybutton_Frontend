@@ -105,7 +105,7 @@ class AuthActionForm extends StatelessWidget {
             /// Title
             Text(
               title,
-              style: customBoldText.copyWith(
+              style: AppText.headingLg.copyWith(
                 fontSize: screenWidth * 0.06,
                 color: textColor,
               ),
@@ -116,7 +116,7 @@ class AuthActionForm extends StatelessWidget {
             /// Subtitle
             Text(
               subtitle,
-              style: customBoldText.copyWith(
+              style: AppText.headingLg.copyWith(
                 color: subtitleColor,
                 fontSize: screenWidth * 0.04,
               ),
