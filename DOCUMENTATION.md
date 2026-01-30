@@ -1,9 +1,10 @@
 # BellyButton Flutter App - Complete Documentation & Tutorial
 
-> **Version**: 1.0.0+2
-> **Framework**: Flutter 3.7.2+
+> **Version**: 1.0.2+6
+> **Framework**: Flutter SDK ^3.7.2
 > **Architecture**: GetX + Clean Architecture
 > **Developer**: Aravinth Kannan
+> **Last Updated**: January 2026
 
 ---
 
@@ -44,10 +45,25 @@
 | Phone OTP Auth | Secure authentication with SMS verification |
 | Event Management | Create, edit, delete events with timezone support |
 | Photo Galleries | Upload, view, and share event photos |
+| Slideshow Preview | Instagram-style auto-playing photo slideshow |
+| Multi-Capture Camera | WhatsApp-style continuous photo capture |
+| Calendar Sync | Automatic sync with device calendar |
 | Invitations | Invite users and manage invitation responses |
 | Push Notifications | Firebase-powered real-time notifications |
 | Deep Linking | Share events via links (app & web) |
 | Offline Support | Local caching with Hive database |
+
+### Latest Features
+
+| Feature | Description |
+|---------|-------------|
+| **Device Calendar Sync** | Events automatically sync to native device calendars |
+| **Slideshow Preview** | Instagram-style photo slideshow with progress indicators |
+| **Multi-Capture Camera** | WhatsApp-style multi-photo capture without closing camera |
+| **Face Filter Carousel** | Filter photos by event member faces |
+| **Shimmer Loaders** | 9 loading skeleton screens for better UX |
+| **Screenshot Protection** | Prevent screenshots during slideshow |
+| **Terms & Conditions** | T&C acceptance flow with version tracking |
 
 ---
 
@@ -75,10 +91,16 @@ lib/
 │   │   │   └── auth_interceptor.dart   # JWT token handling
 │   │   │
 │   │   ├── services/                   # Core Services
-│   │   │   ├── deep_link_service.dart
-│   │   │   ├── firebase_notification_service.dart
-│   │   │   ├── notification_service.dart
+│   │   │   ├── app_badge_service.dart
 │   │   │   ├── cache_manager_service.dart
+│   │   │   ├── deep_link_service.dart
+│   │   │   ├── device_calendar_service.dart  # NEW - Calendar sync
+│   │   │   ├── event_invitations_service.dart
+│   │   │   ├── fcm_token_service.dart
+│   │   │   ├── firebase_background_handler.dart
+│   │   │   ├── firebase_notification_service.dart
+│   │   │   ├── local_notification_service.dart
+│   │   │   ├── notification_service.dart
 │   │   │   └── showcase_service.dart
 │   │   │
 │   │   └── utils/
@@ -89,23 +111,35 @@ lib/
 │   │
 │   ├── database/                       # Data Models
 │   │   └── models/
+│   │       ├── CalendarEventMapping.dart  # NEW - Calendar sync mapping
 │   │       ├── EventModel.dart
 │   │       ├── InvitedEventModel.dart
+│   │       ├── MemberModel.dart
 │   │       ├── NotificationModel.dart
-│   │       └── MemberModel.dart
+│   │       └── UnifiedEventModel.dart
 │   │
-│   ├── global_widgets/                 # Reusable UI (27 widgets)
+│   ├── global_widgets/                 # Reusable UI (30+ widgets)
 │   │   ├── Button/
+│   │   ├── FaceCarouselOverlay/        # NEW - Face filter carousel
 │   │   ├── GlobalTextField/
+│   │   ├── MultiCaptureCamera/         # NEW - Multi-photo capture
 │   │   ├── CustomSnackbar/
+│   │   ├── Shimmers/                   # NEW - 9 shimmer loaders
 │   │   ├── eventCard/
+│   │   ├── slideshow_preview/          # NEW - Instagram-style slideshow
 │   │   └── ...
 │   │
-│   ├── modules/                        # Feature Modules
+│   ├── modules/                        # Feature Modules (24 screens)
+│   │   ├── splash/                     # App launch screen
+│   │   ├── onboarding/                 # First-time user guide
+│   │   ├── home/                       # Home wrapper
+│   │   │
 │   │   ├── Auth/                       # Authentication
 │   │   │   ├── phone_login/
 │   │   │   ├── login_otp/
 │   │   │   └── profile_setup/
+│   │   │
+│   │   ├── terms_and_conditions/       # T&C acceptance
 │   │   │
 │   │   ├── Dashboard/                  # Main Screen
 │   │   │   └── Innermodule/
@@ -113,11 +147,17 @@ lib/
 │   │   │       ├── Past_Event/
 │   │   │       ├── create_event/
 │   │   │       ├── Event_gallery/
-│   │   │       └── inviteuser/
+│   │   │       ├── InvitedEventGallery/
+│   │   │       ├── EventInvitations/
+│   │   │       ├── inviteuser/
+│   │   │       ├── InvitedUsersList/
+│   │   │       └── InvitedAdminsList/
 │   │   │
 │   │   ├── Notifications/
 │   │   ├── Profile/
+│   │   │   └── Account_Details/
 │   │   ├── Premium/
+│   │   ├── PhotoPre/                   # Photo preview
 │   │   └── SharedEventGallery/
 │   │
 │   └── routes/                         # Navigation
@@ -250,17 +290,18 @@ Edit `lib/app/core/constants/app_constant.dart`:
 
 ```dart
 class AppConstants {
-  // Development
-  static const String BASE_URL = "https://mobapidev.bellybutton.global/api";
+  // Development (Active)
+  static const String BASE_URL = BASE_URL_DEVELOPMENT;
 
-  // Testing
-  // static const String BASE_URL = "https://mobapitest.bellybutton.global/api";
+  // Environment URLs
+  static const String BASE_URL_PRODUCTION = "https://mobapiprod.bellybutton.global/api";
+  static const String BASE_URL_TESTING = "https://mobapitest.bellybutton.global/api";
+  static const String BASE_URL_DEVELOPMENT = "https://mobapidev.bellybutton.global/api";
 
-  // Production
-  // static const String BASE_URL = "https://mobapi.bellybutton.global/api";
-
-  static const int CONNECTION_TIMEOUT = 30000;
-  static const int RECEIVE_TIMEOUT = 30000;
+  // Timeouts (in seconds)
+  static const int CONNECTION_TIMEOUT = 30;
+  static const int RECEIVE_TIMEOUT = 30;
+  static const int SEND_TIMEOUT = 30;
 }
 ```
 
@@ -457,16 +498,19 @@ class DioClient {
 
 ### Endpoints Reference
 
-#### Authentication (9 endpoints)
+#### Authentication (10 endpoints)
 
 ```
-POST   /userresource/auth/send-otp          # Send OTP to phone
-POST   /userresource/auth/verify-otp        # Verify OTP & get token
-POST   /userresource/auth/resend-otp        # Resend OTP
+POST   /userresource/login                  # User login
+POST   /userresource/google/login           # Google OAuth login
 POST   /userresource/register/user          # Register new user
+POST   /userresource/verifyotps             # Verify signup OTP
 POST   /userresource/logout                 # Logout
 POST   /userresource/token/refresh          # Refresh JWT token
 POST   /userresource/auth/save-fcm-token    # Save FCM token
+POST   /userresource/auth/send-otp          # Send OTP to phone
+POST   /userresource/auth/verify-otp        # Verify phone OTP & login
+POST   /userresource/auth/resend-otp        # Resend OTP
 ```
 
 #### User Management (6 endpoints)
@@ -521,6 +565,21 @@ GET    /public/event/gallery/{id}           # Public gallery (no auth)
 ```
 GET    /notifications/list                  # Get notifications
 PUT    /notifications/read/{id}             # Mark as read
+```
+
+#### Terms & Conditions (2 endpoints)
+
+```
+GET    /terms/latest                        # Fetch latest T&C
+POST   /terms/accept                        # Accept terms & conditions
+```
+
+#### Event Participants (3 endpoints)
+
+```
+GET    /eventresource/event/joined/{id}     # Get accepted participants
+GET    /eventresource/event/userview/{id}   # Get event admins
+GET    /eventresource/event/invitations/{id} # Get all invitations
 ```
 
 ### API Service Usage
@@ -828,7 +887,14 @@ class Preference {
 | `CustomErrorWidget` | `ErrorWidget/` | Error state |
 | `MembersListWidget` | `MembersListWidget/` | Member list |
 | `CountryPickerDialog` | `CountryPickerDialog/` | Country selection |
-| `SlideshowPreview` | `slideshow_preview/` | Photo slideshow |
+| `SlideshowPreview` | `slideshow_preview/` | Instagram-style photo slideshow |
+| `MultiCaptureCamera` | `MultiCaptureCamera/` | WhatsApp-style multi-photo capture |
+| `FaceCarouselOverlay` | `FaceCarouselOverlay/` | Face filter carousel overlay |
+| `RecentUploadsShimmer` | `Shimmers/` | Upload summary loading state |
+| `EventCardShimmer` | `Shimmers/` | Event card loading skeleton |
+| `EventGalleryShimmer` | `Shimmers/` | Gallery loading skeleton |
+| `ProfileHeaderShimmer` | `Shimmers/` | Profile loading skeleton |
+| `NotificationShimmer` | `Shimmers/` | Notification list skeleton |
 
 ### Usage Examples
 
@@ -866,6 +932,38 @@ EventCard(
   event: event,
   onTap: () => Get.toNamed(AppRoutes.EVENT_GALLERY, arguments: {"event": event}),
 )
+
+// SlideshowPreview - Instagram-style photo slideshow
+SlideshowPreview(
+  photos: controller.photos,
+  eventId: event.eventId,
+  initialIndex: 0,
+  autoPlayDuration: Duration(seconds: 3),
+  onFaceFilterSelected: (memberId) => controller.filterByMember(memberId),
+)
+
+// MultiCaptureCamera - WhatsApp-style multi-photo capture
+MultiCaptureCamera(
+  maxPhotos: 10,
+  onPhotosSelected: (List<File> photos) {
+    controller.uploadPhotos(photos);
+  },
+  onCancel: () => Get.back(),
+)
+
+// FaceCarouselOverlay - Face filter carousel
+FaceCarouselOverlay.show(
+  context,
+  members: controller.members,
+  onMemberSelected: (member) {
+    controller.filterPhotosByMember(member.id);
+  },
+)
+
+// Shimmer Loaders
+if (controller.isLoading.value) {
+  return EventGalleryShimmer();  // or any other shimmer
+}
 ```
 
 ### Design System
@@ -1209,6 +1307,131 @@ class CacheManagerService {
 }
 ```
 
+### 12.5 Device Calendar Service (NEW)
+
+Syncs BellyButton events with the native device calendar.
+
+```dart
+class DeviceCalendarService {
+  static final DeviceCalendarService _instance = DeviceCalendarService._internal();
+  factory DeviceCalendarService() => _instance;
+
+  final DeviceCalendarPlugin _deviceCalendarPlugin = DeviceCalendarPlugin();
+  Box<CalendarEventMapping>? _mappingBox;
+
+  // Permission management with caching
+  Future<bool> requestCalendarPermission() async {
+    final result = await _deviceCalendarPlugin.requestPermissions();
+    return result.isSuccess && (result.data ?? false);
+  }
+
+  // Get available calendars
+  Future<List<Calendar>> getCalendars() async {
+    final result = await _deviceCalendarPlugin.retrieveCalendars();
+    return result.data ?? [];
+  }
+
+  // Sync event to calendar (Host created)
+  Future<bool> syncEventToCalendar(EventModel event) async {
+    if (!await hasCalendarPermission()) return false;
+
+    final calendarId = await _getPreferredCalendarId();
+    if (calendarId == null) return false;
+
+    final calendarEvent = Event(
+      calendarId,
+      title: event.eventName,
+      description: event.eventDescription,
+      start: _parseEventDateTime(event),
+      end: _parseEventEndDateTime(event),
+    );
+
+    final result = await _deviceCalendarPlugin.createOrUpdateEvent(calendarEvent);
+    if (result?.isSuccess ?? false) {
+      await _saveMapping(event.eventId!, result!.data!, calendarId, isHost: true);
+      return true;
+    }
+    return false;
+  }
+
+  // Sync invited event to calendar (Crew accepted)
+  Future<bool> syncInvitedEventToCalendar(InvitedEventModel event) async {
+    // Similar to syncEventToCalendar but marks isHost: false
+  }
+
+  // Update synced event
+  Future<bool> updateSyncedEvent(EventModel event) async {
+    final mapping = await _getMapping(event.eventId!);
+    if (mapping == null) return syncEventToCalendar(event);
+    // Update existing calendar event
+  }
+
+  // Remove synced event
+  Future<bool> removeSyncedEvent(String eventId) async {
+    final mapping = await _getMapping(eventId);
+    if (mapping == null) return true;
+
+    await _deviceCalendarPlugin.deleteEvent(
+      mapping.calendarId,
+      mapping.deviceCalendarEventId,
+    );
+    await _deleteMapping(eventId);
+    return true;
+  }
+}
+```
+
+#### Calendar Event Mapping Model
+
+```dart
+@HiveType(typeId: 2)
+class CalendarEventMapping {
+  @HiveField(0)
+  final String appEventId;
+
+  @HiveField(1)
+  final String deviceCalendarEventId;
+
+  @HiveField(2)
+  final String calendarId;
+
+  @HiveField(3)
+  final DateTime createdAt;
+
+  @HiveField(4)
+  final DateTime lastUpdatedAt;
+
+  @HiveField(5)
+  final bool isHost;  // true = Host created, false = Crew accepted
+}
+```
+
+#### Usage in Controllers
+
+```dart
+// In CreateEventController - after event created
+Future<void> createEvent() async {
+  final response = await PublicApiService().createEvent(...);
+  if (response["success"]) {
+    final event = EventModel.fromJson(response["data"]);
+
+    // Sync to calendar
+    await DeviceCalendarService().syncEventToCalendar(event);
+
+    showCustomSnackBar("Event created!", SnackbarState.success);
+  }
+}
+
+// In EventInvitationsController - after accepting invitation
+Future<void> acceptInvitation(InvitedEventModel event) async {
+  final response = await PublicApiService().acceptInvitation(event.eventId);
+  if (response["success"]) {
+    // Sync to calendar
+    await DeviceCalendarService().syncInvitedEventToCalendar(event);
+  }
+}
+```
+
 ---
 
 ## 13. Dependencies
@@ -1260,13 +1483,17 @@ dependencies:
   permission_handler: ^12.0.1
   device_info_plus: ^12.3.0
   connectivity_plus: ^7.0.0
+  device_calendar: ^4.3.0           # Calendar sync
+  timezone: ^0.9.0                  # Timezone support
+  screen_protector: ^1.4.7          # Screenshot protection
+  camera: ^0.11.1                   # Multi-capture camera
 
   # Utilities
   intl: ^0.20.2
   country_picker: ^2.0.27
   phone_numbers_parser: ^8.3.0
   sms_autofill: ^2.4.0
-  flutter_local_notifications: ^19.5.0
+  flutter_local_notifications: ^18.0.1
   share_plus: ^12.0.1
   gallery_saver_plus: ^3.2.9
 ```
@@ -1513,21 +1740,23 @@ flutter build ipa --release
 
 ```dart
 // lib/app/core/constants/app_constant.dart
-enum Environment { dev, test, prod }
-
 class AppConstants {
-  static const Environment env = Environment.dev;
+  static const String BASE_URL_PRODUCTION = 'https://mobapiprod.bellybutton.global/api';
+  static const String BASE_URL_TESTING = 'https://mobapitest.bellybutton.global/api';
+  static const String BASE_URL_DEVELOPMENT = 'https://mobapidev.bellybutton.global/api';
 
-  static String get baseUrl {
-    switch (env) {
-      case Environment.dev:
-        return "https://mobapidev.bellybutton.global/api";
-      case Environment.test:
-        return "https://mobapitest.bellybutton.global/api";
-      case Environment.prod:
-        return "https://mobapi.bellybutton.global/api";
-    }
+  // Change this to switch environments
+  static const String BASE_URL = BASE_URL_DEVELOPMENT;
+
+  static String get environment {
+    if (BASE_URL == BASE_URL_PRODUCTION) return 'Production';
+    if (BASE_URL == BASE_URL_TESTING) return 'Testing';
+    if (BASE_URL == BASE_URL_DEVELOPMENT) return 'Development';
+    return 'Local';
   }
+
+  static bool get isProduction => BASE_URL == BASE_URL_PRODUCTION;
+  static bool get isDevelopment => BASE_URL == BASE_URL_DEVELOPMENT;
 }
 ```
 
@@ -1573,4 +1802,5 @@ flutter test
 
 ---
 
-*Documentation generated for BellyButton Flutter App v1.0.0*
+*Documentation generated for BellyButton Flutter App v1.0.2+6*
+*Last Updated: January 2026*
