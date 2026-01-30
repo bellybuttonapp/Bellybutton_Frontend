@@ -1,6 +1,6 @@
 # BellyButton App - QA Testing Guide
 
-> **Version**: 1.0.0+2
+> **Version**: 1.0.2+6
 > **Last Updated**: January 2026
 > **For**: QA Testing Team
 
@@ -56,9 +56,9 @@ BellyButton is an **event management and photo-sharing app** that allows users t
 
 | Environment | Base URL | Purpose |
 |-------------|----------|---------|
-| **Development** | `mobapidev.bellybutton.global` | Daily development testing |
-| **Testing/QA** | `mobapitest.bellybutton.global` | QA team testing |
-| **Production** | `mobapi.bellybutton.global` | Live app |
+| **Development** | `mobapidev.bellybutton.global/api` | Daily development testing |
+| **Testing/QA** | `mobapitest.bellybutton.global/api` | QA team testing |
+| **Production** | `mobapiprod.bellybutton.global/api` | Live app |
 
 ### Test Builds
 
@@ -347,7 +347,93 @@ BellyButton is an **event management and photo-sharing app** that allows users t
 
 ---
 
-### 4.8 Deep Links & Sharing
+### 4.8 Calendar Sync
+
+#### Device Calendar Integration
+
+**Location**: Automatic on event creation/invitation acceptance
+
+**UI Elements to Test**:
+- [ ] Calendar permission request dialog
+- [ ] Reminder selection (None, 15 min, 30 min, 1 hour)
+- [ ] Calendar selection (if multiple calendars)
+- [ ] Sync status indicator
+
+**Test Cases**:
+
+| Test ID | Test Case | Steps | Expected Result |
+|---------|-----------|-------|-----------------|
+| CAL-001 | Sync created event | 1. Grant calendar permission 2. Create event 3. Check device calendar | Event appears in device calendar with correct details |
+| CAL-002 | Sync accepted invitation | 1. Accept event invitation 2. Check device calendar | Invited event appears in calendar |
+| CAL-003 | Update synced event | 1. Edit event date/time 2. Check device calendar | Calendar event updated automatically |
+| CAL-004 | Delete synced event | 1. Delete event from app 2. Check device calendar | Calendar event removed |
+| CAL-005 | Permission denied | 1. Deny calendar permission 2. Create event | Event created without calendar sync, prompt to enable |
+| CAL-006 | Timezone handling | 1. Create event in different timezone 2. Check calendar | Event shows correct time in user's timezone |
+| CAL-007 | Multiple calendars | 1. Have multiple device calendars 2. Create event | Option to select target calendar |
+
+---
+
+### 4.9 Slideshow Preview
+
+#### Slideshow Feature
+
+**Location**: Event Gallery → Slideshow button
+
+**UI Elements to Test**:
+- [ ] Auto-playing carousel
+- [ ] Progress bar (segmented/linear)
+- [ ] Play/Pause controls
+- [ ] Navigation arrows
+- [ ] Face filter carousel overlay
+- [ ] Download/Share buttons
+
+**Test Cases**:
+
+| Test ID | Test Case | Steps | Expected Result |
+|---------|-----------|-------|-----------------|
+| SLIDE-001 | Auto-play slideshow | 1. Open event gallery 2. Tap slideshow 3. Observe | Photos auto-advance, progress shows |
+| SLIDE-002 | Pause/Resume | 1. Start slideshow 2. Tap pause 3. Tap play | Playback pauses and resumes |
+| SLIDE-003 | Manual navigation | 1. Pause slideshow 2. Tap left/right arrows | Navigate between photos |
+| SLIDE-004 | Face filter overlay | 1. Open slideshow 2. View face carousel | Member faces shown, can filter by tapping |
+| SLIDE-005 | Large gallery (30+ photos) | 1. Open gallery with 30+ photos 2. Start slideshow | Linear progress bar, pagination works |
+| SLIDE-006 | Screenshot protection | 1. Start slideshow 2. Try to screenshot | Screenshot blocked (platform dependent) |
+| SLIDE-007 | Memory management | 1. Play through 100+ photos | No crashes, smooth performance |
+
+---
+
+### 4.10 Multi-Capture Camera
+
+#### Camera Capture Feature
+
+**Location**: Event Gallery → Camera button
+
+**UI Elements to Test**:
+- [ ] Camera preview
+- [ ] Capture button
+- [ ] Flash toggle (Off/Auto/On)
+- [ ] Camera switch (front/back)
+- [ ] Photo counter
+- [ ] Thumbnail strip
+- [ ] Done/Cancel buttons
+
+**Test Cases**:
+
+| Test ID | Test Case | Steps | Expected Result |
+|---------|-----------|-------|-----------------|
+| MCAM-001 | Capture single photo | 1. Open camera 2. Tap capture | Photo taken, thumbnail appears |
+| MCAM-002 | Capture multiple photos | 1. Open camera 2. Take 5 photos | Counter shows 5, thumbnails visible |
+| MCAM-003 | Flash toggle | 1. Tap flash button multiple times | Cycles: Off → Auto → On → Off |
+| MCAM-004 | Camera switch | 1. Tap camera switch | Toggles front/back camera |
+| MCAM-005 | Preview captured photo | 1. Capture photos 2. Tap thumbnail | Full-screen preview opens |
+| MCAM-006 | Delete photo | 1. Preview photo 2. Tap delete | Photo removed from capture list |
+| MCAM-007 | Max photo limit | 1. Capture photos until max limit | Shows limit reached message |
+| MCAM-008 | Done and upload | 1. Capture photos 2. Tap Done | Photos uploaded to gallery |
+| MCAM-009 | Cancel capture | 1. Capture photos 2. Tap Cancel | Confirm dialog, photos discarded |
+| MCAM-010 | Camera permission | 1. Deny camera permission 2. Open camera | Permission error, settings option |
+
+---
+
+### 4.11 Deep Links & Sharing
 
 #### Share Event
 
@@ -364,7 +450,59 @@ BellyButton is an **event management and photo-sharing app** that allows users t
 
 ---
 
-### 4.9 Profile Management
+### 4.12 Loading States (Shimmers)
+
+#### Shimmer Placeholders
+
+**Locations**: Throughout app during data loading
+
+**Shimmer Types to Test** (9 total):
+- [ ] EventCardShimmer - Event list loading
+- [ ] EventGalleryShimmer - Gallery grid loading
+- [ ] ProfileHeaderShimmer - Profile section loading
+- [ ] ContactsListShimmer - Contacts loading
+- [ ] NotificationShimmer - Notification list loading
+- [ ] InvitedUsersShimmer - Invited users loading
+- [ ] RecentUploadsShimmer - Recent uploads loading
+- [ ] MediaInfoShimmer - Media details loading
+- [ ] TermsContentShimmer - Terms page loading
+
+**Test Cases**:
+
+| Test ID | Test Case | Steps | Expected Result |
+|---------|-----------|-------|-----------------|
+| SHIM-001 | Dashboard loading | 1. Clear cache 2. Open dashboard | Event card shimmers shown, then content |
+| SHIM-002 | Gallery loading | 1. Open gallery with many photos | Gallery shimmer, then photos load |
+| SHIM-003 | Profile loading | 1. Clear cache 2. Open profile | Profile header shimmer shown |
+| SHIM-004 | Slow network shimmer | 1. Throttle network 2. Navigate app | Shimmers visible during loading |
+| SHIM-005 | Notification list | 1. Open notifications | Notification shimmer, then items |
+
+---
+
+### 4.13 Terms & Conditions
+
+#### T&C Flow
+
+**Location**: After login (if not accepted) or Settings
+
+**UI Elements to Test**:
+- [ ] T&C content display
+- [ ] Accept checkbox
+- [ ] Continue button
+- [ ] Version display
+
+**Test Cases**:
+
+| Test ID | Test Case | Steps | Expected Result |
+|---------|-----------|-------|-----------------|
+| TNC-001 | View T&C | 1. Fresh login 2. View T&C screen | T&C content loads, checkbox shown |
+| TNC-002 | Accept T&C | 1. Check checkbox 2. Tap Accept | T&C accepted, proceeds to app |
+| TNC-003 | Cannot skip | 1. Try to proceed without accepting | Button disabled or error shown |
+| TNC-004 | T&C shimmer | 1. Open T&C with slow network | TermsContentShimmer displayed |
+
+---
+
+### 4.14 Profile Management
 
 #### Profile Screen
 
@@ -448,6 +586,54 @@ BellyButton is an **event management and photo-sharing app** that allows users t
 ```
 
 **Expected**: Graceful offline handling, sync on reconnect
+
+---
+
+#### Scenario 5: Calendar Sync Flow
+
+```
+1. User grants calendar permission
+2. User creates event with date/time
+3. Event automatically syncs to device calendar
+4. User updates event time
+5. Calendar event updates automatically
+6. User deletes event
+7. Calendar event is removed
+```
+
+**Expected**: Seamless bidirectional calendar sync
+
+---
+
+#### Scenario 6: Multi-Capture Photo Flow
+
+```
+1. User opens event gallery
+2. Taps camera icon
+3. Takes multiple photos (3-5)
+4. Reviews photos in thumbnail strip
+5. Deletes unwanted photos
+6. Taps Done to upload
+7. Photos appear in gallery
+```
+
+**Expected**: All retained photos upload successfully
+
+---
+
+#### Scenario 7: Slideshow Viewing
+
+```
+1. User opens event gallery with 10+ photos
+2. Taps slideshow button
+3. Slideshow auto-plays
+4. User pauses and navigates manually
+5. User applies face filter
+6. Filtered photos show
+7. User exits slideshow
+```
+
+**Expected**: Smooth playback, filter works correctly
 
 ---
 
@@ -617,8 +803,11 @@ POST /userresource/event/upload
 - [ ] All screens render correctly
 - [ ] Touch interactions work
 - [ ] Camera/gallery permissions work
+- [ ] Calendar permissions work
 - [ ] Push notifications work
 - [ ] Deep links open correctly
+- [ ] Slideshow plays smoothly
+- [ ] Multi-capture camera works
 - [ ] No crashes during normal use
 
 ---
@@ -668,7 +857,7 @@ POST /userresource/event/upload
 OTP screen crashes when entering 7th digit
 
 ## Environment
-- **App Version**: 1.0.0+2
+- **App Version**: 1.0.2+6
 - **Device**: Samsung Galaxy S21
 - **OS Version**: Android 13
 - **Environment**: Testing
@@ -700,13 +889,16 @@ iOS handles this gracefully.
 
 ## Quick Reference Checklists
 
-### Daily Smoke Test (5 minutes)
+### Daily Smoke Test (7 minutes)
 
 - [ ] App launches successfully
 - [ ] Login works with valid credentials
 - [ ] Dashboard loads with events
 - [ ] Can create new event
+- [ ] Event syncs to device calendar
 - [ ] Can view event gallery
+- [ ] Slideshow preview works
+- [ ] Multi-capture camera works
 - [ ] Push notifications received
 
 ### Pre-Release Checklist
@@ -724,12 +916,16 @@ iOS handles this gracefully.
 
 - [ ] Authentication flow
 - [ ] Event CRUD operations
+- [ ] Calendar sync (create/update/delete)
 - [ ] Photo upload/view
+- [ ] Slideshow preview
+- [ ] Multi-capture camera
 - [ ] Invitation flow
 - [ ] Notification system
 - [ ] Profile management
 - [ ] Share functionality
 - [ ] Deep linking
+- [ ] Loading states (shimmers)
 
 ---
 
@@ -743,5 +939,6 @@ iOS handles this gracefully.
 
 ---
 
-*QA Testing Guide for BellyButton App v1.0.0*
+*QA Testing Guide for BellyButton App v1.0.2+6*
 *Last Updated: January 2026*
+*Features: Calendar Sync, Slideshow Preview, Multi-Capture Camera, Shimmer Loaders*

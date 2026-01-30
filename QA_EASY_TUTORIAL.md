@@ -62,6 +62,8 @@
 │      ↓                                                      │
 │   🔢 Enter OTP (6 digits from SMS)                         │
 │      ↓                                                      │
+│   📜 Accept Terms & Conditions (first time only)           │
+│      ↓                                                      │
 │   👤 Setup Profile (name, photo - first time only)         │
 │      ↓                                                      │
 │   🏠 Dashboard (You're in!)                                │
@@ -90,7 +92,14 @@ BellyButton App
 ├── 📸 Event Gallery
 │   ├── View Photos
 │   ├── Upload Photos
+│   ├── Slideshow Preview
+│   ├── Multi-Capture Camera
 │   └── Share Gallery
+│
+├── 📅 Calendar Sync
+│   ├── Sync Event to Device Calendar
+│   ├── Update Calendar Events
+│   └── Remove Calendar Events
 │
 ├── 👥 Invitations
 │   ├── Send Invites (to your events)
@@ -436,9 +445,181 @@ BellyButton App
 </tr>
 </table>
 
+#### 🎬 Slideshow Preview
+
+<table>
+<tr>
+<th>Test</th>
+<th>Steps</th>
+<th>Expected</th>
+<th>Status</th>
+</tr>
+<tr>
+<td><b>SLIDE-001</b><br/>Auto-play Slideshow</td>
+<td>
+1. Open event gallery with photos<br/>
+2. Tap slideshow icon<br/>
+3. Observe auto-play
+</td>
+<td>
+✅ Slideshow opens<br/>
+✅ Photos auto-advance<br/>
+✅ Progress bar shows
+</td>
+<td>☐ Pass ☐ Fail</td>
+</tr>
+<tr>
+<td><b>SLIDE-002</b><br/>Manual Navigation</td>
+<td>
+1. Open slideshow<br/>
+2. Tap pause<br/>
+3. Use arrows to navigate
+</td>
+<td>
+✅ Playback pauses<br/>
+✅ Arrows navigate photos<br/>
+✅ Can resume playback
+</td>
+<td>☐ Pass ☐ Fail</td>
+</tr>
+<tr>
+<td><b>SLIDE-003</b><br/>Face Filter Carousel</td>
+<td>
+1. Open slideshow<br/>
+2. View face carousel overlay<br/>
+3. Tap on a member face
+</td>
+<td>
+✅ Face carousel visible<br/>
+✅ Member photos show<br/>
+✅ Filter applied when tapped
+</td>
+<td>☐ Pass ☐ Fail</td>
+</tr>
+</table>
+
+#### 📷 Multi-Capture Camera
+
+<table>
+<tr>
+<th>Test</th>
+<th>Steps</th>
+<th>Expected</th>
+<th>Status</th>
+</tr>
+<tr>
+<td><b>CAM-001</b><br/>Capture Multiple Photos</td>
+<td>
+1. Open camera from gallery<br/>
+2. Take 3+ photos<br/>
+3. Review captured photos
+</td>
+<td>
+✅ Camera opens<br/>
+✅ Counter shows photo count<br/>
+✅ Thumbnails appear at bottom
+</td>
+<td>☐ Pass ☐ Fail</td>
+</tr>
+<tr>
+<td><b>CAM-002</b><br/>Camera Controls</td>
+<td>
+1. Toggle flash button<br/>
+2. Switch front/back camera<br/>
+3. Observe changes
+</td>
+<td>
+✅ Flash toggles (Off/Auto/On)<br/>
+✅ Camera switches smoothly<br/>
+✅ Preview updates
+</td>
+<td>☐ Pass ☐ Fail</td>
+</tr>
+<tr>
+<td><b>CAM-003</b><br/>Delete & Confirm</td>
+<td>
+1. Take some photos<br/>
+2. Tap on thumbnail<br/>
+3. Delete a photo<br/>
+4. Tap Done
+</td>
+<td>
+✅ Preview opens on tap<br/>
+✅ Photo deleted<br/>
+✅ Remaining photos upload
+</td>
+<td>☐ Pass ☐ Fail</td>
+</tr>
+</table>
+
 ---
 
-### Module 5: Invitations
+### Module 5: Calendar Sync
+
+#### 📅 Device Calendar Integration
+
+<table>
+<tr>
+<th>Test</th>
+<th>Steps</th>
+<th>Expected</th>
+<th>Status</th>
+</tr>
+<tr>
+<td><b>CAL-001</b><br/>Sync New Event</td>
+<td>
+1. Create a new event<br/>
+2. Check device calendar app
+</td>
+<td>
+✅ Event appears in calendar<br/>
+✅ Correct date/time<br/>
+✅ Event details match
+</td>
+<td>☐ Pass ☐ Fail</td>
+</tr>
+<tr>
+<td><b>CAL-002</b><br/>Accept Invitation Sync</td>
+<td>
+1. Accept an event invitation<br/>
+2. Check device calendar
+</td>
+<td>
+✅ Invited event in calendar<br/>
+✅ Marked as participant
+</td>
+<td>☐ Pass ☐ Fail</td>
+</tr>
+<tr>
+<td><b>CAL-003</b><br/>Calendar Permission</td>
+<td>
+1. Deny calendar permission<br/>
+2. Try to create event
+</td>
+<td>
+✅ Permission prompt shown<br/>
+✅ App works without sync<br/>
+✅ Option to enable in settings
+</td>
+<td>☐ Pass ☐ Fail</td>
+</tr>
+<tr>
+<td><b>CAL-004</b><br/>Event Update Sync</td>
+<td>
+1. Edit event date/time<br/>
+2. Check device calendar
+</td>
+<td>
+✅ Calendar event updated<br/>
+✅ Changes reflected
+</td>
+<td>☐ Pass ☐ Fail</td>
+</tr>
+</table>
+
+---
+
+### Module 6: Invitations
 
 #### 📨 Send Invitations
 
@@ -771,6 +952,7 @@ BellyButton App
 |----------|-------------|----------|
 | **Camera Denied** | Deny camera permission | Error + Settings option |
 | **Gallery Denied** | Deny storage permission | Error + Settings option |
+| **Calendar Denied** | Deny calendar permission | Event created, no sync + Settings option |
 | **Notifications Denied** | Deny notification permission | Works but no push |
 
 ### Session Errors
@@ -816,7 +998,7 @@ When you find a bug, copy this template:
 **Title**: [Short description]
 
 **Environment**:
-- App Version: 1.0.0
+- App Version: 1.0.2+6
 - Device: [e.g., iPhone 14 Pro]
 - OS: [e.g., iOS 17.2]
 - Environment: [Dev/QA/Prod]
@@ -850,13 +1032,16 @@ Run this every day before testing:
 ☐ Can login with valid phone/OTP
 ☐ Dashboard loads with events
 ☐ Can create a new event
+☐ Event syncs to device calendar
 ☐ Can open event gallery
 ☐ Can upload a photo
+☐ Slideshow preview works
+☐ Multi-capture camera works
 ☐ Push notifications work
 ☐ Can logout successfully
 ```
 
-**Time**: ~5 minutes
+**Time**: ~7 minutes
 
 ---
 
@@ -869,11 +1054,14 @@ Run this every day before testing:
 | Event Creation | 3 | ☐ | ☐ | ☐ |
 | Event Gallery | 3 | ☐ | ☐ | ☐ |
 | Photo Upload | 3 | ☐ | ☐ | ☐ |
+| Slideshow Preview | 3 | ☐ | ☐ | ☐ |
+| Multi-Capture Camera | 3 | ☐ | ☐ | ☐ |
+| Calendar Sync | 4 | ☐ | ☐ | ☐ |
 | Invitations | 4 | ☐ | ☐ | ☐ |
 | Notifications | 3 | ☐ | ☐ | ☐ |
 | Sharing | 3 | ☐ | ☐ | ☐ |
 | Profile | 3 | ☐ | ☐ | ☐ |
-| **TOTAL** | **33** | **☐** | **☐** | **☐** |
+| **TOTAL** | **43** | **☐** | **☐** | **☐** |
 
 ---
 
@@ -940,6 +1128,7 @@ Use your real phone number to receive OTP. For shared test accounts, contact the
 
 **Happy Testing! 🎉**
 
-*BellyButton QA Easy Tutorial v1.0.0*
+*BellyButton QA Easy Tutorial v1.0.2+6*
+*Updated: January 2026*
 
 </div>
